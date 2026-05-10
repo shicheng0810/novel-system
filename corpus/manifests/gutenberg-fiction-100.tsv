@@ -1,0 +1,101 @@
+id	slug	title	author
+84	frankenstein	Frankenstein; Or, The Modern Prometheus	Mary Wollstonecraft Shelley
+2701	moby-dick	Moby-Dick; Or, The Whale	Herman Melville
+1342	pride-and-prejudice	Pride and Prejudice	Jane Austen
+2554	crime-and-punishment	Crime and Punishment	Fyodor Dostoyevsky
+1260	jane-eyre	Jane Eyre	Charlotte Bronte
+345	dracula	Dracula	Bram Stoker
+514	little-women	Little Women	Louisa May Alcott
+76	huckleberry-finn	Adventures of Huckleberry Finn	Mark Twain
+98	a-tale-of-two-cities	A Tale of Two Cities	Charles Dickens
+1400	great-expectations	Great Expectations	Charles Dickens
+1184	count-of-monte-cristo	The Count of Monte Cristo	Alexandre Dumas
+135	les-miserables	Les Miserables	Victor Hugo
+2600	war-and-peace	War and Peace	Leo Tolstoy
+1399	anna-karenina	Anna Karenina	Leo Tolstoy
+28054	brothers-karamazov	The Brothers Karamazov	Fyodor Dostoyevsky
+996	don-quixote	Don Quixote	Miguel de Cervantes Saavedra
+829	gullivers-travels	Gulliver's Travels	Jonathan Swift
+521	robinson-crusoe	Robinson Crusoe	Daniel Defoe
+158	emma	Emma	Jane Austen
+161	sense-and-sensibility	Sense and Sensibility	Jane Austen
+141	mansfield-park	Mansfield Park	Jane Austen
+105	persuasion	Persuasion	Jane Austen
+121	northanger-abbey	Northanger Abbey	Jane Austen
+768	wuthering-heights	Wuthering Heights	Emily Bronte
+145	middlemarch	Middlemarch	George Eliot
+550	silas-marner	Silas Marner	George Eliot
+6688	mill-on-the-floss	The Mill on the Floss	George Eliot
+208	madame-bovary	Madame Bovary	Gustave Flaubert
+174	picture-of-dorian-gray	The Picture of Dorian Gray	Oscar Wilde
+43	jekyll-hyde	The Strange Case of Dr. Jekyll and Mr. Hyde	Robert Louis Stevenson
+120	treasure-island	Treasure Island	Robert Louis Stevenson
+74	tom-sawyer	The Adventures of Tom Sawyer	Mark Twain
+55	wizard-of-oz	The Wonderful Wizard of Oz	L. Frank Baum
+35	time-machine	The Time Machine	H. G. Wells
+36	war-of-the-worlds	The War of the Worlds	H. G. Wells
+159	island-of-doctor-moreau	The Island of Doctor Moreau	H. G. Wells
+5230	invisible-man	The Invisible Man	H. G. Wells
+219	heart-of-darkness	Heart of Darkness	Joseph Conrad
+974	secret-agent	The Secret Agent	Joseph Conrad
+289	wind-in-the-willows	The Wind in the Willows	Kenneth Grahame
+140	the-jungle	The Jungle	Upton Sinclair
+60	scarlet-pimpernel	The Scarlet Pimpernel	Baroness Orczy
+95	prisoner-of-zenda	The Prisoner of Zenda	Anthony Hope
+1257	three-musketeers	The Three Musketeers	Alexandre Dumas
+215	call-of-the-wild	The Call of the Wild	Jack London
+910	white-fang	White Fang	Jack London
+1074	sea-wolf	The Sea-Wolf	Jack London
+766	david-copperfield	David Copperfield	Charles Dickens
+1023	bleak-house	Bleak House	Charles Dickens
+730	oliver-twist	Oliver Twist	Charles Dickens
+580	pickwick-papers	The Pickwick Papers	Charles Dickens
+786	hard-times	Hard Times	Charles Dickens
+541	age-of-innocence	The Age of Innocence	Edith Wharton
+284	house-of-mirth	The House of Mirth	Edith Wharton
+4517	ethan-frome	Ethan Frome	Edith Wharton
+2641	room-with-a-view	A Room with a View	E. M. Forster
+2891	howards-end	Howards End	E. M. Forster
+155	moonstone	The Moonstone	Wilkie Collins
+583	woman-in-white	The Woman in White	Wilkie Collins
+1895	armadale	Armadale	Wilkie Collins
+1438	no-name	No Name	Wilkie Collins
+4276	north-and-south	North and South	Elizabeth Cleghorn Gaskell
+394	cranford	Cranford	Elizabeth Cleghorn Gaskell
+160	awakening	The Awakening	Kate Chopin
+73	red-badge-of-courage	The Red Badge of Courage	Stephen Crane
+233	sister-carrie	Sister Carrie	Theodore Dreiser
+122	return-of-the-native	The Return of the Native	Thomas Hardy
+107	far-from-madding-crowd	Far from the Madding Crowd	Thomas Hardy
+143	mayor-of-casterbridge	The Mayor of Casterbridge	Thomas Hardy
+110	tess-of-the-durbervilles	Tess of the d'Urbervilles	Thomas Hardy
+153	jude-the-obscure	Jude the Obscure	Thomas Hardy
+351	of-human-bondage	Of Human Bondage	W. Somerset Maugham
+222	moon-and-sixpence	The Moon and Sixpence	W. Somerset Maugham
+17396	secret-garden	The Secret Garden	Frances Hodgson Burnett
+45	anne-of-green-gables	Anne of Green Gables	L. M. Montgomery
+1450	pollyanna	Pollyanna	Eleanor H. Porter
+498	rebecca-of-sunnybrook-farm	Rebecca of Sunnybrook Farm	Kate Douglas Wiggin
+78	tarzan-of-the-apes	Tarzan of the Apes	Edgar Rice Burroughs
+62	princess-of-mars	A Princess of Mars	Edgar Rice Burroughs
+64	gods-of-mars	The Gods of Mars	Edgar Rice Burroughs
+68	warlord-of-mars	The Warlord of Mars	Edgar Rice Burroughs
+123	at-the-earths-core	At the Earth's Core	Edgar Rice Burroughs
+605	pellucidar	Pellucidar	Edgar Rice Burroughs
+2166	king-solomons-mines	King Solomon's Mines	H. Rider Haggard
+3155	she	She	H. Rider Haggard
+711	allan-quatermain	Allan Quatermain	H. Rider Haggard
+558	thirty-nine-steps	The Thirty-Nine Steps	John Buchan
+559	greenmantle	Greenmantle	John Buchan
+1695	man-who-was-thursday	The Man Who Was Thursday	G. K. Chesterton
+204	innocence-of-father-brown	The Innocence of Father Brown	G. K. Chesterton
+863	mysterious-affair-at-styles	The Mysterious Affair at Styles	Agatha Christie
+1155	secret-adversary	The Secret Adversary	Agatha Christie
+244	study-in-scarlet	A Study in Scarlet	Arthur Conan Doyle
+2097	sign-of-four	The Sign of the Four	Arthur Conan Doyle
+2852	hound-of-the-baskervilles	The Hound of the Baskervilles	Arthur Conan Doyle
+834	memoirs-of-sherlock-holmes	The Memoirs of Sherlock Holmes	Arthur Conan Doyle
+108	return-of-sherlock-holmes	The Return of Sherlock Holmes	Arthur Conan Doyle
+3289	valley-of-fear	The Valley of Fear	Arthur Conan Doyle
+5200	metamorphosis	The Metamorphosis	Franz Kafka
+2500	siddhartha	Siddhartha	Hermann Hesse

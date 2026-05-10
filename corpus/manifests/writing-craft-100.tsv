@@ -1,0 +1,101 @@
+id	title	author	focus	access
+craft-001	Poetics	Aristotle	drama_plot_catharsis	public_domain_downloaded
+craft-002	Rhetoric	Aristotle	persuasion_audience_pathos	public_domain_candidate
+craft-003	Ars Poetica	Horace	unity_style_genre	public_domain_downloaded
+craft-004	On the Sublime	Longinus	elevation_emotion_imagery	public_domain_downloaded
+craft-005	The Art of Fiction	Henry James	point_of_view_novel_form	public_domain_downloaded
+craft-006	A Manual of the Art of Fiction	Clayton Meeker Hamilton	fiction_principles	public_domain_downloaded
+craft-007	On the Art of Writing	Arthur Quiller-Couch	style_literary_training	public_domain_downloaded
+craft-008	The Elements of Style	William Strunk	clear_prose_style	public_domain_downloaded
+craft-009	How to Tell a Story and Other Essays	Mark Twain	humor_oral_storytelling	public_domain_downloaded
+craft-010	Essays in the Art of Writing	Robert Louis Stevenson	style_adventure_romance	public_domain_downloaded
+craft-011	The Writing of Fiction	Edith Wharton	novel_architecture_scene	public_domain_downloaded
+craft-012	Technique of the Drama	Gustav Freytag	dramatic_arc_scene_structure	public_domain_candidate
+craft-013	Aspects of the Novel	E. M. Forster	character_plot_pattern	needs_legal_copy
+craft-014	The Art of the Novel	Milan Kundera	novel_form_polyphony	needs_legal_copy
+craft-015	The Dialogic Imagination	Mikhail Bakhtin	polyphony_voice_chronotope	needs_legal_copy
+craft-016	Morphology of the Folktale	Vladimir Propp	functional_plot_units	needs_legal_copy
+craft-017	The Hero with a Thousand Faces	Joseph Campbell	mythic_arc_archetype	needs_legal_copy
+craft-018	Anatomy of Criticism	Northrop Frye	genre_modes_archetype	needs_legal_copy
+craft-019	The Rhetoric of Fiction	Wayne C. Booth	narrator_reliability_distance	needs_legal_copy
+craft-020	Story and Discourse	Seymour Chatman	narrative_structure_discourse	needs_legal_copy
+craft-021	Narrative Discourse	Gerard Genette	time_order_frequency_voice	needs_legal_copy
+craft-022	Narrative Fiction: Contemporary Poetics	Shlomith Rimmon-Kenan	narrative_theory	needs_legal_copy
+craft-023	Reading for the Plot	Peter Brooks	desire_plot_drive	needs_legal_copy
+craft-024	Story	Robert McKee	scene_design_value_turns	needs_legal_copy
+craft-025	Dialogue	Robert McKee	dialogue_subtext	needs_legal_copy
+craft-026	Character	Robert McKee	character_design	needs_legal_copy
+craft-027	Action	Robert McKee	action_sequence_design	needs_legal_copy
+craft-028	Save the Cat	Blake Snyder	commercial_beat_sheet	needs_legal_copy
+craft-029	Save the Cat Writes a Novel	Jessica Brody	novel_beat_sheet	needs_legal_copy
+craft-030	The Writer's Journey	Christopher Vogler	hero_journey_for_writers	needs_legal_copy
+craft-031	The Anatomy of Story	John Truby	organic_story_design	needs_legal_copy
+craft-032	The Anatomy of Genres	John Truby	genre_design	needs_legal_copy
+craft-033	Into the Woods	John Yorke	five_act_story_pattern	needs_legal_copy
+craft-034	Story Engineering	Larry Brooks	concept_structure_execution	needs_legal_copy
+craft-035	Story Physics	Larry Brooks	story_forces	needs_legal_copy
+craft-036	The Story Grid	Shawn Coyne	editorial_diagnostics	needs_legal_copy
+craft-037	Techniques of the Selling Writer	Dwight V. Swain	motivation_reaction_scene_sequel	needs_legal_copy
+craft-038	Scene & Structure	Jack M. Bickham	scene_sequel_structure	needs_legal_copy
+craft-039	Writing Novels That Sell	Jack M. Bickham	commercial_novel_execution	needs_legal_copy
+craft-040	Characters & Viewpoint	Orson Scott Card	character_pov	needs_legal_copy
+craft-041	How to Write Science Fiction & Fantasy	Orson Scott Card	speculative_world_story	needs_legal_copy
+craft-042	Beginnings, Middles & Ends	Nancy Kress	novel_parts	needs_legal_copy
+craft-043	Dynamic Characters	Nancy Kress	character_change	needs_legal_copy
+craft-044	Plot & Structure	James Scott Bell	plot_frameworks	needs_legal_copy
+craft-045	Conflict & Suspense	James Scott Bell	tension_suspense	needs_legal_copy
+craft-046	Revision & Self-Editing	James Scott Bell	revision_diagnostics	needs_legal_copy
+craft-047	Write Your Novel From the Middle	James Scott Bell	midpoint_mirror_moment	needs_legal_copy
+craft-048	Hooked	Les Edgerton	openings_hooks	needs_legal_copy
+craft-049	The First Five Pages	Noah Lukeman	opening_quality_filter	needs_legal_copy
+craft-050	The Plot Thickens	Noah Lukeman	plot_deepening	needs_legal_copy
+craft-051	Writing the Breakout Novel	Donald Maass	breakout_commercial_fiction	needs_legal_copy
+craft-052	The Fire in Fiction	Donald Maass	micro_tension	needs_legal_copy
+craft-053	The Emotional Craft of Fiction	Donald Maass	emotional_experience	needs_legal_copy
+craft-054	Writing 21st Century Fiction	Donald Maass	modern_reader_engagement	needs_legal_copy
+craft-055	Wired for Story	Lisa Cron	cognitive_story_hooks	needs_legal_copy
+craft-056	Story Genius	Lisa Cron	scene_causality_character	needs_legal_copy
+craft-057	Blueprint for a Book	Jennie Nash	book_coaching_structure	needs_legal_copy
+craft-058	Meander, Spiral, Explode	Jane Alison	narrative_patterns	needs_legal_copy
+craft-059	Steering the Craft	Ursula K. Le Guin	style_exercises	needs_legal_copy
+craft-060	The Language of the Night	Ursula K. Le Guin	fantasy_language_theme	needs_legal_copy
+craft-061	Bird by Bird	Anne Lamott	writer_process	needs_legal_copy
+craft-062	On Writing	Stephen King	process_story_style	needs_legal_copy
+craft-063	On Writing Well	William Zinsser	clear_nonfiction_style	needs_legal_copy
+craft-064	Writing Fiction: A Guide to Narrative Craft	Janet Burroway	narrative_craft_textbook	needs_legal_copy
+craft-065	The Art of Fiction	John Gardner	literary_fiction_craft	needs_legal_copy
+craft-066	On Becoming a Novelist	John Gardner	writer_mindset	needs_legal_copy
+craft-067	The Lie That Tells a Truth	John Dufresne	fiction_truth	needs_legal_copy
+craft-068	The Making of a Story	Alice LaPlante	story_textbook	needs_legal_copy
+craft-069	Wonderbook	Jeff VanderMeer	creative_speculative_craft	needs_legal_copy
+craft-070	The 90-Day Novel	Alan Watt	draft_process	needs_legal_copy
+craft-071	The Weekend Novelist	Robert J. Ray	drafting_system	needs_legal_copy
+craft-072	The Plot Whisperer	Martha Alderson	plot_energy	needs_legal_copy
+craft-073	Story Trumps Structure	Steven James	organic_storytelling	needs_legal_copy
+craft-074	Troubleshooting Your Novel	Steven James	diagnostic_revision	needs_legal_copy
+craft-075	Writing the Blockbuster Novel	Albert Zuckerman	high_concept_commercial	needs_legal_copy
+craft-076	The Marshall Plan for Novel Writing	Evan Marshall	novel_blueprint	needs_legal_copy
+craft-077	Novel Metamorphosis	Darcy Pattison	revision_workbook	needs_legal_copy
+craft-078	The Writer's Guide to Character Traits	Linda N. Edelstein	character_psychology	needs_legal_copy
+craft-079	The Emotion Thesaurus	Angela Ackerman and Becca Puglisi	emotion_expression	needs_legal_copy
+craft-080	The Negative Trait Thesaurus	Angela Ackerman and Becca Puglisi	flaws	needs_legal_copy
+craft-081	The Positive Trait Thesaurus	Angela Ackerman and Becca Puglisi	strengths	needs_legal_copy
+craft-082	Master Lists for Writers	Bryn Donovan	prompt_reference	needs_legal_copy
+craft-083	Writing Deep Scenes	Martha Alderson and Jordan Rosenfeld	scene_emotion	needs_legal_copy
+craft-084	Make a Scene	Jordan E. Rosenfeld	scene_construction	needs_legal_copy
+craft-085	Point of View	Sandra Gerth	point_of_view	needs_legal_copy
+craft-086	Deep Point of View	Marcy Kennedy	deep_pov	needs_legal_copy
+craft-087	Creating Character Arcs	K. M. Weiland	character_arc	needs_legal_copy
+craft-088	Structuring Your Novel	K. M. Weiland	story_structure	needs_legal_copy
+craft-089	Outlining Your Novel	K. M. Weiland	outlining	needs_legal_copy
+craft-090	5 Secrets of Story Structure	K. M. Weiland	compact_structure	needs_legal_copy
+craft-091	Writing Screenplays That Sell	Michael Hauge	screen_story_pitch	needs_legal_copy
+craft-092	Selling Your Story in 60 Seconds	Michael Hauge	pitching	needs_legal_copy
+craft-093	Screenplay	Syd Field	three_act_screenplay	needs_legal_copy
+craft-094	The Screenwriter's Workbook	Syd Field	screenplay_exercises	needs_legal_copy
+craft-095	The Sequence Approach	Paul Joseph Gulino	sequence_structure	needs_legal_copy
+craft-096	The Nutshell Technique	Jill Chamberlain	protagonist_arc_screenplay	needs_legal_copy
+craft-097	The TV Writer's Workbook	Ellen Sandler	episodic_structure	needs_legal_copy
+craft-098	The Fantasy Fiction Formula	Deborah Chester	fantasy_plot_character	needs_legal_copy
+craft-099	Writing Fantasy & Science Fiction	Orson Scott Card, Philip Athans, and Jay Lake	speculative_fiction	needs_legal_copy
+craft-100	The Guide to Writing Fantasy and Science Fiction	Philip Athans	speculative_commercial	needs_legal_copy

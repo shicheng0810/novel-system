@@ -1,0 +1,87 @@
+{
+  "createdAt": "2026-05-08T22:47:00-07:00",
+  "policy": "Legal public-domain seed corpus. Do not add pirated or unauthorized copyrighted texts.",
+  "source": "Project Gutenberg",
+  "books": [
+    {
+      "id": "gutenberg-84",
+      "title": "Frankenstein; Or, The Modern Prometheus",
+      "author": "Mary Wollstonecraft Shelley",
+      "url": "https://www.gutenberg.org/files/84/84-0.txt",
+      "path": "corpus/raw/gutenberg/frankenstein.txt",
+      "sha256": "06c37d2c52d208d3d81eb12c3b10b5edbd7728b73554325ddceadbe2fb427e77"
+    },
+    {
+      "id": "gutenberg-2701",
+      "title": "Moby-Dick; Or, The Whale",
+      "author": "Herman Melville",
+      "url": "https://www.gutenberg.org/files/2701/2701-0.txt",
+      "path": "corpus/raw/gutenberg/moby-dick.txt",
+      "sha256": "0670d7bb10b99d05f095a28942801aa74d4921d1b34dbdc76900e2c4c2bd2189"
+    },
+    {
+      "id": "gutenberg-1342",
+      "title": "Pride and Prejudice",
+      "author": "Jane Austen",
+      "url": "https://www.gutenberg.org/files/1342/1342-0.txt",
+      "path": "corpus/raw/gutenberg/pride-and-prejudice.txt",
+      "sha256": "a5666f87abf2cbfdaa27ea8c73bd284da9649b9a2ab27b4e6c8f6aeab1bd1c88"
+    },
+    {
+      "id": "gutenberg-2554",
+      "title": "Crime and Punishment",
+      "author": "Fyodor Dostoyevsky",
+      "url": "https://www.gutenberg.org/files/2554/2554-0.txt",
+      "path": "corpus/raw/gutenberg/crime-and-punishment.txt",
+      "sha256": "5222407ef6d753f82d5defc5cb653a29e0de6545e439c3494af8f9ba4e51c924"
+    },
+    {
+      "id": "gutenberg-1260",
+      "title": "Jane Eyre: An Autobiography",
+      "author": "Charlotte Bronte",
+      "url": "https://www.gutenberg.org/files/1260/1260-0.txt",
+      "path": "corpus/raw/gutenberg/jane-eyre.txt",
+      "sha256": "693618b2da336410626b96d793af9988215d39a8e5f192e3e7800c5f927d6c43"
+    },
+    {
+      "id": "gutenberg-345",
+      "title": "Dracula",
+      "author": "Bram Stoker",
+      "url": "https://www.gutenberg.org/files/345/345-0.txt",
+      "path": "corpus/raw/gutenberg/dracula.txt",
+      "sha256": "8cf05c0f0ac5b282d84f2fb36dbccd744bdb5bce7b5612438a63b43cbe27b472"
+    },
+    {
+      "id": "gutenberg-514",
+      "title": "Little Women; Or, Meg, Jo, Beth, and Amy",
+      "author": "Louisa May Alcott",
+      "url": "https://www.gutenberg.org/files/514/514-0.txt",
+      "path": "corpus/raw/gutenberg/little-women.txt",
+      "sha256": "250020da93b76b2b5a9b96c8f50c71422773beeeb4e4c09a15d2187cf6a7db0e"
+    },
+    {
+      "id": "gutenberg-76",
+      "title": "Adventures of Huckleberry Finn",
+      "author": "Mark Twain",
+      "url": "https://www.gutenberg.org/files/76/76-0.txt",
+      "path": "corpus/raw/gutenberg/huckleberry-finn.txt",
+      "sha256": "6cb8df05d72f5b52f7b12ebe9bb84e8c0147cac2bcc7067dd65d3b1b580c5659"
+    },
+    {
+      "id": "gutenberg-98",
+      "title": "A Tale of Two Cities",
+      "author": "Charles Dickens",
+      "url": "https://www.gutenberg.org/files/98/98-0.txt",
+      "path": "corpus/raw/gutenberg/a-tale-of-two-cities.txt",
+      "sha256": "e3dfeb67feb904ac0f73a35204a175c58248422c2be8556802cb8820d958d67c"
+    },
+    {
+      "id": "gutenberg-1400",
+      "title": "Great Expectations",
+      "author": "Charles Dickens",
+      "url": "https://www.gutenberg.org/files/1400/1400-0.txt",
+      "path": "corpus/raw/gutenberg/great-expectations.txt",
+      "sha256": "48dd8f292e68ff2856675a60b48bcd80b1ebe6ed58ac3e6f91a2bb2400f1e345"
+    }
+  ]
+}

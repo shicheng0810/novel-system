@@ -1,0 +1,216 @@
+queue_id	source_type	language	title	author	source_path	status
+fiction_en:frankenstein	fiction	en	Frankenstein; Or, The Modern Prometheus	Mary Wollstonecraft Shelley	corpus/raw/gutenberg/frankenstein.txt	full_text
+fiction_en:moby-dick	fiction	en	Moby-Dick; Or, The Whale	Herman Melville	corpus/raw/gutenberg/moby-dick.txt	full_text
+fiction_en:pride-and-prejudice	fiction	en	Pride and Prejudice	Jane Austen	corpus/raw/gutenberg/pride-and-prejudice.txt	full_text
+fiction_en:crime-and-punishment	fiction	en	Crime and Punishment	Fyodor Dostoyevsky	corpus/raw/gutenberg/crime-and-punishment.txt	full_text
+fiction_en:jane-eyre	fiction	en	Jane Eyre	Charlotte Bronte	corpus/raw/gutenberg/jane-eyre.txt	full_text
+fiction_en:dracula	fiction	en	Dracula	Bram Stoker	corpus/raw/gutenberg/dracula.txt	full_text
+fiction_en:little-women	fiction	en	Little Women	Louisa May Alcott	corpus/raw/gutenberg/little-women.txt	full_text
+fiction_en:huckleberry-finn	fiction	en	Adventures of Huckleberry Finn	Mark Twain	corpus/raw/gutenberg/huckleberry-finn.txt	full_text
+fiction_en:a-tale-of-two-cities	fiction	en	A Tale of Two Cities	Charles Dickens	corpus/raw/gutenberg/a-tale-of-two-cities.txt	full_text
+fiction_en:great-expectations	fiction	en	Great Expectations	Charles Dickens	corpus/raw/gutenberg/great-expectations.txt	full_text
+fiction_en:count-of-monte-cristo	fiction	en	The Count of Monte Cristo	Alexandre Dumas	corpus/raw/gutenberg/count-of-monte-cristo.txt	full_text
+fiction_en:les-miserables	fiction	en	Les Miserables	Victor Hugo	corpus/raw/gutenberg/les-miserables.txt	full_text
+fiction_en:war-and-peace	fiction	en	War and Peace	Leo Tolstoy	corpus/raw/gutenberg/war-and-peace.txt	full_text
+fiction_en:anna-karenina	fiction	en	Anna Karenina	Leo Tolstoy	corpus/raw/gutenberg/anna-karenina.txt	full_text
+fiction_en:brothers-karamazov	fiction	en	The Brothers Karamazov	Fyodor Dostoyevsky	corpus/raw/gutenberg/brothers-karamazov.txt	full_text
+fiction_en:don-quixote	fiction	en	Don Quixote	Miguel de Cervantes Saavedra	corpus/raw/gutenberg/don-quixote.txt	full_text
+fiction_en:gullivers-travels	fiction	en	Gulliver's Travels	Jonathan Swift	corpus/raw/gutenberg/gullivers-travels.txt	full_text
+fiction_en:robinson-crusoe	fiction	en	Robinson Crusoe	Daniel Defoe	corpus/raw/gutenberg/robinson-crusoe.txt	full_text
+fiction_en:emma	fiction	en	Emma	Jane Austen	corpus/raw/gutenberg/emma.txt	full_text
+fiction_en:sense-and-sensibility	fiction	en	Sense and Sensibility	Jane Austen	corpus/raw/gutenberg/sense-and-sensibility.txt	full_text
+fiction_en:mansfield-park	fiction	en	Mansfield Park	Jane Austen	corpus/raw/gutenberg/mansfield-park.txt	full_text
+fiction_en:persuasion	fiction	en	Persuasion	Jane Austen	corpus/raw/gutenberg/persuasion.txt	full_text
+fiction_en:northanger-abbey	fiction	en	Northanger Abbey	Jane Austen	corpus/raw/gutenberg/northanger-abbey.txt	full_text
+fiction_en:wuthering-heights	fiction	en	Wuthering Heights	Emily Bronte	corpus/raw/gutenberg/wuthering-heights.txt	full_text
+fiction_en:middlemarch	fiction	en	Middlemarch	George Eliot	corpus/raw/gutenberg/middlemarch.txt	full_text
+fiction_en:silas-marner	fiction	en	Silas Marner	George Eliot	corpus/raw/gutenberg/silas-marner.txt	full_text
+fiction_en:mill-on-the-floss	fiction	en	The Mill on the Floss	George Eliot	corpus/raw/gutenberg/mill-on-the-floss.txt	full_text
+fiction_en:madame-bovary	fiction	en	Madame Bovary	Gustave Flaubert	corpus/raw/gutenberg/madame-bovary.txt	full_text
+fiction_en:picture-of-dorian-gray	fiction	en	The Picture of Dorian Gray	Oscar Wilde	corpus/raw/gutenberg/picture-of-dorian-gray.txt	full_text
+fiction_en:jekyll-hyde	fiction	en	The Strange Case of Dr. Jekyll and Mr. Hyde	Robert Louis Stevenson	corpus/raw/gutenberg/jekyll-hyde.txt	full_text
+fiction_en:treasure-island	fiction	en	Treasure Island	Robert Louis Stevenson	corpus/raw/gutenberg/treasure-island.txt	full_text
+fiction_en:tom-sawyer	fiction	en	The Adventures of Tom Sawyer	Mark Twain	corpus/raw/gutenberg/tom-sawyer.txt	full_text
+fiction_en:wizard-of-oz	fiction	en	The Wonderful Wizard of Oz	L. Frank Baum	corpus/raw/gutenberg/wizard-of-oz.txt	full_text
+fiction_en:time-machine	fiction	en	The Time Machine	H. G. Wells	corpus/raw/gutenberg/time-machine.txt	full_text
+fiction_en:war-of-the-worlds	fiction	en	The War of the Worlds	H. G. Wells	corpus/raw/gutenberg/war-of-the-worlds.txt	full_text
+fiction_en:island-of-doctor-moreau	fiction	en	The Island of Doctor Moreau	H. G. Wells	corpus/raw/gutenberg/island-of-doctor-moreau.txt	full_text
+fiction_en:invisible-man	fiction	en	The Invisible Man	H. G. Wells	corpus/raw/gutenberg/invisible-man.txt	full_text
+fiction_en:heart-of-darkness	fiction	en	Heart of Darkness	Joseph Conrad	corpus/raw/gutenberg/heart-of-darkness.txt	full_text
+fiction_en:secret-agent	fiction	en	The Secret Agent	Joseph Conrad	corpus/raw/gutenberg/secret-agent.txt	full_text
+fiction_en:wind-in-the-willows	fiction	en	The Wind in the Willows	Kenneth Grahame	corpus/raw/gutenberg/wind-in-the-willows.txt	full_text
+fiction_en:the-jungle	fiction	en	The Jungle	Upton Sinclair	corpus/raw/gutenberg/the-jungle.txt	full_text
+fiction_en:scarlet-pimpernel	fiction	en	The Scarlet Pimpernel	Baroness Orczy	corpus/raw/gutenberg/scarlet-pimpernel.txt	full_text
+fiction_en:prisoner-of-zenda	fiction	en	The Prisoner of Zenda	Anthony Hope	corpus/raw/gutenberg/prisoner-of-zenda.txt	full_text
+fiction_en:three-musketeers	fiction	en	The Three Musketeers	Alexandre Dumas	corpus/raw/gutenberg/three-musketeers.txt	full_text
+fiction_en:call-of-the-wild	fiction	en	The Call of the Wild	Jack London	corpus/raw/gutenberg/call-of-the-wild.txt	full_text
+fiction_en:white-fang	fiction	en	White Fang	Jack London	corpus/raw/gutenberg/white-fang.txt	full_text
+fiction_en:sea-wolf	fiction	en	The Sea-Wolf	Jack London	corpus/raw/gutenberg/sea-wolf.txt	full_text
+fiction_en:david-copperfield	fiction	en	David Copperfield	Charles Dickens	corpus/raw/gutenberg/david-copperfield.txt	full_text
+fiction_en:bleak-house	fiction	en	Bleak House	Charles Dickens	corpus/raw/gutenberg/bleak-house.txt	full_text
+fiction_en:oliver-twist	fiction	en	Oliver Twist	Charles Dickens	corpus/raw/gutenberg/oliver-twist.txt	full_text
+fiction_en:pickwick-papers	fiction	en	The Pickwick Papers	Charles Dickens	corpus/raw/gutenberg/pickwick-papers.txt	full_text
+fiction_en:hard-times	fiction	en	Hard Times	Charles Dickens	corpus/raw/gutenberg/hard-times.txt	full_text
+fiction_en:age-of-innocence	fiction	en	The Age of Innocence	Edith Wharton	corpus/raw/gutenberg/age-of-innocence.txt	full_text
+fiction_en:house-of-mirth	fiction	en	The House of Mirth	Edith Wharton	corpus/raw/gutenberg/house-of-mirth.txt	full_text
+fiction_en:ethan-frome	fiction	en	Ethan Frome	Edith Wharton	corpus/raw/gutenberg/ethan-frome.txt	full_text
+fiction_en:room-with-a-view	fiction	en	A Room with a View	E. M. Forster	corpus/raw/gutenberg/room-with-a-view.txt	full_text
+fiction_en:howards-end	fiction	en	Howards End	E. M. Forster	corpus/raw/gutenberg/howards-end.txt	full_text
+fiction_en:moonstone	fiction	en	The Moonstone	Wilkie Collins	corpus/raw/gutenberg/moonstone.txt	full_text
+fiction_en:woman-in-white	fiction	en	The Woman in White	Wilkie Collins	corpus/raw/gutenberg/woman-in-white.txt	full_text
+fiction_en:armadale	fiction	en	Armadale	Wilkie Collins	corpus/raw/gutenberg/armadale.txt	full_text
+fiction_en:no-name	fiction	en	No Name	Wilkie Collins	corpus/raw/gutenberg/no-name.txt	full_text
+fiction_en:north-and-south	fiction	en	North and South	Elizabeth Cleghorn Gaskell	corpus/raw/gutenberg/north-and-south.txt	full_text
+fiction_en:cranford	fiction	en	Cranford	Elizabeth Cleghorn Gaskell	corpus/raw/gutenberg/cranford.txt	full_text
+fiction_en:awakening	fiction	en	The Awakening	Kate Chopin	corpus/raw/gutenberg/awakening.txt	full_text
+fiction_en:red-badge-of-courage	fiction	en	The Red Badge of Courage	Stephen Crane	corpus/raw/gutenberg/red-badge-of-courage.txt	full_text
+fiction_en:sister-carrie	fiction	en	Sister Carrie	Theodore Dreiser	corpus/raw/gutenberg/sister-carrie.txt	full_text
+fiction_en:return-of-the-native	fiction	en	The Return of the Native	Thomas Hardy	corpus/raw/gutenberg/return-of-the-native.txt	full_text
+fiction_en:far-from-madding-crowd	fiction	en	Far from the Madding Crowd	Thomas Hardy	corpus/raw/gutenberg/far-from-madding-crowd.txt	full_text
+fiction_en:mayor-of-casterbridge	fiction	en	The Mayor of Casterbridge	Thomas Hardy	corpus/raw/gutenberg/mayor-of-casterbridge.txt	full_text
+fiction_en:tess-of-the-durbervilles	fiction	en	Tess of the d'Urbervilles	Thomas Hardy	corpus/raw/gutenberg/tess-of-the-durbervilles.txt	full_text
+fiction_en:jude-the-obscure	fiction	en	Jude the Obscure	Thomas Hardy	corpus/raw/gutenberg/jude-the-obscure.txt	full_text
+fiction_en:of-human-bondage	fiction	en	Of Human Bondage	W. Somerset Maugham	corpus/raw/gutenberg/of-human-bondage.txt	full_text
+fiction_en:moon-and-sixpence	fiction	en	The Moon and Sixpence	W. Somerset Maugham	corpus/raw/gutenberg/moon-and-sixpence.txt	full_text
+fiction_en:secret-garden	fiction	en	The Secret Garden	Frances Hodgson Burnett	corpus/raw/gutenberg/secret-garden.txt	full_text
+fiction_en:anne-of-green-gables	fiction	en	Anne of Green Gables	L. M. Montgomery	corpus/raw/gutenberg/anne-of-green-gables.txt	full_text
+fiction_en:pollyanna	fiction	en	Pollyanna	Eleanor H. Porter	corpus/raw/gutenberg/pollyanna.txt	full_text
+fiction_en:rebecca-of-sunnybrook-farm	fiction	en	Rebecca of Sunnybrook Farm	Kate Douglas Wiggin	corpus/raw/gutenberg/rebecca-of-sunnybrook-farm.txt	full_text
+fiction_en:tarzan-of-the-apes	fiction	en	Tarzan of the Apes	Edgar Rice Burroughs	corpus/raw/gutenberg/tarzan-of-the-apes.txt	full_text
+fiction_en:princess-of-mars	fiction	en	A Princess of Mars	Edgar Rice Burroughs	corpus/raw/gutenberg/princess-of-mars.txt	full_text
+fiction_en:gods-of-mars	fiction	en	The Gods of Mars	Edgar Rice Burroughs	corpus/raw/gutenberg/gods-of-mars.txt	full_text
+fiction_en:warlord-of-mars	fiction	en	The Warlord of Mars	Edgar Rice Burroughs	corpus/raw/gutenberg/warlord-of-mars.txt	full_text
+fiction_en:at-the-earths-core	fiction	en	At the Earth's Core	Edgar Rice Burroughs	corpus/raw/gutenberg/at-the-earths-core.txt	full_text
+fiction_en:pellucidar	fiction	en	Pellucidar	Edgar Rice Burroughs	corpus/raw/gutenberg/pellucidar.txt	full_text
+fiction_en:king-solomons-mines	fiction	en	King Solomon's Mines	H. Rider Haggard	corpus/raw/gutenberg/king-solomons-mines.txt	full_text
+fiction_en:she	fiction	en	She	H. Rider Haggard	corpus/raw/gutenberg/she.txt	full_text
+fiction_en:allan-quatermain	fiction	en	Allan Quatermain	H. Rider Haggard	corpus/raw/gutenberg/allan-quatermain.txt	full_text
+fiction_en:thirty-nine-steps	fiction	en	The Thirty-Nine Steps	John Buchan	corpus/raw/gutenberg/thirty-nine-steps.txt	full_text
+fiction_en:greenmantle	fiction	en	Greenmantle	John Buchan	corpus/raw/gutenberg/greenmantle.txt	full_text
+fiction_en:man-who-was-thursday	fiction	en	The Man Who Was Thursday	G. K. Chesterton	corpus/raw/gutenberg/man-who-was-thursday.txt	full_text
+fiction_en:innocence-of-father-brown	fiction	en	The Innocence of Father Brown	G. K. Chesterton	corpus/raw/gutenberg/innocence-of-father-brown.txt	full_text
+fiction_en:mysterious-affair-at-styles	fiction	en	The Mysterious Affair at Styles	Agatha Christie	corpus/raw/gutenberg/mysterious-affair-at-styles.txt	full_text
+fiction_en:secret-adversary	fiction	en	The Secret Adversary	Agatha Christie	corpus/raw/gutenberg/secret-adversary.txt	full_text
+fiction_en:study-in-scarlet	fiction	en	A Study in Scarlet	Arthur Conan Doyle	corpus/raw/gutenberg/study-in-scarlet.txt	full_text
+fiction_en:sign-of-four	fiction	en	The Sign of the Four	Arthur Conan Doyle	corpus/raw/gutenberg/sign-of-four.txt	full_text
+fiction_en:hound-of-the-baskervilles	fiction	en	The Hound of the Baskervilles	Arthur Conan Doyle	corpus/raw/gutenberg/hound-of-the-baskervilles.txt	full_text
+fiction_en:memoirs-of-sherlock-holmes	fiction	en	The Memoirs of Sherlock Holmes	Arthur Conan Doyle	corpus/raw/gutenberg/memoirs-of-sherlock-holmes.txt	full_text
+fiction_en:return-of-sherlock-holmes	fiction	en	The Return of Sherlock Holmes	Arthur Conan Doyle	corpus/raw/gutenberg/return-of-sherlock-holmes.txt	full_text
+fiction_en:valley-of-fear	fiction	en	The Valley of Fear	Arthur Conan Doyle	corpus/raw/gutenberg/valley-of-fear.txt	full_text
+fiction_en:metamorphosis	fiction	en	The Metamorphosis	Franz Kafka	corpus/raw/gutenberg/metamorphosis.txt	full_text
+fiction_en:siddhartha	fiction	en	Siddhartha	Hermann Hesse	corpus/raw/gutenberg/siddhartha.txt	full_text
+fiction_zh:hongloumeng	fiction	zh	紅樓夢	曹雪芹	corpus/raw/gutenberg-zh/hongloumeng.txt	full_text
+fiction_zh:sanguozhiyanyi	fiction	zh	三國志演義	羅貫中	corpus/raw/gutenberg-zh/sanguozhiyanyi.txt	full_text
+fiction_zh:shuihuzhuan	fiction	zh	水滸傳	施耐庵	corpus/raw/gutenberg-zh/shuihuzhuan.txt	full_text
+fiction_zh:xiyouji	fiction	zh	西遊記	吳承恩	corpus/raw/gutenberg-zh/xiyouji.txt	full_text
+fiction_zh:fengshenyanyi	fiction	zh	封神演義	陸西星	corpus/raw/gutenberg-zh/fengshenyanyi.txt	full_text
+fiction_zh:rulinwaishi	fiction	zh	儒林外史	吳敬梓	corpus/raw/gutenberg-zh/rulinwaishi.txt	full_text
+fiction_zh:jinghuayuan	fiction	zh	鏡花緣	李汝珍	corpus/raw/gutenberg-zh/jinghuayuan.txt	full_text
+fiction_zh:ernvyingxiongzhuan	fiction	zh	兒女英雄傳	文康	corpus/raw/gutenberg-zh/ernvyingxiongzhuan.txt	full_text
+fiction_zh:laocanyouji	fiction	zh	老殘遊記	劉鶚	corpus/raw/gutenberg-zh/laocanyouji.txt	full_text
+fiction_zh:haishanghualiezhuan	fiction	zh	海上花列傳	韓邦慶	corpus/raw/gutenberg-zh/haishanghualiezhuan.txt	full_text
+fiction_zh:buhongloumeng	fiction	zh	補紅樓夢	琅嬛山樵	corpus/raw/gutenberg-zh/buhongloumeng.txt	full_text
+fiction_zh:fengliuwu	fiction	zh	風流悟	坐花散人	corpus/raw/gutenberg-zh/fengliuwu.txt	full_text
+fiction_zh:zhenzhongji	fiction	zh	枕中記	沈既濟	corpus/raw/gutenberg-zh/zhenzhongji.txt	full_text
+fiction_zh:youxianku	fiction	zh	遊仙窟	張鷟	corpus/raw/gutenberg-zh/youxianku.txt	full_text
+fiction_zh:laocanyoujixuji	fiction	zh	老殘遊記續集	劉鶚	corpus/raw/gutenberg-zh/laocanyoujixuji.txt	full_text
+craft:craft-001	craft	mixed	Poetics	Aristotle	corpus/raw/writing-craft/poetics-aristotle.txt	full_text
+craft:craft-002	craft	mixed	Rhetoric	Aristotle		needs_legal_copy
+craft:craft-003	craft	mixed	Ars Poetica	Horace	corpus/raw/writing-craft/art-of-poetry-horace.txt	full_text
+craft:craft-004	craft	mixed	On the Sublime	Longinus	corpus/raw/writing-craft/on-the-sublime-longinus.txt	full_text
+craft:craft-005	craft	mixed	The Art of Fiction	Henry James	corpus/raw/writing-craft/partial-portraits-art-of-fiction-henry-james.txt	full_text
+craft:craft-006	craft	mixed	A Manual of the Art of Fiction	Clayton Meeker Hamilton	corpus/raw/writing-craft/manual-art-fiction-hamilton.txt	full_text
+craft:craft-007	craft	mixed	On the Art of Writing	Arthur Quiller-Couch	corpus/raw/writing-craft/on-the-art-of-writing-quiller-couch.txt	full_text
+craft:craft-008	craft	mixed	The Elements of Style	William Strunk	corpus/raw/writing-craft/elements-of-style-strunk.txt	full_text
+craft:craft-009	craft	mixed	How to Tell a Story and Other Essays	Mark Twain	corpus/raw/writing-craft/how-to-tell-a-story-twain.txt	full_text
+craft:craft-010	craft	mixed	Essays in the Art of Writing	Robert Louis Stevenson	corpus/raw/writing-craft/essays-art-writing-stevenson.txt	full_text
+craft:craft-011	craft	mixed	The Writing of Fiction	Edith Wharton	corpus/raw/writing-craft/writing-of-fiction-wharton.txt	full_text
+craft:craft-012	craft	mixed	Technique of the Drama	Gustav Freytag		needs_legal_copy
+craft:craft-013	craft	mixed	Aspects of the Novel	E. M. Forster		needs_legal_copy
+craft:craft-014	craft	mixed	The Art of the Novel	Milan Kundera		needs_legal_copy
+craft:craft-015	craft	mixed	The Dialogic Imagination	Mikhail Bakhtin		needs_legal_copy
+craft:craft-016	craft	mixed	Morphology of the Folktale	Vladimir Propp		needs_legal_copy
+craft:craft-017	craft	mixed	The Hero with a Thousand Faces	Joseph Campbell		needs_legal_copy
+craft:craft-018	craft	mixed	Anatomy of Criticism	Northrop Frye		needs_legal_copy
+craft:craft-019	craft	mixed	The Rhetoric of Fiction	Wayne C. Booth		needs_legal_copy
+craft:craft-020	craft	mixed	Story and Discourse	Seymour Chatman		needs_legal_copy
+craft:craft-021	craft	mixed	Narrative Discourse	Gerard Genette		needs_legal_copy
+craft:craft-022	craft	mixed	Narrative Fiction: Contemporary Poetics	Shlomith Rimmon-Kenan		needs_legal_copy
+craft:craft-023	craft	mixed	Reading for the Plot	Peter Brooks		needs_legal_copy
+craft:craft-024	craft	mixed	Story	Robert McKee		needs_legal_copy
+craft:craft-025	craft	mixed	Dialogue	Robert McKee		needs_legal_copy
+craft:craft-026	craft	mixed	Character	Robert McKee		needs_legal_copy
+craft:craft-027	craft	mixed	Action	Robert McKee		needs_legal_copy
+craft:craft-028	craft	mixed	Save the Cat	Blake Snyder		needs_legal_copy
+craft:craft-029	craft	mixed	Save the Cat Writes a Novel	Jessica Brody		needs_legal_copy
+craft:craft-030	craft	mixed	The Writer's Journey	Christopher Vogler		needs_legal_copy
+craft:craft-031	craft	mixed	The Anatomy of Story	John Truby		needs_legal_copy
+craft:craft-032	craft	mixed	The Anatomy of Genres	John Truby		needs_legal_copy
+craft:craft-033	craft	mixed	Into the Woods	John Yorke		needs_legal_copy
+craft:craft-034	craft	mixed	Story Engineering	Larry Brooks		needs_legal_copy
+craft:craft-035	craft	mixed	Story Physics	Larry Brooks		needs_legal_copy
+craft:craft-036	craft	mixed	The Story Grid	Shawn Coyne		needs_legal_copy
+craft:craft-037	craft	mixed	Techniques of the Selling Writer	Dwight V. Swain		needs_legal_copy
+craft:craft-038	craft	mixed	Scene & Structure	Jack M. Bickham		needs_legal_copy
+craft:craft-039	craft	mixed	Writing Novels That Sell	Jack M. Bickham		needs_legal_copy
+craft:craft-040	craft	mixed	Characters & Viewpoint	Orson Scott Card		needs_legal_copy
+craft:craft-041	craft	mixed	How to Write Science Fiction & Fantasy	Orson Scott Card		needs_legal_copy
+craft:craft-042	craft	mixed	Beginnings, Middles & Ends	Nancy Kress		needs_legal_copy
+craft:craft-043	craft	mixed	Dynamic Characters	Nancy Kress		needs_legal_copy
+craft:craft-044	craft	mixed	Plot & Structure	James Scott Bell		needs_legal_copy
+craft:craft-045	craft	mixed	Conflict & Suspense	James Scott Bell		needs_legal_copy
+craft:craft-046	craft	mixed	Revision & Self-Editing	James Scott Bell		needs_legal_copy
+craft:craft-047	craft	mixed	Write Your Novel From the Middle	James Scott Bell		needs_legal_copy
+craft:craft-048	craft	mixed	Hooked	Les Edgerton		needs_legal_copy
+craft:craft-049	craft	mixed	The First Five Pages	Noah Lukeman		needs_legal_copy
+craft:craft-050	craft	mixed	The Plot Thickens	Noah Lukeman		needs_legal_copy
+craft:craft-051	craft	mixed	Writing the Breakout Novel	Donald Maass		needs_legal_copy
+craft:craft-052	craft	mixed	The Fire in Fiction	Donald Maass		needs_legal_copy
+craft:craft-053	craft	mixed	The Emotional Craft of Fiction	Donald Maass		needs_legal_copy
+craft:craft-054	craft	mixed	Writing 21st Century Fiction	Donald Maass		needs_legal_copy
+craft:craft-055	craft	mixed	Wired for Story	Lisa Cron		needs_legal_copy
+craft:craft-056	craft	mixed	Story Genius	Lisa Cron		needs_legal_copy
+craft:craft-057	craft	mixed	Blueprint for a Book	Jennie Nash		needs_legal_copy
+craft:craft-058	craft	mixed	Meander, Spiral, Explode	Jane Alison		needs_legal_copy
+craft:craft-059	craft	mixed	Steering the Craft	Ursula K. Le Guin		needs_legal_copy
+craft:craft-060	craft	mixed	The Language of the Night	Ursula K. Le Guin		needs_legal_copy
+craft:craft-061	craft	mixed	Bird by Bird	Anne Lamott		needs_legal_copy
+craft:craft-062	craft	mixed	On Writing	Stephen King		needs_legal_copy
+craft:craft-063	craft	mixed	On Writing Well	William Zinsser		needs_legal_copy
+craft:craft-064	craft	mixed	Writing Fiction: A Guide to Narrative Craft	Janet Burroway		needs_legal_copy
+craft:craft-065	craft	mixed	The Art of Fiction	John Gardner		needs_legal_copy
+craft:craft-066	craft	mixed	On Becoming a Novelist	John Gardner		needs_legal_copy
+craft:craft-067	craft	mixed	The Lie That Tells a Truth	John Dufresne		needs_legal_copy
+craft:craft-068	craft	mixed	The Making of a Story	Alice LaPlante		needs_legal_copy
+craft:craft-069	craft	mixed	Wonderbook	Jeff VanderMeer		needs_legal_copy
+craft:craft-070	craft	mixed	The 90-Day Novel	Alan Watt		needs_legal_copy
+craft:craft-071	craft	mixed	The Weekend Novelist	Robert J. Ray		needs_legal_copy
+craft:craft-072	craft	mixed	The Plot Whisperer	Martha Alderson		needs_legal_copy
+craft:craft-073	craft	mixed	Story Trumps Structure	Steven James		needs_legal_copy
+craft:craft-074	craft	mixed	Troubleshooting Your Novel	Steven James		needs_legal_copy
+craft:craft-075	craft	mixed	Writing the Blockbuster Novel	Albert Zuckerman		needs_legal_copy
+craft:craft-076	craft	mixed	The Marshall Plan for Novel Writing	Evan Marshall		needs_legal_copy
+craft:craft-077	craft	mixed	Novel Metamorphosis	Darcy Pattison		needs_legal_copy
+craft:craft-078	craft	mixed	The Writer's Guide to Character Traits	Linda N. Edelstein		needs_legal_copy
+craft:craft-079	craft	mixed	The Emotion Thesaurus	Angela Ackerman and Becca Puglisi		needs_legal_copy
+craft:craft-080	craft	mixed	The Negative Trait Thesaurus	Angela Ackerman and Becca Puglisi		needs_legal_copy
+craft:craft-081	craft	mixed	The Positive Trait Thesaurus	Angela Ackerman and Becca Puglisi		needs_legal_copy
+craft:craft-082	craft	mixed	Master Lists for Writers	Bryn Donovan		needs_legal_copy
+craft:craft-083	craft	mixed	Writing Deep Scenes	Martha Alderson and Jordan Rosenfeld		needs_legal_copy
+craft:craft-084	craft	mixed	Make a Scene	Jordan E. Rosenfeld		needs_legal_copy
+craft:craft-085	craft	mixed	Point of View	Sandra Gerth		needs_legal_copy
+craft:craft-086	craft	mixed	Deep Point of View	Marcy Kennedy		needs_legal_copy
+craft:craft-087	craft	mixed	Creating Character Arcs	K. M. Weiland		needs_legal_copy
+craft:craft-088	craft	mixed	Structuring Your Novel	K. M. Weiland		needs_legal_copy
+craft:craft-089	craft	mixed	Outlining Your Novel	K. M. Weiland		needs_legal_copy
+craft:craft-090	craft	mixed	5 Secrets of Story Structure	K. M. Weiland		needs_legal_copy
+craft:craft-091	craft	mixed	Writing Screenplays That Sell	Michael Hauge		needs_legal_copy
+craft:craft-092	craft	mixed	Selling Your Story in 60 Seconds	Michael Hauge		needs_legal_copy
+craft:craft-093	craft	mixed	Screenplay	Syd Field		needs_legal_copy
+craft:craft-094	craft	mixed	The Screenwriter's Workbook	Syd Field		needs_legal_copy
+craft:craft-095	craft	mixed	The Sequence Approach	Paul Joseph Gulino		needs_legal_copy
+craft:craft-096	craft	mixed	The Nutshell Technique	Jill Chamberlain		needs_legal_copy
+craft:craft-097	craft	mixed	The TV Writer's Workbook	Ellen Sandler		needs_legal_copy
+craft:craft-098	craft	mixed	The Fantasy Fiction Formula	Deborah Chester		needs_legal_copy
+craft:craft-099	craft	mixed	Writing Fantasy & Science Fiction	Orson Scott Card, Philip Athans, and Jay Lake		needs_legal_copy
+craft:craft-100	craft	mixed	The Guide to Writing Fantasy and Science Fiction	Philip Athans		needs_legal_copy

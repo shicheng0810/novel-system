@@ -1,0 +1,704 @@
+[
+  {
+    "id": "kentcdodds-advanced-patterns",
+    "title": "Advanced React Component Patterns",
+    "url": "https://kentcdodds.com/blog/advanced-react-component-patterns",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Establishes compound components, render props, state reducers, and control props as the canonical decomposition vocabulary used by Radix, Headless UI, and modern libraries.",
+    "relevance": "Authoritative source for refactoring a god component via compound-component / hooks-based separation."
+  },
+  {
+    "id": "kentcdodds-compound-components-hooks",
+    "title": "React Hooks: Compound Components",
+    "url": "https://kentcdodds.com/blog/compound-components-with-react-hooks",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Compound components share implicit state via context — the standard pattern for accessible widget composition.",
+    "relevance": "Pattern to replace nested prop-drilled JSX in App.tsx workspaces."
+  },
+  {
+    "id": "kentcdodds-testing-implementation-details",
+    "title": "Testing Implementation Details",
+    "url": "https://kentcdodds.com/blog/testing-implementation-details",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Tests on implementation details break on refactor and fail to fail on regressions; query the way users do.",
+    "relevance": "Foundational for the Vitest+RTL test suite during a strangler-fig refactor."
+  },
+  {
+    "id": "kentcdodds-introducing-rtl",
+    "title": "Introducing the react-testing-library",
+    "url": "https://kentcdodds.com/blog/introducing-the-react-testing-library",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "RTL queries the DOM the way the user would (label text, role, text); avoid testing internal state.",
+    "relevance": "Drives the rewrite of any wrapper.state()-style tests."
+  },
+  {
+    "id": "kentcdodds-how-to-know-what-to-test",
+    "title": "How to know what to test",
+    "url": "https://kentcdodds.com/blog/how-to-know-what-to-test",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Test prioritized user flows, not coverage percentages.",
+    "relevance": "Helps choose what tests survive the strangler-fig migration."
+  },
+  {
+    "id": "dev-taming-god-component-crs",
+    "title": "Taming the God Component: A Framework-Agnostic Guide to the Component Responsibility Score (CRS)",
+    "url": "https://dev.to/priya_khanna_44234bba65fb/taming-the-god-component-a-framework-agnostic-guide-to-the-component-responsibility-score-crs-4d2o",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "CRS thresholds: <50 healthy, 50-100 monitor, >100 refactor alert; provides a quantitative refactor heuristic.",
+    "relevance": "Direct quantitative justification for breaking up a 1659-line App.tsx."
+  },
+  {
+    "id": "perssondennis-anti-patterns",
+    "title": "React Anti-Patterns and Best Practices - Do's and Don'ts",
+    "url": "https://www.perssondennis.com/articles/react-anti-patterns-and-best-practices-dos-and-donts",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Replace bloated components with multiple useStates by useReducer or extracted hooks.",
+    "relevance": "Direct guidance for the 30+ useState case in App.tsx."
+  },
+  {
+    "id": "alexkondov-refactoring-messy-react",
+    "title": "Common Sense Refactoring of a Messy React Component",
+    "url": "https://alexkondov.com/refactoring-a-messy-react-component/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Break component into smaller pieces; replace handler logic with library calls; aim for sub-250-LOC files.",
+    "relevance": "Concrete heuristics matching the audited file's symptoms."
+  },
+  {
+    "id": "patterns-container-presentational",
+    "title": "Container/Presentational Pattern",
+    "url": "https://www.patterns.dev/react/presentational-container-pattern/",
+    "type": "reference",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Modern container layer is often a custom hook; presentational components remain pure props-to-UI.",
+    "relevance": "Maps directly to the recommended hook-based extraction strategy."
+  },
+  {
+    "id": "patterns-react-stack-2026",
+    "title": "React Stack Patterns 2026",
+    "url": "https://www.patterns.dev/react/react-2026/",
+    "type": "reference",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "For smaller, internal, or highly custom SPAs, use Vite + libraries instead of frameworks.",
+    "relevance": "Direct endorsement of the audited app's architectural choice over Next/Remix."
+  },
+  {
+    "id": "mirrorcodex-presentational-2025",
+    "title": "Presentational vs Container Components: Still Relevant in 2025?",
+    "url": "https://mirrorcodex.com/presentational-vs-container-components/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Pattern remains a guidepost; modern React encourages flexible composition via hooks and colocated logic.",
+    "relevance": "Validates hook-based 'container' approach for 2025/2026."
+  },
+  {
+    "id": "wieruch-react-libraries-2025",
+    "title": "React Libraries for 2025",
+    "url": "https://www.robinwieruch.de/react-libraries/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Zustand is becoming the de facto standard; URL state, server cache, and Server Components reduce client-state need.",
+    "relevance": "Strongest single-source consensus check for state management defaults."
+  },
+  {
+    "id": "wieruch-react-folder-structure",
+    "title": "React Folder Structure in 5 Steps [2025]",
+    "url": "https://www.robinwieruch.de/react-folder-structure/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Feature-based folders + colocation; layer-folder structure breaks down beyond ~15-20 components.",
+    "relevance": "Guides the proposed src/features/<workspace>/ structure."
+  },
+  {
+    "id": "wieruch-local-storage",
+    "title": "Local Storage in React",
+    "url": "https://www.robinwieruch.de/local-storage-react/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "localStorage is appropriate for UI/layout state; avoid for sensitive data.",
+    "relevance": "Backs the recommendation to persist multi-pane layout in localStorage."
+  },
+  {
+    "id": "erikson-redux-2024",
+    "title": "Why You Should Use Redux in 2024",
+    "url": "https://async.techconnection.io/talks/react-connection/2024/mark-erikson-why-you-should-use-redux-in-2024/",
+    "type": "talk",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Redux maintainer can't unconditionally recommend Redux; pick it for enforced patterns + middleware ecosystem in large teams.",
+    "relevance": "Discharges Redux for our single-team app."
+  },
+  {
+    "id": "redux-toolkit-getting-started",
+    "title": "Getting Started — Redux Toolkit",
+    "url": "https://redux-toolkit.js.org/introduction/getting-started",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "RTK is the official recommended Redux approach; eliminates immutable-update bugs.",
+    "relevance": "Reference for the 'when Redux is the answer' branch of the decision matrix."
+  },
+  {
+    "id": "pkgpulse-state-mgmt-2026",
+    "title": "Choosing a State Management Library for React in 2026",
+    "url": "https://www.pkgpulse.com/blog/react-state-management-2026",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Zustand pragmatic default; Jotai for atomic state; RTK for enforced patterns; signals not yet consensus.",
+    "relevance": "2026 cross-comparison reference."
+  },
+  {
+    "id": "syncfusion-state-2026",
+    "title": "Top 5 React State Management Tools Developers Actually Use in 2026 and Why",
+    "url": "https://www.syncfusion.com/blogs/post/react-state-management-libraries",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Zustand at ~20M weekly downloads, ~1.2KB; most popular choice in 2026.",
+    "relevance": "Adoption-data backing for Zustand default."
+  },
+  {
+    "id": "betterstack-zustand-vs-rtk-jotai",
+    "title": "Zustand vs Redux Toolkit vs Jotai",
+    "url": "https://betterstack.com/community/guides/scaling-nodejs/zustand-vs-redux-toolkit-vs-jotai/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Zustand subscription-based, Jotai atom-level, RTK selector-based; performance ordering Zustand>Jotai>RTK on a single update.",
+    "relevance": "Performance comparison for the decision matrix."
+  },
+  {
+    "id": "jotai-comparison",
+    "title": "Comparison — Jotai docs",
+    "url": "https://jotai.org/docs/basics/comparison",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Jotai consists of primitive atoms; best for derived-heavy state.",
+    "relevance": "Sets the niche for Jotai in the decision matrix."
+  },
+  {
+    "id": "developerway-state-2025",
+    "title": "React State Management in 2025: What You Actually Need",
+    "url": "https://www.developerway.com/posts/react-state-management-2025",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Most state should live in URL or server cache; client state libraries are last resort.",
+    "relevance": "Validates the URL-routable workspaces recommendation."
+  },
+  {
+    "id": "logrocket-local-state-pitfalls",
+    "title": "React patterns to avoid common pitfalls in local state management",
+    "url": "https://blog.logrocket.com/react-patterns-common-pitfalls-local-state-management/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Concrete failure modes of useState overuse: redundant state, stale closures, re-render storms.",
+    "relevance": "Diagnoses the 30+ useState symptom directly."
+  },
+  {
+    "id": "frontendmasters-redundant-state",
+    "title": "useState & Redundant State Anti-Pattern",
+    "url": "https://frontendmasters.com/courses/react-nextjs-state/usestate-redundant-state-anti-pattern/",
+    "type": "course",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Storing computed values as state opens up bugs because contributors forget to keep them in sync.",
+    "relevance": "Names the redundant-state anti-pattern."
+  },
+  {
+    "id": "react-dev-choosing-state-structure",
+    "title": "Choosing the State Structure (React docs)",
+    "url": "https://react.dev/learn/choosing-the-state-structure",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Unify state variables that always change together; avoid contradictions in state; avoid redundant/derivable state.",
+    "relevance": "Authoritative React-team guidance."
+  },
+  {
+    "id": "tanstack-query-optimistic",
+    "title": "Optimistic Updates — TanStack Query Docs",
+    "url": "https://tanstack.com/query/v5/docs/react/guides/optimistic-updates",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Two patterns: onMutate cache update, or use returned variables from useMutation; supports rollback on failure.",
+    "relevance": "Critical for AI-app mutation rollback."
+  },
+  {
+    "id": "refine-rq-vs-tq-vs-swr-2025",
+    "title": "React Query vs TanStack Query vs SWR: A 2025 Comparison",
+    "url": "https://refine.dev/blog/react-query-vs-tanstack-query-vs-swr-2025/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "TanStack Query has fuller mutation system + devtools; SWR is smaller (5.3KB vs 16.2KB) but lighter on features.",
+    "relevance": "Justifies TanStack Query over SWR for AI app."
+  },
+  {
+    "id": "wisp-tanstack-vs-useeffect",
+    "title": "Why Senior Developers Choose TanStack Query Over Fetch and useEffect",
+    "url": "https://www.wisp.blog/blog/why-senior-developers-choose-tanstack-query-over-fetch-and-useeffect",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "TanStack Query eliminates ~50% of useState/useEffect data-fetching boilerplate; built-in cache, refetch, dedup.",
+    "relevance": "Quantifies the boilerplate-reduction win."
+  },
+  {
+    "id": "weblogtrips-rq-vs-useeffect-2026",
+    "title": "React Query vs useEffect: 2026 Data Fetching Best Practices",
+    "url": "https://weblogtrips.com/programming-languages/web-development/react-query-vs-useeffect-best-practices-2026/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "useEffect leads to network waterfalls, race conditions, and zero caching; RQ is 'professional standard'.",
+    "relevance": "2026 framing of the server-state question."
+  },
+  {
+    "id": "annauniversityplus-rhf-vs-formik-2026",
+    "title": "React Hook Form vs Formik 2026: Best Form Library for Production Apps",
+    "url": "https://annauniversityplus.com/react-hook-form-vs-formik-2026-best-form-library-for-production-apps",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "RHF + Zod is the 2026 industry standard for greenfield projects; Formik unmaintained.",
+    "relevance": "Picks RHF for the decision matrix."
+  },
+  {
+    "id": "logrocket-rhf-vs-formik",
+    "title": "React Hook Form vs Formik: A technical and performance comparison",
+    "url": "https://blog.logrocket.com/react-hook-form-vs-formik-comparison/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "RHF uses uncontrolled inputs/refs to minimize re-renders; ~9KB zero-deps vs Formik 13KB+deps.",
+    "relevance": "Performance evidence for RHF."
+  },
+  {
+    "id": "tanstack-router-comparison",
+    "title": "TanStack Router & TanStack Start vs Next.js vs React Router / Remix",
+    "url": "https://tanstack.com/router/latest/docs/framework/react/comparison",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "TanStack Router's 100% type-safe routing; URL→state→data→UI design.",
+    "relevance": "Primary source for TanStack Router decision."
+  },
+  {
+    "id": "pkgpulse-tanstack-vs-rrv7-2026",
+    "title": "TanStack Router vs React Router v7: Type-Safe Routing in 2026",
+    "url": "https://www.pkgpulse.com/blog/tanstack-router-vs-react-router-v7-2026",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "RR v7 advanced features primarily live in framework mode; TanStack better for pure SPAs needing type safety.",
+    "relevance": "Direct head-to-head for our routing decision."
+  },
+  {
+    "id": "betterstack-tanstack-vs-rr",
+    "title": "TanStack Router vs React Router",
+    "url": "https://betterstack.com/community/guides/scaling-nodejs/tanstack-router-vs-react-router/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "TanStack Router devtools render in-app showing route tree, search params, loader state, pending navigations.",
+    "relevance": "DX advantage for AI-heavy apps with rich URL params."
+  },
+  {
+    "id": "molefrog-wouter-github",
+    "title": "wouter — minimalist routing for React and Preact",
+    "url": "https://github.com/molefrog/wouter",
+    "type": "repo",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "~2.2KB router with hook-first API; zero deps.",
+    "relevance": "Niche option if bundle is paramount; otherwise too thin for our 6-workspace app."
+  },
+  {
+    "id": "logrocket-wouter",
+    "title": "An introduction to Wouter: A React Router alternative",
+    "url": "https://blog.logrocket.com/an-introduction-to-wouter-a-react-router-alternative/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "1.3KB; three API styles (hooks, low-level, components).",
+    "relevance": "Comparison data for the routing table."
+  },
+  {
+    "id": "rakhman-spa-navigation",
+    "title": "Respecting Browser Navigation in Single Page Applications",
+    "url": "https://rakhman.info/blog/respecting-browser-navigation-spa/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "SPAs naive of URL changes break deep linking and refresh; History API is the bridge.",
+    "relevance": "Foundational case for adding a router."
+  },
+  {
+    "id": "stanford-cs142-spa-notes",
+    "title": "Stanford CS142 Lecture Notes — Single Page Applications",
+    "url": "https://web.stanford.edu/class/cs142/lectures/SPA.pdf",
+    "type": "academic-notes",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Client-side routing maps URL to component; History API enables back/forward.",
+    "relevance": "Authoritative academic framing of SPA routing."
+  },
+  {
+    "id": "remix-vs-next-blog",
+    "title": "Remix vs Next.js (Remix blog)",
+    "url": "https://remix.run/blog/remix-vs-next",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Remix bundles ~30% smaller; data mutation flow simpler.",
+    "relevance": "Comparator for the framework migration question."
+  },
+  {
+    "id": "nucamp-frameworks-2026",
+    "title": "Top 10 Full Stack Frameworks in 2026: Next.js, Remix, Nuxt, SvelteKit, and More",
+    "url": "https://www.nucamp.co/blog/top-10-full-stack-frameworks-in-2026-next.js-remix-nuxt-sveltekit-and-more",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "RR7 SPA mode best for dashboards/admin/internal tools; Next.js LCP advantage less material when SEO is moot.",
+    "relevance": "Direct support for staying SPA on Vite."
+  },
+  {
+    "id": "pkgpulse-state-of-css-in-js-2026",
+    "title": "The State of CSS-in-JS in 2026: Is It Dead?",
+    "url": "https://www.pkgpulse.com/blog/state-of-css-in-js-2026",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Runtime CSS-in-JS dead for new projects (RSC incompat, bundle, blocking render); Tailwind +100% in 3 years.",
+    "relevance": "Key 2026 styling-consensus citation."
+  },
+  {
+    "id": "solid-web-tailwind-vs-vanilla",
+    "title": "Tailwind CSS vs. Vanilla CSS — A Pragmatic Comparison for 2026",
+    "url": "https://solid-web.com/tailwind-vs-css/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Tailwind production CSS 5-20KB regardless of project size; growth logarithmic.",
+    "relevance": "Bundle-size argument for Tailwind."
+  },
+  {
+    "id": "frontend-hero-tailwind-vs-css-modules",
+    "title": "Tailwind vs CSS Modules (2026)",
+    "url": "https://frontend-hero.com/tailwind-vs-css-modules",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Mixed approach: Tailwind for layout, CSS Modules for complex components, custom properties for theming.",
+    "relevance": "Justifies the hybrid styling recommendation."
+  },
+  {
+    "id": "makersden-react-ui-libs",
+    "title": "React UI libraries in 2025: Comparing shadcn/ui, Radix, Mantine, MUI, Chakra & more",
+    "url": "https://makersden.io/blog/react-ui-libs-2025-comparing-shadcn-radix-mantine-mui-chakra",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "shadcn/ui is not a package — CLI scaffolds Radix-based Tailwind components into your repo.",
+    "relevance": "Defines shadcn for the audited team."
+  },
+  {
+    "id": "pkgpulse-shadcn-radix-base-2026",
+    "title": "shadcn/ui vs Base UI vs Radix: Components in 2026",
+    "url": "https://www.pkgpulse.com/blog/shadcn-ui-vs-base-ui-vs-radix-components-2026",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "shadcn/ui supports both Radix and Base UI primitives; February 2026 Visual Builder reduces setup further.",
+    "relevance": "Latest shadcn capability snapshot."
+  },
+  {
+    "id": "boundev-react-ui-2026",
+    "title": "Best React UI Libraries (2026): MUI vs Chakra vs Shadcn vs Radix",
+    "url": "https://www.boundev.ai/blog/top-react-ui-frameworks-guide",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Mantine emerged as compelling MUI/Chakra alternative; CSS Modules-based, smaller bundles.",
+    "relevance": "Mantine fallback option."
+  },
+  {
+    "id": "tailwindgenai-migration",
+    "title": "How to Migrate Your Existing CSS to TailwindCSS",
+    "url": "https://tailwindgenai.com/blogs/How-to-Migrate-Your-Existing-CSS-to-TailwindCSS",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Disable preflight, add prefix, migrate file-by-file; coexist multiple stylesheets temporarily.",
+    "relevance": "Operational migration plan."
+  },
+  {
+    "id": "johnzanussi-bootstrap-to-tailwind",
+    "title": "Migrating from Bootstrap to Tailwind",
+    "url": "https://johnzanussi.com/posts/bootstrap-to-tailwind-migration",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Migrate biggest breakpoint first; verify in browser per file before committing.",
+    "relevance": "Gives a specific, repeatable workflow."
+  },
+  {
+    "id": "dockview-docs",
+    "title": "Dockview — Docking Layout Manager",
+    "url": "https://dockview.dev/",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Zero-dep docking layout for IDE-like UIs; tabs, groups, grids, splitviews, drag-drop, floating panels, popout windows; portions inspired by VS Code source.",
+    "relevance": "Heavyweight option if true IDE features needed."
+  },
+  {
+    "id": "bvaughn-react-resizable-panels",
+    "title": "react-resizable-panels (bvaughn)",
+    "url": "https://github.com/bvaughn/react-resizable-panels",
+    "type": "repo",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "autoSaveId persists layouts to localStorage by default; conditional panels persisted per visible-combination; custom storage prop supported.",
+    "relevance": "Drop-in solution for the multi-pane requirement."
+  },
+  {
+    "id": "allotment-mulberry",
+    "title": "Allotment: a React component for resizable split views",
+    "url": "https://www.mulberryhousesoftware.com/articles/allotment-a-react-component-for-resizable-split-views",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Allotment is inspired by VS Code's split pane behavior.",
+    "relevance": "Lightweight resizable-split alternative."
+  },
+  {
+    "id": "logrocket-panel-tools",
+    "title": "Essential tools for implementing React panel layouts",
+    "url": "https://blog.logrocket.com/essential-tools-implementing-react-panel-layouts/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Survey of react-resizable-panels, Allotment, Dockview, react-dock for IDE-style layouts.",
+    "relevance": "Library landscape source."
+  },
+  {
+    "id": "joshcomeau-localstorage",
+    "title": "Persisting React State in localStorage",
+    "url": "https://www.joshwcomeau.com/react/persisting-react-state-in-localstorage/",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Custom hook pattern for safe localStorage state; SSR pitfalls; serialization concerns.",
+    "relevance": "Layout persistence implementation."
+  },
+  {
+    "id": "alan2207-bulletproof-react-structure",
+    "title": "Bulletproof React — Project Structure",
+    "url": "https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md",
+    "type": "repo-doc",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Most code lives in features/; no cross-feature imports; per-feature public API; avoid barrel files (Vite tree-shaking).",
+    "relevance": "Canonical feature-folder spec."
+  },
+  {
+    "id": "alan2207-bulletproof-react-standards",
+    "title": "Bulletproof React — Project Standards",
+    "url": "https://github.com/alan2207/bulletproof-react/blob/master/docs/project-standards.md",
+    "type": "repo-doc",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Absolute imports + ESLint enforcement; layered import boundaries.",
+    "relevance": "Lint-enforceable rules for the migration."
+  },
+  {
+    "id": "profydev-screaming-architecture",
+    "title": "Screaming Architecture — Evolution of a React folder structure",
+    "url": "https://dev.to/profydev/screaming-architecture-evolution-of-a-react-folder-structure-4g25",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Top-level folders should scream the product domain (workspace names) not technical layers.",
+    "relevance": "Justifies workspace-named feature folders."
+  },
+  {
+    "id": "thetshaped-screaming-arch-colocation",
+    "title": "Screaming Architecture & Colocation: Let Your Project Structure Tell the Story",
+    "url": "https://thetshaped.dev/p/screaming-architecture-and-colocation-nodejs-typescript-react",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Combine screaming architecture with colocation — files that change together live together.",
+    "relevance": "Practical heuristic for the new folder layout."
+  },
+  {
+    "id": "barsegyan-react-arch-2026",
+    "title": "The Best React.js Architecture for 2026: Domain-Driven + Feature-Sliced Design",
+    "url": "https://medium.com/@albert_barsegyan/the-best-react-js-architecture-for-2026-domain-driven-feature-sliced-design-87f6e25d13fe",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Modern React architecture is about clear ownership, domain boundaries, and data contracts — not where files live.",
+    "relevance": "2026 framing of the architecture problem."
+  },
+  {
+    "id": "vite-backend-integration",
+    "title": "Vite — Backend Integration",
+    "url": "https://vite.dev/guide/backend-integration",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Vite is recommended in middleware mode when integrating with backends; configureServer adds custom middlewares.",
+    "relevance": "Defines the embedded-backend pattern in the audited app."
+  },
+  {
+    "id": "vite-ssr-guide",
+    "title": "Vite — Server-Side Rendering",
+    "url": "https://vite.dev/guide/ssr",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Recommend Vite in middleware mode for SSR but extract from production server.",
+    "relevance": "Confirms the dev-only nature of Vite middleware."
+  },
+  {
+    "id": "vite-discussion-6562",
+    "title": "Custom express middleware support — Vite GitHub discussion 6562",
+    "url": "https://github.com/vitejs/vite/discussions/6562",
+    "type": "discussion",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Vite supports custom middleware via configureServer; production hosting recommends separate backend.",
+    "relevance": "Direct evidence on middleware mode tradeoffs."
+  },
+  {
+    "id": "pkgpulse-express-vs-hono-2026",
+    "title": "Express vs Hono in 2026: Legacy vs Modern Node.js",
+    "url": "https://www.pkgpulse.com/blog/express-vs-hono-2026",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Hono is the pragmatic default in 2026 for new JS APIs; Web Standards APIs, ~14KB, multi-runtime.",
+    "relevance": "Picks Hono for the backend extraction."
+  },
+  {
+    "id": "pkgpulse-hono-vs-elysia-nitro",
+    "title": "Hono vs ElysiaJS vs Nitro (2026)",
+    "url": "https://www.pkgpulse.com/blog/hono-vs-elysiajs-vs-nitro-2026",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Hono universal across runtimes; Elysia tied to Bun; Nitro tied to Nitro deployments.",
+    "relevance": "Disambiguates Hono from look-alikes."
+  },
+  {
+    "id": "encore-hono-alternatives",
+    "title": "Best Hono Alternatives for TypeScript Backend Development in 2026",
+    "url": "https://encore.dev/articles/hono-alternatives",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "When you need DBs, services, jobs, observability, Hono needs glue; alternatives like Encore.ts or NestJS provide structure.",
+    "relevance": "Sets the limit of Hono for our backend."
+  },
+  {
+    "id": "blankeos-hono-trpc",
+    "title": "hono-trpc example",
+    "url": "https://github.com/Blankeos/hono-trpc",
+    "type": "repo",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Hono + tRPC v10 worked example on a separate backend port.",
+    "relevance": "Reference impl for the recommended split."
+  },
+  {
+    "id": "vitest-expect-api",
+    "title": "Vitest — expect API",
+    "url": "https://vitest.dev/api/expect.html",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "expect.poll retries assertions; must be awaited (Vitest 3+); not for snapshot/.resolves/.rejects/toThrow.",
+    "relevance": "Drives async UI testing strategy."
+  },
+  {
+    "id": "vitest-async-guide",
+    "title": "Vitest — Testing Asynchronous Code",
+    "url": "https://main.vitest.dev/guide/learn/async",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Promises, polling, and timeouts patterns in Vitest.",
+    "relevance": "Guide for streaming AI test patterns."
+  },
+  {
+    "id": "vitest-component-testing",
+    "title": "Vitest — Component Testing",
+    "url": "https://vitest.dev/guide/browser/component-testing",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "expect.element auto-retries with helpful diagnostics; preferred over expect.poll for DOM presence.",
+    "relevance": "Recommendation for browser-mode async assertions."
+  },
+  {
+    "id": "rtl-hooks-testing-library",
+    "title": "react-hooks-testing-library",
+    "url": "https://github.com/testing-library/react-hooks-testing-library",
+    "type": "repo",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Use renderHook only for reusable hooks/libraries; otherwise test the component using the hook.",
+    "relevance": "Drives the hook-testing strategy."
+  },
+  {
+    "id": "rtl-readme",
+    "title": "@testing-library/react",
+    "url": "https://www.npmjs.com/package/@testing-library/react",
+    "type": "package",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Encourage user-perspective testing; query by role/label/text.",
+    "relevance": "Canonical API reference."
+  },
+  {
+    "id": "shopify-strangler-fig",
+    "title": "Refactoring Legacy Code with the Strangler Fig Pattern",
+    "url": "https://shopify.engineering/refactoring-legacy-code-strangler-fig-pattern",
+    "type": "engineering-blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Strangler Fig enables modular rollout, easy rollback, localized testing, isolated risk.",
+    "relevance": "Industrial-scale validation for the migration approach."
+  },
+  {
+    "id": "aws-strangler-fig",
+    "title": "Strangler fig pattern — AWS Prescriptive Guidance",
+    "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/strangler-fig.html",
+    "type": "official-docs",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Incremental migration; anti-corruption layer routes to new services until old is fully replaced.",
+    "relevance": "Architectural reference for the multi-PR migration."
+  },
+  {
+    "id": "leanderhoedt-strangler-microfrontends",
+    "title": "The Strangler Fig Pattern and Microfrontends",
+    "url": "https://www.leanderhoedt.dev/blog/strangler-fig",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Apply Strangler Fig on the frontend by injecting React Islands into legacy SPAs.",
+    "relevance": "Frontend-specific Strangler Fig application."
+  },
+  {
+    "id": "stateofreact-2025",
+    "title": "State of React 2025",
+    "url": "https://2025.stateofreact.com/en-US/conclusion/",
+    "type": "report",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "TanStack Query usage broadly accepted; Zustand top of state-management satisfaction.",
+    "relevance": "Community-wide signal."
+  },
+  {
+    "id": "saswatapal-do-you-need-state-mgmt-2025",
+    "title": "Do You Need State Management in 2025? React Context vs Zustand vs Jotai vs Redux",
+    "url": "https://dev.to/saswatapal/do-you-need-state-management-in-2025-react-context-vs-zustand-vs-jotai-vs-redux-1ho",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Pick by complexity; Context for prop-drilling, Zustand for medium/large apps, Jotai for atomic state, Redux for enterprise.",
+    "relevance": "Approachable summary for decision matrix."
+  },
+  {
+    "id": "ignek-persisting-react-state",
+    "title": "Persisting React State in LocalStorage",
+    "url": "https://www.ignek.com/blog/persisting-react-state-in-localstorage",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "useState + useEffect pattern, custom hook abstraction; serialization with JSON.stringify.",
+    "relevance": "Reference for layout-state persistence implementation."
+  },
+  {
+    "id": "joyfill-rhf-vs-formik",
+    "title": "React Hook Form vs Formik: The Good, Bad, and Ugly",
+    "url": "https://joyfill.io/blog/react-hook-form-vs-formik-the-good-bad-and-ugly",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "Formik repo dormant; RHF actively maintained; uncontrolled vs controlled is the key difference.",
+    "relevance": "Maintenance status for forms decision."
+  },
+  {
+    "id": "0rok-url-state-mgmt",
+    "title": "Revisiting URL-Based State Management in SPAs",
+    "url": "https://dev.to/0rok/-revisiting-url-based-state-management-in-spas-3fje",
+    "type": "blog",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "URL is the simplest, most shareable state store for filters/searches/sorts.",
+    "relevance": "Argument for routable workspaces with searchable params."
+  },
+  {
+    "id": "dorset-spa-routing",
+    "title": "SPA Routing — Dorset Tech Glossary",
+    "url": "https://dorset.tech/glossary/spa-routing/",
+    "type": "reference",
+    "retrieved_at": "2026-05-09",
+    "key_claim": "SPA routing intercepts URL changes and renders components dynamically without page reload.",
+    "relevance": "Definitional source for routing recommendation."
+  }
+]

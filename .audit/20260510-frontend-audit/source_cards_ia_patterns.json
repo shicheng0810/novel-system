@@ -1,0 +1,502 @@
+{
+  "schema_version": "1.0",
+  "compiled_at": "2026-05-09",
+  "topic": "IA & interaction-design patterns for multi-pane creative/IDE web apps; applied to a 6-workspace fiction-writing + world-simulation tool",
+  "cards": [
+    {
+      "id": "linear-redesign-2024",
+      "title": "How we redesigned the Linear UI (part II)",
+      "url": "https://linear.app/now/how-we-redesigned-the-linear-ui",
+      "type": "vendor blog / design retrospective",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Linear's 2024 refresh dimmed the sidebar so the main content takes precedence, made tabs more compact (rounded, smaller icons/text) instead of full-width, and used view headers + side panels to surface filters/meta properties without crowding the canvas.",
+      "relevance": "Direct template for our left rail + content + right meta panel; shows how to reduce visual weight of nav so writing canvas dominates."
+    },
+    {
+      "id": "linear-collapsible-sidebar",
+      "title": "Linear Changelog — Collapsible Sidebar",
+      "url": "https://linear.app/changelog/unpublished-collapsible-sidebar",
+      "type": "vendor changelog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Sidebar can collapse to give the canvas full width on demand; navigation becomes a peek/hover surface.",
+      "relevance": "Justifies a togglable rail (Cmd+\\) for our Writing workspace where prose density matters most."
+    },
+    {
+      "id": "linear-conceptual-model",
+      "title": "Linear Concepts (Workspace, Teams, Views)",
+      "url": "https://linear.app/docs/conceptual-model",
+      "type": "vendor docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "A Linear workspace is a single container; views are dynamic filtered slices of one underlying graph rather than separate apps.",
+      "relevance": "Maps onto our problem: World/Memory/Atlas should be views over one underlying entity graph, not three separate workspaces."
+    },
+    {
+      "id": "linear-design-for-ai-age",
+      "title": "Linear — Design for the AI age",
+      "url": "https://linear.app/now/design-for-the-ai-age",
+      "type": "vendor blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "AI in Linear is summoned via command palette / inline context, not pinned chrome; the product avoids 'AI everywhere' chrome drift.",
+      "relevance": "Counterpoint for the 'AI everywhere' anti-pattern; supports putting Simulation/Runtime AI behind palette + inline triggers, not always-visible panels."
+    },
+    {
+      "id": "linear-saas-trend-logrocket",
+      "title": "Linear design: the SaaS design trend that's boring and bettering UI",
+      "url": "https://blog.logrocket.com/ux-design/linear-design/",
+      "type": "industry analysis",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Linear's 2025 monochrome palette and reduced color have become a copied baseline; saturated color is reserved for state, not chrome.",
+      "relevance": "Argues for our chrome being neutral/monochrome and reserving saturated colors for in-prose semantics (sim events, world entities)."
+    },
+    {
+      "id": "vscode-userinterface",
+      "title": "VS Code — User Interface",
+      "url": "https://code.visualstudio.com/docs/getstarted/userinterface",
+      "type": "vendor docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "VS Code's six regions: Activity Bar, Primary Side Bar, Editor Group(s), Panel, Secondary Side Bar, Status Bar. Activity Bar is the persistent mode switch; sidebars host views; editor groups own tabs.",
+      "relevance": "Canonical 'verbs (activity bar) + nouns (sidebar views) + content (editor)' decomposition we should adopt for our 6 workspaces."
+    },
+    {
+      "id": "vscode-custom-layout",
+      "title": "VS Code — Custom Layout",
+      "url": "https://code.visualstudio.com/docs/configure/custom-layout",
+      "type": "vendor docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Users can drag/move views between Primary/Secondary sidebar and Panel regions; layout is remembered per workbench.",
+      "relevance": "Supports moveable, persistable panels rather than hard-coded conditional rendering."
+    },
+    {
+      "id": "vscode-sidebars-uxguide",
+      "title": "VS Code Extension API — UX Guidelines: Sidebars",
+      "url": "https://code.visualstudio.com/api/ux-guidelines/sidebars",
+      "type": "vendor UX guideline",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Primary side bar = navigation/structure; Secondary side bar = ancillary opposite-side context; both can host arbitrary views.",
+      "relevance": "Two-rail asymmetric layout (structure left, context right) is the field-tested pattern for IDE-style workbenches."
+    },
+    {
+      "id": "cursor-flexible-panel",
+      "title": "Cursor Forum — Flexible Panel Layout request",
+      "url": "https://forum.cursor.com/t/flexible-panel-layout/127935",
+      "type": "community forum",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Cursor's fixed three-pane (sidebar / editor / AI chat) layout draws repeated user complaints; users want movable AI panel position.",
+      "relevance": "Cautionary tale: even successful AI-IDE products get pushback when the right-hand AI rail is locked. Bake in panel mobility."
+    },
+    {
+      "id": "cursor-ai-panel-position",
+      "title": "Cursor Forum — Customizable AI Panel Layout Position",
+      "url": "https://forum.cursor.com/t/add-customizable-ai-panel-layout-position/71185",
+      "type": "community forum",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Users explicitly ask for the AI panel to be movable / dockable; rigid right-only AI panels feel cramped on small screens.",
+      "relevance": "For our Simulation + Runtime panels, allow docking left/right/bottom and a 'pop out' Composition Mode."
+    },
+    {
+      "id": "notion-sidebar-redesign",
+      "title": "Notion — New sidebar design will help Notion scale",
+      "url": "https://www.notion.com/blog/new-sidebar-design",
+      "type": "vendor blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Notion split sidebar into Workspace / Teamspaces / Private sections; teamspaces act as the broadest categorization, hierarchically nesting pages below.",
+      "relevance": "Supports a hierarchical 'project > book > chapter > scene' sidebar over flat tab switching for Writing workspace."
+    },
+    {
+      "id": "notion-sidebar-medium",
+      "title": "UI Breakdown of Notion's Sidebar (Medium)",
+      "url": "https://medium.com/@quickmasum/ui-breakdown-of-notions-sidebar-2121364ec78d",
+      "type": "design analysis",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Notion sidebar is 224px wide on an 8px grid; uses accordion drill-down; right-side line nav doubles as in-page TOC.",
+      "relevance": "Concrete grid + width numbers for our left rail; argues for adding an in-doc outline to the writing canvas."
+    },
+    {
+      "id": "notion-design-critique",
+      "title": "Design Critique: Notion — Autonomy, Cleanness, Organization",
+      "url": "https://medium.com/@yolu.x0918/a-breakdown-of-notion-how-ui-design-pattern-facilitates-autonomy-cleanness-and-organization-84f918e1fa48",
+      "type": "design critique",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Notion's effectiveness comes from progressive disclosure: blocks, slash commands, and toggle headings hide complexity until summoned.",
+      "relevance": "Justifies / commands inside the writing surface to expose Simulation/World features without permanent chrome."
+    },
+    {
+      "id": "obsidian-graph",
+      "title": "Obsidian Graph view documentation",
+      "url": "https://help.obsidian.md/plugins/graph",
+      "type": "vendor docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Obsidian distinguishes global graph (whole vault) from local graph (current note's neighborhood), each with filter sidebar.",
+      "relevance": "Direct precedent for our Atlas: we should ship a 'local atlas' (entities mentioned in current scene) before a 'global atlas'."
+    },
+    {
+      "id": "obsidian-local-graph-sidebar",
+      "title": "Obsidian Forum — Open local graph in right sidebar",
+      "url": "https://forum.obsidian.md/t/how-to-open-a-local-graph-view-pane-on-the-right-sidebar/7190",
+      "type": "community forum",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Power users mount the local graph as a right-sidebar pane next to their note, so the graph stays in peripheral vision while writing.",
+      "relevance": "Pattern for keeping Atlas/World context visible without taking the writing screen real estate."
+    },
+    {
+      "id": "figma-right-sidebar",
+      "title": "Figma — Design, prototype, and explore layer properties in the right sidebar",
+      "url": "https://help.figma.com/hc/en-us/articles/360039832014-Design-prototype-and-explore-layer-properties-in-the-right-sidebar",
+      "type": "vendor docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Right sidebar is contextual: Design / Prototype / Inspect. Content swaps based on selection. Empty selection collapses the panel.",
+      "relevance": "Inspector pattern: panel content should be contextual to selection, and should self-collapse when nothing is selected (preventing 'database wall' problem)."
+    },
+    {
+      "id": "figma-left-sidebar",
+      "title": "Figma — View layers and pages in the left sidebar",
+      "url": "https://help.figma.com/hc/en-us/articles/360039831974-View-layers-and-pages-in-the-left-sidebar",
+      "type": "vendor docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Left sidebar = structure (pages, layers). Two-tab toggle (Layers / Assets). Mirrors the IDE pattern of structure-left.",
+      "relevance": "Reinforces that structure-left / context-right is the dominant creative-tool pattern, not 6 sibling top-level workspaces."
+    },
+    {
+      "id": "figma-hide-right",
+      "title": "Figma Forum — Option to hide the right panel",
+      "url": "https://forum.figma.com/suggest-a-feature-11/option-to-hide-the-right-panel-20448",
+      "type": "community forum",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Even Figma users repeatedly ask to fully hide the right panel for canvas focus; current behavior auto-collapses but minimum width still bothers users.",
+      "relevance": "Confirms inspectors must be hidable, not merely 'minimize-able', for focus-mode work."
+    },
+    {
+      "id": "sudowrite-canvas",
+      "title": "Sudowrite vs Novelcrafter — Canvas overview",
+      "url": "https://sudowrite.com/blog/sudowrite-vs-novelcrafter-the-ultimate-ai-showdown-for-novelists/",
+      "type": "vendor comparative blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Sudowrite Canvas is a freeform card board for character ideas / plot / prose; supports Hero's Journey / Save the Cat / 3-Act / Romancing the Beat overlays. Novelcrafter is panel-dense (manuscript + Codex side-by-side).",
+      "relevance": "Two valid templates for fiction tools: Sudowrite = uncluttered + AI-summon, Novelcrafter = context-at-a-glance dense panels. Our app currently leans Novelcrafter-dense without the discipline; we should pick a stance."
+    },
+    {
+      "id": "novelcrafter-home",
+      "title": "Novelcrafter — Your Novel Writing Software",
+      "url": "https://www.novelcrafter.com/",
+      "type": "vendor product page",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Novelcrafter explicitly markets a 'Codex' (worldbuilding entities) panel that travels with the manuscript; structure-left, manuscript-center, codex-right.",
+      "relevance": "Strongest direct analog to our World/Memory functions. Confirms structure/manuscript/codex three-pane is a workable IA for fiction with worldbuilding."
+    },
+    {
+      "id": "scrivener-composition",
+      "title": "Literature & Latte — Write Without Distractions Using Composition Mode",
+      "url": "https://www.literatureandlatte.com/learn-and-support/video-tutorials/write-without-distractions-using-composition-mode",
+      "type": "vendor docs / tutorial",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Composition Mode hides chrome; only a thin Control Bar appears on cursor proximity. Typewriter Scrolling pins the active line vertically centered.",
+      "relevance": "Template for a 'Writing Focus' mode toggled with one shortcut, removing all 6 workspaces from view temporarily."
+    },
+    {
+      "id": "scrivener-typewriter",
+      "title": "Skyler Benson — How to Use Scrivener Typewriter Mode",
+      "url": "https://skylerbenson.com/scrivener-typewriter-mode",
+      "type": "third-party tutorial",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Typewriter Scrolling reduces the head-tilt fatigue of writing toward the bottom of the screen by keeping the cursor mid-screen.",
+      "relevance": "Concrete distraction-reduction interaction we can implement in our Writing surface independent of mode toggles."
+    },
+    {
+      "id": "ulysses-vs-scrivener",
+      "title": "Kindlepreneur — Scrivener vs Ulysses",
+      "url": "https://kindlepreneur.com/scrivener-vs-ulysses/",
+      "type": "third-party comparison",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Ulysses ships dark mode + minimal mode + full-screen + typewriter mode as toggleable single-purpose focus tools.",
+      "relevance": "Argues we should not bundle everything in one 'focus mode' but offer composable focus toggles."
+    },
+    {
+      "id": "nngroup-10-heuristics",
+      "title": "NN/G — 10 Usability Heuristics for User Interface Design",
+      "url": "https://www.nngroup.com/articles/ten-usability-heuristics/",
+      "type": "research / heuristic standard",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Updated Jan 2024. Heuristic 6 (Recognition rather than recall): show options instead of forcing memory. Heuristic 8 (Aesthetic and minimalist): every extra element competes with relevant content. Heuristic 9 (Help users recover from errors): clear, plain-language error states.",
+      "relevance": "Direct grounding for command palette (recall→recognition), reducing chrome in 1659-line shell (minimalist), and replacing JSON dumps with friendly errors."
+    },
+    {
+      "id": "nngroup-complex-apps",
+      "title": "NN/G — 10 Heuristics Applied to Complex Applications",
+      "url": "https://www.nngroup.com/articles/usability-heuristics-complex-applications/",
+      "type": "research",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Complex tools (IDE-class) should use progressive disclosure plus consistent meta-pattern (left structure, center work, right context) to keep heuristics intact under feature load.",
+      "relevance": "Most direct guidance for our 6-workspace problem; supports collapsing 6 into a stable 3-region workbench."
+    },
+    {
+      "id": "nngroup-progressive-disclosure",
+      "title": "NN/G — Progressive Disclosure",
+      "url": "https://www.nngroup.com/articles/progressive-disclosure/",
+      "type": "research",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Defer secondary options to a subsidiary screen; show primary options by default. Improves task-completion speed 30-50% while preserving feature discoverability ~70-90%.",
+      "relevance": "Foundational source for hiding Simulation/Runtime advanced controls behind 'Advanced' disclosure / palette commands."
+    },
+    {
+      "id": "nngroup-information-foraging",
+      "title": "NN/G — Information Foraging: a theory of how people navigate the web",
+      "url": "https://www.nngroup.com/articles/information-foraging/",
+      "type": "research",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Users follow 'information scent': trigger words in labels, headings, link text. Specific labels reduce navigation time 30-50% vs generic.",
+      "relevance": "Renaming the 6 generic workspace names ('World', 'Memory', 'Atlas') to action/content labels (e.g. 'Codex', 'Lore', 'Map') strengthens scent."
+    },
+    {
+      "id": "uxtigers-information-scent",
+      "title": "UX Tigers — Information Scent: How Users Decide Where to Click",
+      "url": "https://www.uxtigers.com/post/information-scent",
+      "type": "industry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Trigger words in nav labels make-or-break clickthrough; vague labels push users to search.",
+      "relevance": "If our left rail says 'World' and 'Memory' and 'Atlas', users can't predict the difference. Concrete fix candidate."
+    },
+    {
+      "id": "nngroup-scrolling-attention",
+      "title": "NN/G — Scrolling and Attention",
+      "url": "https://www.nngroup.com/articles/scrolling-and-attention/",
+      "type": "research",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "57% of viewing time is spent above the fold; 74% in first two screenfuls. First impression formed in <0.05s.",
+      "relevance": "Argues that whatever we put in the first viewport of the Writing workspace IS the product perception. Currently competing toolbars hurt this."
+    },
+    {
+      "id": "butterick-line-length",
+      "title": "Butterick's Practical Typography — Line Length",
+      "url": "https://practicaltypography.com/line-length.html",
+      "type": "reference book / web",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Average line length should be 45–90 characters including spaces.",
+      "relevance": "Sets the max-width on the prose column in our Writing workspace; 65ch is a strong default."
+    },
+    {
+      "id": "butterick-summary",
+      "title": "Butterick's Practical Typography — Summary of Key Rules",
+      "url": "https://practicaltypography.com/summary-of-key-rules.html",
+      "type": "reference",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Body text: 10–12pt print / 15–25px web. Line spacing 120–145% of size. Avoid system defaults (Times/Arial).",
+      "relevance": "Concrete numeric grounding for our prose CSS."
+    },
+    {
+      "id": "typotheque-cjk",
+      "title": "Typotheque — Typesetting principles of Chinese, Japanese, and Korean (CJK) text",
+      "url": "https://www.typotheque.com/articles/typesetting-cjk-text",
+      "type": "type foundry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "CJK characters fill the em-box; ~170% line-height is needed to avoid cramped strokes. CJK kerning between punctuation improves readability.",
+      "relevance": "Critical for Bagua / 八卦 fiction app: leading should be 1.7 for prose body, not 1.4-1.5 default."
+    },
+    {
+      "id": "asianabsolute-cjk",
+      "title": "Asian Absolute — CJK Typesetting in 2025",
+      "url": "https://asianabsolute.co.uk/blog/cjk-typesetting-challenges-workflows-and-best-practices/",
+      "type": "industry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "WCAG limit for CJK text is 40 characters per line vs 80 for Latin; 80 Chinese characters becomes 'too dense and exhausting'.",
+      "relevance": "Our prose column max-width must be expressed in CJK character count (~36-40ch CJK), not 65ch Latin."
+    },
+    {
+      "id": "az-loc-chinese-fonts",
+      "title": "AZ-Loc — Best Chinese Fonts for Websites (2026)",
+      "url": "https://www.az-loc.com/choose-best-chinese-fonts-for-websites/",
+      "type": "industry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Source Han Serif / Noto Serif CJK SC for prose body; Source Han Sans / PingFang / Misans for UI chrome. Differentiating prose vs UI font is essential.",
+      "relevance": "Directly informs our typography stack: serif for manuscript text, sans for UI chrome."
+    },
+    {
+      "id": "uxpin-line-length",
+      "title": "UXPin — Optimal Line Length for Readability (2026)",
+      "url": "https://www.uxpin.com/studio/blog/optimal-line-length-for-readability/",
+      "type": "industry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Latin: 50–75 chars/line ideal, 45–90 acceptable; CJK shorter; lines longer than 90 hurt eye-tracking returns.",
+      "relevance": "Confirms our hard cap should be 90ch even in low-density mode."
+    },
+    {
+      "id": "ia-feed-100e2r",
+      "title": "iA — feed (Web design is 95% typography / 100E2R)",
+      "url": "https://ia.net/feed",
+      "type": "design studio blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "100E2R = 100% Easy to Read. Body fonts 16px+; macro-typography (line length, leading) matters more than font choice.",
+      "relevance": "Mentor-source for prose-first IA: typography drives the writing experience, not chrome."
+    },
+    {
+      "id": "sap-fiori-density",
+      "title": "SAP Fiori — Content Density (Cozy and Compact)",
+      "url": "https://experience.sap.com/fiori-design-web/cozy-compact/",
+      "type": "design system docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Cozy = touch / casual; Compact = power-user / data-dense. Provide a user toggle, never auto-pick.",
+      "relevance": "Argue for a Comfortable / Compact toggle so reviewers/editors can switch from prose-comfort to outline-density."
+    },
+    {
+      "id": "cloudscape-density",
+      "title": "Cloudscape Design System — Content Density",
+      "url": "https://cloudscape.design/foundation/visual-foundation/content-density/",
+      "type": "design system docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Compact density not fully applied to read-oriented surfaces because it hurts reading; long-form reading should default to comfortable density.",
+      "relevance": "Default state for our Writing workspace = comfortable; Atlas/Memory tables can lean compact."
+    },
+    {
+      "id": "stromawn-ui-density",
+      "title": "Matt Ström-Awn — UI Density",
+      "url": "https://mattstromawn.com/writing/ui-density/",
+      "type": "designer essay",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Density is about information per unit of attention, not pixels. Linear's density feels low because chrome is muted, not because it's spacious.",
+      "relevance": "Reframes our 'cluttered' problem: it's high attentional density, not high pixel density. Fix is hierarchy, not whitespace."
+    },
+    {
+      "id": "command-palette-philip",
+      "title": "Philip Davis — Command Palette Interfaces",
+      "url": "https://philipcdavis.com/writing/command-palette-interfaces",
+      "type": "designer essay",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Cmd+K palettes are now table-stakes in modern SaaS (Linear / Figma / Notion / Vercel / Raycast). Best practice: fuzzy search, scoped commands, recents, keyboard-only operation.",
+      "relevance": "Justifies adding ⌘K palette as first-class navigation alongside the left rail."
+    },
+    {
+      "id": "commandpalette-org",
+      "title": "commandpalette.org — Command palette resources",
+      "url": "https://www.commandpalette.org/",
+      "type": "industry resource hub",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Catalog of Cmd+K patterns across creative + dev tools; converging on identical shortcut and grouping conventions.",
+      "relevance": "Convention library: our palette should mirror these so users transfer muscle memory in."
+    },
+    {
+      "id": "logrocket-tabs-ux",
+      "title": "LogRocket — Tabbed navigation in UX: Where and when to use it",
+      "url": "https://blog.logrocket.com/ux-design/tabs-ux-best-practices/",
+      "type": "industry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Tabs work for parallel siblings of equal weight; fail when content is sequential, when there are >7 tabs, or when there's strong hierarchy.",
+      "relevance": "Our 6 workspaces are NOT equal weight; Writing is primary, others are support. Tabs are the wrong metaphor."
+    },
+    {
+      "id": "nngroup-tabs-used-right",
+      "title": "NN/G — Tabs, Used Right",
+      "url": "https://www.nngroup.com/articles/tabs-used-right/",
+      "type": "research",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Tabs work when items are mutually exclusive, parallel, and limited (~5-7). Bad tabs increase cognitive load; users miss content behind unselected tabs ~60% of the time.",
+      "relevance": "If we keep mode-switching at all, total mode count should stay ≤5 and modes should be co-equal."
+    },
+    {
+      "id": "useronboard-empty-states",
+      "title": "UserOnboard — Empty States",
+      "url": "https://www.useronboard.com/onboarding-ux-patterns/empty-states/",
+      "type": "design pattern library",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Empty states are first-impression real-estate; should explain the screen's purpose AND propose the first action.",
+      "relevance": "Our 6 workspaces almost certainly have weak empty states; opportunity to teach the product surface-by-surface."
+    },
+    {
+      "id": "smashing-empty-states",
+      "title": "Smashing Magazine — The Role of Empty States in User Onboarding",
+      "url": "https://www.smashingmagazine.com/2017/02/user-onboarding-empty-states-mobile-apps/",
+      "type": "industry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Best empty states blend illustration + plain-language purpose + one primary CTA. Avoid only icon + 'No data'.",
+      "relevance": "Concrete pattern for empty Memory / Atlas / Simulation views."
+    },
+    {
+      "id": "alfy-url-state",
+      "title": "Ahmad Alfy — Your URL Is Your State",
+      "url": "https://alfy.blog/2025/10/31/your-url-is-your-state.html",
+      "type": "engineer essay",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "If your SPA forgets state on refresh, you've broken a fundamental web contract. URL is the canonical store for shareable state.",
+      "relevance": "Our app uses conditional rendering with no URL state — every reload bounces users to default workspace. Highest-priority fix."
+    },
+    {
+      "id": "logrocket-url-params",
+      "title": "LogRocket — Advanced React state management using URL parameters",
+      "url": "https://blog.logrocket.com/advanced-react-state-management-using-react-router/",
+      "type": "industry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "URL params + React Router + nested routes give shareable, refresh-safe workspace state with minimal code.",
+      "relevance": "Implementation reference: replace 1659-line conditional shell with route-driven layout."
+    },
+    {
+      "id": "feature-creep-wikipedia",
+      "title": "Wikipedia — Feature creep",
+      "url": "https://en.wikipedia.org/wiki/Feature_creep",
+      "type": "encyclopedia",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Feature creep causes software bloat, schedule overruns, and reduced usability. Mitigation: separate functionality; expose extras only via opt-in submenus.",
+      "relevance": "Frames the 6-workspace symptom: the cure is hierarchy + opt-in, not a 7th workspace."
+    },
+    {
+      "id": "userjot-feature-creep",
+      "title": "UserJot — Feature Creep: Why Your Product Keeps Getting Worse",
+      "url": "https://userjot.com/blog/feature-creep",
+      "type": "industry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Personal/solo-built tools especially fall to feature creep because there's no PM gate. Symptom: top-level nav growth.",
+      "relevance": "Specific to our context: solo-built fiction app with growing top-level surface area."
+    },
+    {
+      "id": "logrocket-ai-overuse",
+      "title": "LogRocket — Overusing AI is ruining UX",
+      "url": "https://blog.logrocket.com/ux-design/avoiding-ai-overuse-in-ux/",
+      "type": "industry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Constant AI suggestions are exhausting; in creative fields users want assistive AI, not always-on AI chrome.",
+      "relevance": "Anti-pattern fit: Simulation/Runtime panels always-visible = AI fatigue. Move to summon-on-demand."
+    },
+    {
+      "id": "uxtigers-ai-agents",
+      "title": "UX Tigers — Hello AI Agents: Goodbye UI Design",
+      "url": "https://www.uxtigers.com/post/ai-agents",
+      "type": "industry article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "AI in creative tools should be inline / contextual; persistent AI chrome competes with the user's own thought.",
+      "relevance": "Reinforces summon-on-demand for our AI features."
+    },
+    {
+      "id": "ideatheorem-ai-patterns",
+      "title": "Idea Theorem — AI Design Patterns for Next-Gen UX (2025)",
+      "url": "https://ideatheorem.com/insights/blog/the-ultimate-guide-to-ai-design-patterns-for-next-gen-ux",
+      "type": "industry guide",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Emerging patterns: inline copilot ribbon, side drawer, command-palette AI, ghost-text suggestions. Persistent right-rail AI is on the decline.",
+      "relevance": "Modern menu of options to choose from, replacing one big right-side AI panel."
+    },
+    {
+      "id": "logseq-right-sidebar",
+      "title": "Logseq — How to work with the right-hand sidebar",
+      "url": "https://discuss.logseq.com/t/how-to-work-with-logseqs-right-hand-sidebar/8461",
+      "type": "community docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Right sidebar holds stacked references / queries / linked-mentions; you can pin multiple panes vertically.",
+      "relevance": "Pattern for stacking 'Memory' (recent context) above 'Atlas' (entity hover) in one rail rather than separate workspaces."
+    },
+    {
+      "id": "thesweetsetup-pkm",
+      "title": "The Sweet Setup — Obsidian vs Roam vs Logseq",
+      "url": "https://thesweetsetup.com/obsidian-vs-roam/",
+      "type": "comparison",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "All three PKM tools converged on left-rail (vault/structure) + main pane (note) + right-rail (back-references/graph). Differences are stylistic, not structural.",
+      "relevance": "Our 'World/Memory/Atlas' merger should follow this convergent pattern."
+    },
+    {
+      "id": "sap-fiori-content-density",
+      "title": "SAP Fiori — Content Density (Cozy and Compact) v1.96",
+      "url": "https://www.sap.com/design-system/fiori-design-web/v1-96/foundations/visual/cozy-compact",
+      "type": "design system docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Cozy ≈ 3rem rows / 16px base; Compact ≈ 2rem rows / 14px base. Designed for user toggle.",
+      "relevance": "Concrete numbers for our density toggle."
+    }
+  ]
+}

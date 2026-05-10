@@ -1,0 +1,367 @@
+{
+  "schema": "source_card_v1",
+  "generated_at": "2026-05-10",
+  "researcher_note": "Sources gathered via web search on 2026-05-09/10 for the novel-writing+world-simulation app frontend audit. Each card maps to inline citations like [s12] in research_novel_writing_tools.md.",
+  "sources": [
+    {
+      "id": "s1",
+      "title": "What is Story Bible — Sudowrite Documentation",
+      "url": "https://docs.sudowrite.com/using-sudowrite/1ow1qkGqof9rtcyGnrWUBS/what-is-story-bible/jmWepHcQdJetNrE991fjJC",
+      "type": "vendor_doc",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Story Bible holds genre, style, synopsis, characters, worldbuilding, and outline as named fields that the AI silently references during generation.",
+      "relevance": "Reference for verb-based AI grammar and structured-context pattern — basis for our chapter-generation IA recommendation."
+    },
+    {
+      "id": "s2",
+      "title": "Sudowrite Review 2026: Tested w/ 3 Stories — Best AI for Fiction? (Nerdynav)",
+      "url": "https://nerdynav.com/sudowrite-review/",
+      "type": "third_party_review",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Sudowrite organizes its UX around three named verbs (Write/Describe/Brainstorm) and a Canvas surface for plot/character relationships; users praise the verb-based grammar and find Canvas useful but occasionally disorganized.",
+      "relevance": "Validates verb-based AI surfacing and shows the limits of unconstrained mind-map/canvas surfaces."
+    },
+    {
+      "id": "s3",
+      "title": "Novelcrafter Changelog & Codex UX (feedback.novelcrafter.com)",
+      "url": "https://feedback.novelcrafter.com/changelog/july-24-2025",
+      "type": "vendor_changelog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Novelcrafter's UX is built around 'context-at-a-glance', a 3-panel layout (manuscript / story-beats or Codex / inspector), with auto-detection of Codex references in prose and per-scene context selection for AI prompts.",
+      "relevance": "Direct reference for our scene-editing workspace 3-pane shell and auto-mention detection."
+    },
+    {
+      "id": "s4",
+      "title": "Novelcrafter Review: Powerful for Fiction Writers, Frustrating to Set Up (April 2026)",
+      "url": "https://ilampadmanabhan.medium.com/novelcrafter-review-64d391c629a2",
+      "type": "third_party_review",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Most-cited complaints: BYOK setup feels like 'developer work, not writer work', Codex maintenance is 'exhausting', and detailed outlines often don't reach the model — the platform claims more than the prompt builder uses.",
+      "relevance": "Anti-pattern catalog: don't gate first-run on API keys; show users exactly what context the AI received."
+    },
+    {
+      "id": "s5",
+      "title": "Sudowrite Trustpilot Reviews (UK)",
+      "url": "https://uk.trustpilot.com/review/www.sudowrite.com",
+      "type": "review_aggregator",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Reports of glitches (Beats feature failing while consuming credits), slow support, and Terms-of-Service ambiguity around IP ownership of user inputs.",
+      "relevance": "Reliability and trust gripes feed our 'show what the AI did and what it cost' principle."
+    },
+    {
+      "id": "s6",
+      "title": "NovelAI Lorebook Documentation",
+      "url": "https://docs.novelai.net/en/text/lorebook/",
+      "type": "vendor_doc",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Lorebook entries are inserted into the AI's context only when their trigger keywords appear in recent text — a hybrid of always-on memory and manual selection.",
+      "relevance": "Pattern reference for our story-memory workspace: keyword-triggered auto-injection on top of manual selection."
+    },
+    {
+      "id": "s7",
+      "title": "NovelAI Review (2026): Great for World-Building, But There's a Catch (Shakespeare AI Blog)",
+      "url": "https://shakespeareai.braintastic.ca/blog/novelai-review-2026",
+      "type": "third_party_review",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Even at Opus-tier 8,192-token context, only ~6–7k recent words are visible; the interface gives no warning when context rolls over, causing sudden 'character amnesia'. Users manually correct narrative flow constantly.",
+      "relevance": "Anti-pattern: silent context rollover. Drives our 'context warning' recommendation."
+    },
+    {
+      "id": "s8",
+      "title": "Integrating Scrivener's Binder, Corkboard, and Outliner — Literature & Latte",
+      "url": "https://www.literatureandlatte.com/blog/integrating-scriveners-binder-corkboard-and-outliner",
+      "type": "vendor_blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Binder, Corkboard, and Outliner are three views of the same underlying tree; rearranging in one view is reflected in all three. The Inspector holds metadata (synopsis, keywords, notes) — the corkboard card synopsis IS the Inspector synopsis.",
+      "relevance": "Canonical reference for the 'same-data, multiple-projections' IA principle — our top recommendation."
+    },
+    {
+      "id": "s9",
+      "title": "The Inspector (Scrivener 3's revised user interface) — ScrivenerVirgin",
+      "url": "https://www.scrivenervirgin.com/2018/02/inspector-scrivener-3s-revised-user-interface/",
+      "type": "third_party_blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "The Inspector is the right-hand pane that holds metadata about the currently open document; it survives across editor changes.",
+      "relevance": "Validates inspector-as-metadata pattern (not duplicated prose)."
+    },
+    {
+      "id": "s10",
+      "title": "Ulysses Review — Codeless / Selfpublishing.com / Vice",
+      "url": "https://kindlepreneur.com/ulysses-review/",
+      "type": "third_party_review",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Distraction-free first-class modes (typewriter, dark, focus, full-screen). Filters create live folders; library is a first-class IA. Cons: Apple-only, subscription expensive, almost no formatting capability.",
+      "relevance": "Reference for first-class focus modes and saved-view IA pattern."
+    },
+    {
+      "id": "s11",
+      "title": "Plottr Review (Reedsy & Kindlepreneur)",
+      "url": "https://reedsy.com/blog/guide/book-writing-software/plottr-review/",
+      "type": "third_party_review",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Plottr's strength is template-scaffolded story structures (Hero's Journey, Three-Act, Save the Cat) and drag-and-drop timeline cards. Weakness: no writing surface, performance degrades past a card threshold, limited export.",
+      "relevance": "Reference for template-driven empty states and 'plan view must support inline edit or jump-to-edit'."
+    },
+    {
+      "id": "s12",
+      "title": "Obsidian for Fiction Writers — Loreteller / XPress Book Box / Iain F Macleod",
+      "url": "https://loreteller.com/learn/obsidian-fiction-writers-guide/",
+      "type": "third_party_guide",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Obsidian out of the box is not a writing tool; it's a note engine with no opinion. New users link aggressively because the graph 'looks impressive', but meaningful links should connect entities with narrative relationships, otherwise the graph is noise.",
+      "relevance": "Anti-pattern reference: a freeform graph without curation is not navigable. Drives our typed/filtered atlas recommendation."
+    },
+    {
+      "id": "s13",
+      "title": "Why I stopped using Notion — UX Planet & Hacker News thread",
+      "url": "https://uxplanet.org/why-i-stopped-using-notion-an-honest-ux-review-ebf03e268a01",
+      "type": "ux_critique",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Notion's flexibility is its weakness: users are overwhelmed by complexity. Adding a single block reveals a long scroll of options. Steep learning curve, decision fatigue.",
+      "relevance": "Anti-pattern: infinite generality has a UX cost. Validates our 6-fixed-workspaces approach."
+    },
+    {
+      "id": "s14",
+      "title": "Sudowrite Pricing & Credit Complaints (CheckThat.ai, costbench.com, feedback.sudowrite.com)",
+      "url": "https://feedback.sudowrite.com/p/unlimited-credits",
+      "type": "vendor_feedback_portal",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Heavy users report 4 chapters / 7–18k words consuming 2M credits; the credit system is 'opaque', costs vary by model and length; users repeatedly request unlimited or roll-over plans.",
+      "relevance": "Anti-pattern: hidden/variable AI cost. Drives our 'predictable cost telemetry' principle."
+    },
+    {
+      "id": "s15",
+      "title": "ShortlyAI / Jasper acquisition & Jasper Trustpilot complaints",
+      "url": "https://www.trustpilot.com/review/www.jasper.ai",
+      "type": "review_aggregator",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "ShortlyAI was absorbed into Jasper's Boss Mode; Jasper itself has billing complaints (continued billing after cancellation, no use of already-paid days after pause).",
+      "relevance": "Pricing/trust UX lesson: cancellation and pause UX matters."
+    },
+    {
+      "id": "s16",
+      "title": "Plot Bunni — FOSS Novel Writing Suite (plotbunni.com / GitHub)",
+      "url": "https://plotbunni.com/",
+      "type": "vendor_site",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Open-source, browser-based, IndexedDB-local storage, BYOK to OpenRouter/LMStudio/Koboldcpp; 100% free.",
+      "relevance": "Validates local-first storage and open-source as trust features."
+    },
+    {
+      "id": "s17",
+      "title": "Notion Performance & Information Architecture critiques (hackceleration.com, capterra)",
+      "url": "https://hackceleration.com/notion-review/",
+      "type": "third_party_review",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Performance degrades past 5,000 records (load times 3–5s/page). Users build for imagined future workflows rather than current behavior; IA should reflect cognitive patterns, not data normalization.",
+      "relevance": "Performance-budget warning for our atlas/knowledge view; IA principle for cognitive-pattern-first design."
+    },
+    {
+      "id": "s18",
+      "title": "Logseq vs Roam Research — Travis Chan / Sweet Setup / Saasweep",
+      "url": "https://travischan.medium.com/logseq-vs-roam-research-65168fe57464",
+      "type": "third_party_comparison",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Outliner paradigm has a steep learning curve; many users never reach proficiency. Logseq performance issues past thousands of pages. Roam $15/mo for what Logseq does free.",
+      "relevance": "Anti-pattern: outliner-everywhere is overkill for fiction; bidirectional links should be sparse/explicit."
+    },
+    {
+      "id": "s19",
+      "title": "Where should AI sit in your UI? — UX Collective / Sharang Sharma",
+      "url": "https://uxdesign.cc/where-should-ai-sit-in-your-ui-1710a258390e",
+      "type": "ux_pattern_article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Maps emerging AI UI patterns: persistent side panel for collaborative work; inline ghost text for short completions; inline action menu at selection for span operations.",
+      "relevance": "Direct guidance for AI-surfacing decisions across our chapter, scene, branch, and memory workspaces."
+    },
+    {
+      "id": "s20",
+      "title": "AI UX Patterns | Inline Action — Shape of AI",
+      "url": "https://www.shapeof.ai/patterns/inline-action",
+      "type": "ux_pattern_article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Inline action menus surface AI verbs (shorten, expand, rephrase, summarize) at the cursor/selection. Lets users scope work at word/sentence/section/block granularity before invoking AI.",
+      "relevance": "Pattern reference for span-action menu in scene editor."
+    },
+    {
+      "id": "s21",
+      "title": "Empty States — UserOnboard / Smashing Magazine / Toptal",
+      "url": "https://www.useronboard.com/onboarding-ux-patterns/empty-states/",
+      "type": "ux_pattern_article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Empty states are an onboarding opportunity, not chrome. Two parts instruction to one part delight. Best practice is to preload sample data or auto-generate starter content.",
+      "relevance": "Direct rationale for sample-world / template-prompt empty states across our 6 workspaces."
+    },
+    {
+      "id": "s22",
+      "title": "React Router SPA & dynamic tab state preservation (reactrouter.com / GitHub discussions)",
+      "url": "https://github.com/remix-run/react-router/discussions/11040",
+      "type": "framework_doc",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "React Router supports nested layouts perfect for dashboard tabs. Tabs should preserve state when switching; Spotify mobile is the canonical 'route per tab, shared component' pattern.",
+      "relevance": "Architectural rationale for splitting our App.tsx monolith into a router-driven shell."
+    },
+    {
+      "id": "s23",
+      "title": "NovelPad Review — Selfpublishing.com / Comfortable Shoes Studio",
+      "url": "https://selfpublishing.com/novelpad-review/",
+      "type": "third_party_review",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Cloud SPA. Chapters → scene cards with drag-and-drop reorder & auto-renumber; scene editor pops up over outline (half/full screen); ProWritingAid embedded; autosave every 60 seconds; realtime collab.",
+      "relevance": "Reference for 'jump-to-edit' from card view and autosave cadence."
+    },
+    {
+      "id": "s24",
+      "title": "Unlock Your Writing Potential with NovelAI's Memory and Lorebooks — Eightify",
+      "url": "https://eightify.app/summary/writing-and-ai/unlock-your-writing-potential-with-novelai-s-memory-and-lorebooks",
+      "type": "third_party_summary",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "NovelAI exposes the AI's working memory: current text window, active lorebook entries, author's note, memory injections. This transparency is something other tools lack.",
+      "relevance": "Pattern reference for our 'context inspector' pill — strongest AI-transparency pattern in survey."
+    },
+    {
+      "id": "s25",
+      "title": "Dabble Plot Grid — Help Center / Reedsy / Kindlepreneur",
+      "url": "https://help.dabblewriter.com/en/articles/2692382-exploring-dabble-s-plot-grid",
+      "type": "vendor_doc",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Plot Grid is columns (Plot Lines) × rows (Scenes/Chapters) × cards (Plot Points), with drag-and-drop. Inspired by Harry Potter plotting method. Cleanest visual cross-cutting subplot tracker.",
+      "relevance": "Reference for branch/timeline workspace: cross-cutting subplot view."
+    },
+    {
+      "id": "s26",
+      "title": "Aeon Timeline & Campfire — Mythic Scribes / Reedsy / Kindlepreneur",
+      "url": "https://writerunboxed.com/2022/03/30/can-you-be-too-organized-a-writers-review-of-aeon-timeline-software/",
+      "type": "third_party_review",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Aeon Timeline combines timeline + spreadsheet + mindmap + 'narrative view' (drag chronological events into non-chronological reading order). Campfire offers 17 modules sold individually (Characters, Maps, Magic, Languages...).",
+      "relevance": "Narrative-view pattern (chronological vs. reading order projection) directly applicable to our branch/timeline workspace."
+    },
+    {
+      "id": "s27",
+      "title": "Make Canvas work more like a mind-map — Sudowrite Feedback",
+      "url": "https://feedback.sudowrite.com/p/make-canvas-work-more-like-a-mind-map-6",
+      "type": "vendor_feedback_portal",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Users publicly request that Canvas behave more like a true mind-map, allowing connections between character cards and plot lines, with the ability to generate parallel and converging plotlines.",
+      "relevance": "Validates that unconstrained 2D canvases need stronger structural opinions to feel useful."
+    },
+    {
+      "id": "s28",
+      "title": "Novelcrafter Codex Documentation",
+      "url": "https://docs.novelcrafter.com/en/",
+      "type": "vendor_doc",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Codex auto-detects references in text; clicking shows a preview popover; prompts auto-pull referenced entries into context. Per-scene curation of which entries the model sees.",
+      "relevance": "Reference for auto-mention detection and per-scene context selection in our scene workspace."
+    },
+    {
+      "id": "s29",
+      "title": "Scrivener Learning Curve Forums — Literature & Latte / Quora / Kindlepreneur",
+      "url": "https://forum.literatureandlatte.com/t/why-is-it-such-a-steep-learning-curve-when-using-it-to-replace-desktop-publishing-software/150879",
+      "type": "user_forum",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Scrivener's UI is described as a '747 cockpit', a 'patchwork of basic functionality with miscellaneous add-ons', no consistent UI between components. Compile/export is universally hated.",
+      "relevance": "Anti-pattern: visual-consistency drift across panels. Validates need for shared shell across our 6 workspaces."
+    },
+    {
+      "id": "s30",
+      "title": "Best Novel Writing Software Compared (Chapter Blog / Legendfiction Substack)",
+      "url": "https://legendfiction.substack.com/p/i-tested-23-writing-toolsyeah-almost",
+      "type": "third_party_comparison",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Reviewer of 22 writing tools describes Novelcrafter as feeling 'a little dense, like there's just a bit too much going on visually', and Squibler as 'bulky and overbuilt for most writers'.",
+      "relevance": "Anti-pattern: visual density. Drives our 'density knob' recommendation in card layouts."
+    },
+    {
+      "id": "s31",
+      "title": "World Anvil Review — Kindlepreneur / Self-Publishing School",
+      "url": "https://kindlepreneur.com/world-anvil/",
+      "type": "third_party_review",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "World Anvil's strength is template-driven articles with embedded prompts ('describe the climate', 'describe daily life'). Weakness: extensive functionality is overwhelming, steep learning curve, hundreds of optional modules.",
+      "relevance": "Reference for embedded-prompt empty states in our world-building workspace; warning about module bloat."
+    },
+    {
+      "id": "s32",
+      "title": "Worldwand — Premium Worldbuilding for Writers and GMs",
+      "url": "https://worldwand.app/",
+      "type": "vendor_site",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Markets explicitly as 'a three-panel workspace built for creation and recall — browse structure on one side, edit in the center, and inspect detail, relationships, pending AI changes, or chat context on the other'.",
+      "relevance": "Confirms three-pane is the default expected layout for premium writer/GM tools in 2026."
+    },
+    {
+      "id": "s33",
+      "title": "Designing Trustworthy AI Assistants: 9 Simple UX Patterns — Orange Loops",
+      "url": "https://orangeloops.com/2025/07/9-ux-patterns-to-build-trustworthy-ai-assistants/",
+      "type": "ux_pattern_article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Trustworthy AI assistants need granular feedback (thumbs up/down per response, optional tags 'inaccurate', 'irrelevant'), display insights without overwhelming, and offer directional follow-ups (zoom in vs. zoom out).",
+      "relevance": "Pattern reference for AI critique/feedback surfacing without overwhelm."
+    },
+    {
+      "id": "s34",
+      "title": "Three-Pane Layout in Editor / IDE Tools — Firefox DevTools 3-pane mode docs / Polypane Workspaces",
+      "url": "https://firefox-source-docs.mozilla.org/devtools-user/page_inspector/3-pane_mode/index.html",
+      "type": "vendor_doc",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "The three-pane layout (browse | edit | inspect) is the dominant pattern across editor IDEs (VSCode, Firefox DevTools, Polypane) — preserves three persistent contexts: where you are, what you're working on, and what's true about it.",
+      "relevance": "Architectural rationale for our shell."
+    },
+    {
+      "id": "s35",
+      "title": "AI UX Patterns | Regenerate — Shape of AI",
+      "url": "https://www.shapeof.ai/patterns/regenerate",
+      "type": "ux_pattern_article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Regenerate has two design modes: overwrite (lose previous) vs branching (each retry is a separate version). For creative work, branching with cyclable history is the strong pattern; overwrite-only is widely disliked.",
+      "relevance": "Direct reference for branch/timeline workspace: regenerate = branch, not overwrite."
+    },
+    {
+      "id": "s36",
+      "title": "Autosave Patterns — UI-Patterns.com / Pajamas (GitLab) / Primer (GitHub)",
+      "url": "https://design.gitlab.com/usability/saving-and-feedback",
+      "type": "design_system_doc",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Autosave UX: show 'Saving…' (with spinner) or 'Saved' + relative timestamp. For long-form, prefer 'Draft saved 1 min ago'. Don't remove the Save button — users panic without one.",
+      "relevance": "Direct guidance for our autosave & draft-vs-saved pattern."
+    },
+    {
+      "id": "s37",
+      "title": "Plot Bunni GitHub README (MangoLion/plotbunni)",
+      "url": "https://github.com/MangoLion/plotbunni",
+      "type": "open_source_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "FOSS Novel Writing Suite with AI assistance, IndexedDB local storage, no accounts, no telemetry; works offline.",
+      "relevance": "Reference architecture for fully local-first AI writing app."
+    },
+    {
+      "id": "s38",
+      "title": "Don't Prioritize Efficiency Over Expectations — Nielsen Norman Group",
+      "url": "https://www.nngroup.com/articles/efficiency-vs-expectations/",
+      "type": "nngroup_article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "When implementing autosave, users still expect (and reach for) a Save action — meeting that expectation matters more than removing a redundant click.",
+      "relevance": "NN/G principle backing the 'keep the Save button' recommendation."
+    },
+    {
+      "id": "s39",
+      "title": "Sudowrite Story Bible Even More Features changelog",
+      "url": "https://feedback.sudowrite.com/changelog/even-more-new-features-for-story-bible",
+      "type": "vendor_changelog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Story Bible has been iterated heavily since launch — adding new fields, character templates, and worldbuilding sub-sections — showing it's the most-actively-evolved part of Sudowrite.",
+      "relevance": "Indicates that structured-context store is a long-term competitive moat in this category."
+    },
+    {
+      "id": "s40",
+      "title": "Information Architecture Articles (NN/G topic page)",
+      "url": "https://www.nngroup.com/topic/information-architecture/",
+      "type": "nngroup_topic_page",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "NN/G's IA research emphasizes mental models, navigation hierarchy, and 'cognitive walkthrough' as the core methods for designing complex tool IA.",
+      "relevance": "Methodological backing for our 5 IA principles synthesis."
+    }
+  ]
+}
