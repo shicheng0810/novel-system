@@ -1,3 +1,5 @@
+import { emitSimulationStep } from "./world-events/emit";
+
 export type RuntimeJobSnapshot = {
   queuedJobs: number;
   activeJob?: string;
@@ -11,12 +13,22 @@ export class NovelRuntimeWorker {
   private activeJob?: string;
   private completedJobs = 0;
   private failedJobs = 0;
+  private stepCounter = 0;
 
   enqueue<T>(label: string, task: () => Promise<T>): Promise<T> {
     this.queuedJobs += 1;
+    const stepIndex = ++this.stepCounter;
+    emitSimulationStep({
+      stepIndex,
+      summary: `runtime queued: ${label}`,
+    });
     const run = this.tail.then(async () => {
       this.queuedJobs -= 1;
       this.activeJob = label;
+      emitSimulationStep({
+        stepIndex,
+        summary: `runtime active: ${label}`,
+      });
       try {
         const result = await task();
         this.completedJobs += 1;

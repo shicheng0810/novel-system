@@ -1,5 +1,6 @@
 import type { RunDetailResponse, SimulationRunSummary, WorkbenchSessionState } from "../contracts";
 import type { BottomPanelTab, UIState } from "../store";
+import { DecisionInbox, useDecisionCount } from "./DecisionInbox";
 
 export type SimulationFormState = {
   stageLabel: string;
@@ -43,6 +44,11 @@ const TABS: Array<{ id: BottomPanelTab; label: string }> = [
   { id: "ticks", label: "Runtime" },
 ];
 
+const DECISIONS_TAB: { id: BottomPanelTab; label: string } = {
+  id: "decisions",
+  label: "决策",
+};
+
 function formatJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
@@ -52,6 +58,7 @@ export function BottomPanel(props: BottomPanelProps) {
   const daemon = session?.runtimeDaemon;
   const stageCount = session?.simulation.stages.length ?? 0;
   const recommended = session?.simulation.latestBranchEvaluations.find((b) => b.recommended);
+  const decisionCount = useDecisionCount();
 
   const collapsedSummary = daemon?.active
     ? `推演 · ${daemon.completedTicks}/${daemon.targetTicks} ticks · ${daemon.lastStageLabel ?? "运行中"}`
@@ -61,11 +68,23 @@ export function BottomPanel(props: BottomPanelProps) {
     setUI((current) => ({ ...current, bottomPanelOpen: !current.bottomPanelOpen }));
   }
 
+  const visibleTabs: Array<{ id: BottomPanelTab; label: string; badge?: number }> = [
+    ...TABS,
+    ...(decisionCount > 0
+      ? [{ ...DECISIONS_TAB, badge: decisionCount }]
+      : []),
+  ];
+
   if (!ui.bottomPanelOpen) {
     return (
       <section className="bottom-panel collapsed">
         <button className="bottom-panel-header" onClick={togglePanel}>
           <span>{collapsedSummary}</span>
+          {decisionCount > 0 ? (
+            <span className="decision-badge" title="待裁决事件">
+              ⚠ {decisionCount}
+            </span>
+          ) : null}
           <span className="bottom-panel-toggle">展开 ▲</span>
         </button>
       </section>
@@ -76,13 +95,14 @@ export function BottomPanel(props: BottomPanelProps) {
     <section className="bottom-panel open">
       <header className="bottom-panel-header bottom-panel-header-open">
         <nav className="bottom-panel-tabs">
-          {TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               className={ui.bottomPanelTab === tab.id ? "active" : ""}
               onClick={() => setUI((current) => ({ ...current, bottomPanelTab: tab.id }))}
             >
               {tab.label}
+              {tab.badge ? <span className="tab-badge">{tab.badge}</span> : null}
             </button>
           ))}
         </nav>
@@ -93,6 +113,7 @@ export function BottomPanel(props: BottomPanelProps) {
 
       {ui.bottomPanelTab === "simulation" && <SimulationBody {...props} />}
       {ui.bottomPanelTab === "ticks" && <RuntimeBody {...props} />}
+      {ui.bottomPanelTab === "decisions" && <DecisionInbox />}
     </section>
   );
 }

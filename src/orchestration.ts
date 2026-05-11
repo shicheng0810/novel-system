@@ -5,6 +5,7 @@ import {
   JobStageRun,
   NarrativeLens,
   NarrativeMemoryPack,
+  ParsedWorldDraft,
   ResumeCheckpoint,
   ReviewReport,
   RunRecord,
@@ -28,6 +29,56 @@ import {
   reviewChapterDraft,
 } from "./narrative";
 import { WorldHistoryEngine } from "./engine";
+import { sanitizeProse } from "./anti-slop-sanitizer";
+import { verifyXianxia } from "./xianxia-verifier";
+import {
+  emitComposeStage,
+  emitConfirmFinalCascade,
+  emitMemoryWrite,
+} from "./world-events/emit";
+
+/**
+ * W4: post-process the provider's ReviewReport with deterministic
+ * anti-slop sanitizer + xianxia verifier checks. Issues from these go to
+ * `warnings` (slop) and `issues` (xianxia blockers); style notes get
+ * appended too.
+ *
+ * `passed` is downgraded only if a verifier blocker fires; sanitizer is
+ * advisory and never alone fails review.
+ */
+function augmentReviewWithChecks(
+  review: ReviewReport,
+  chapterText: string,
+  parsed: ParsedWorldDraft | undefined,
+): ReviewReport {
+  const slop = sanitizeProse(chapterText);
+  const slopWarnings = slop.issues.map((i) => `[anti-slop:${i.category}] ${i.message}`);
+
+  let xianxiaIssues: string[] = [];
+  let xianxiaWarnings: string[] = [];
+  let xianxiaPassed = true;
+  if (parsed) {
+    const xianxia = verifyXianxia({ text: chapterText, parsed });
+    for (const v of xianxia.violations) {
+      const line = `[xianxia:${v.kind}] ${v.message}`;
+      if (v.severity === "blocker") xianxiaIssues.push(line);
+      else xianxiaWarnings.push(line);
+    }
+    xianxiaPassed = xianxia.passed;
+  }
+
+  return {
+    passed: review.passed && xianxiaPassed,
+    issues: [...review.issues, ...xianxiaIssues],
+    warnings: [...review.warnings, ...slopWarnings, ...xianxiaWarnings],
+    styleNotes: [
+      ...review.styleNotes,
+      `slop-score=${slop.slopScore.toFixed(1)}/10`,
+    ],
+    factCoverage: review.factCoverage,
+    suggestedRewrites: review.suggestedRewrites,
+  };
+}
 
 const STAGE_ORDER: WritingStage[] = [
   "memory-read",
@@ -123,8 +174,20 @@ export class WritingJob {
       lens: NarrativeLens;
       provider: WritingModelProvider;
       memoryStore: StoryMemoryStore;
+      /**
+       * Optional parsed world for the W4 critique post-checks
+       * (xianxia verifier needs character + bazi data). When omitted,
+       * only the anti-slop sanitizer runs in critique post-processing.
+       */
+      parsed?: ParsedWorldDraft;
+      runId?: string;
+      chapterId?: string;
     },
   ) {}
+
+  private emitCtx() {
+    return { runId: this.input.runId, chapterId: this.input.chapterId };
+  }
 
   private async providerContext(): Promise<WritingProviderContext> {
     const memoryPack =
@@ -174,61 +237,86 @@ export class WritingJob {
   }
 
   private async executeStage(stage: WritingStage): Promise<void> {
+    emitComposeStage({ ...this.emitCtx(), stage, status: "started", summary: `${stage} 开始` });
     const context = await this.providerContext();
 
     switch (stage) {
       case "memory-read": {
-        this.runRecords.push(
-          recordForStage(stage, this.input.provider, `已读取 ${context.memoryPack.factEntries.length} 条事实记忆`),
-        );
+        const summary = `已读取 ${context.memoryPack.factEntries.length} 条事实记忆`;
+        this.runRecords.push(recordForStage(stage, this.input.provider, summary));
         this.saveCheckpoint(stage);
+        emitComposeStage({ ...this.emitCtx(), stage, status: "succeeded", summary });
         return;
       }
       case "blueprint": {
         this.state.plan = await this.input.provider.planChapter(context);
-        this.runRecords.push(
-          recordForStage(stage, this.input.provider, `已生成章节蓝图：${this.state.plan.chapterGoal}`),
-        );
+        const summary = `已生成章节蓝图：${this.state.plan.chapterGoal}`;
+        this.runRecords.push(recordForStage(stage, this.input.provider, summary));
         this.saveCheckpoint(stage);
+        emitComposeStage({ ...this.emitCtx(), stage, status: "succeeded", summary });
         return;
       }
       case "scene-expand": {
         this.state.plan ??= await this.input.provider.planChapter(context);
         this.state.sceneCards = await this.input.provider.expandScenes(context, this.state.plan);
-        this.runRecords.push(
-          recordForStage(stage, this.input.provider, `已展开 ${this.state.sceneCards.length} 个场景`),
-        );
+        const summary = `已展开 ${this.state.sceneCards.length} 个场景`;
+        this.runRecords.push(recordForStage(stage, this.input.provider, summary));
         this.saveCheckpoint(stage);
+        emitComposeStage({ ...this.emitCtx(), stage, status: "succeeded", summary });
         return;
       }
       case "synthesize": {
+        // Per review · M (orchestration plan crash): assign back to state.plan
+        // so subsequent reads see it. Previous code used `state.plan!` after a
+        // ?? expression that didn't write through, so a checkpoint with
+        // sceneCards-but-no-plan crashed on null deref.
+        const plan = this.state.plan ?? (await this.input.provider.planChapter(context));
+        this.state.plan = plan;
+        const sceneCards =
+          this.state.sceneCards ?? (await this.input.provider.expandScenes(context, plan));
+        this.state.sceneCards = sceneCards;
         this.state.draft = await this.input.provider.synthesizeProse(
           context,
-          this.state.plan ?? (await this.input.provider.planChapter(context)),
-          this.state.sceneCards ?? (await this.input.provider.expandScenes(context, this.state.plan!)),
+          plan,
+          sceneCards,
         );
-        this.runRecords.push(
-          recordForStage(stage, this.input.provider, `已生成 ${this.state.draft.chapterText.length} 字正文`),
-        );
+        const summary = `已生成 ${this.state.draft.chapterText.length} 字正文`;
+        this.runRecords.push(recordForStage(stage, this.input.provider, summary));
         this.saveCheckpoint(stage);
+        emitComposeStage({ ...this.emitCtx(), stage, status: "succeeded", summary });
         return;
       }
       case "critique": {
-        this.state.draft ??= await this.input.provider.synthesizeProse(
-          context,
-          this.state.plan ?? (await this.input.provider.planChapter(context)),
-          this.state.sceneCards ?? (await this.input.provider.expandScenes(context, this.state.plan!)),
+        // Same fix as synthesize — write-through state.plan/sceneCards.
+        if (!this.state.draft) {
+          const plan = this.state.plan ?? (await this.input.provider.planChapter(context));
+          this.state.plan = plan;
+          const sceneCards =
+            this.state.sceneCards ?? (await this.input.provider.expandScenes(context, plan));
+          this.state.sceneCards = sceneCards;
+          this.state.draft = await this.input.provider.synthesizeProse(context, plan, sceneCards);
+        }
+        const baseReview = await this.input.provider.critiqueChapter(context, this.state.draft);
+        this.state.review = augmentReviewWithChecks(
+          baseReview,
+          this.state.draft.chapterText,
+          this.input.parsed,
         );
-        this.state.review = await this.input.provider.critiqueChapter(context, this.state.draft);
         this.state.draft.review = this.state.review;
-        this.runRecords.push(
-          recordForStage(stage, this.input.provider, this.state.review.passed ? "复核通过" : "复核未通过"),
-        );
+        const summary = this.state.review.passed ? "复核通过" : "复核未通过";
+        this.runRecords.push(recordForStage(stage, this.input.provider, summary));
         this.saveCheckpoint(stage);
+        emitComposeStage({
+          ...this.emitCtx(),
+          stage,
+          status: this.state.review.passed ? "succeeded" : "failed",
+          summary,
+        });
         return;
       }
       case "memory-write": {
-        if (this.state.review?.passed && this.state.draft) {
+        const wroteAnything = this.state.review?.passed && this.state.draft;
+        if (wroteAnything && this.state.draft) {
           for (const scene of this.state.draft.sceneDrafts) {
             await this.input.memoryStore.writeExpression({
               lineId: this.input.line.lineId,
@@ -247,8 +335,27 @@ export class WritingJob {
             });
           }
         }
-        this.runRecords.push(recordForStage(stage, this.input.provider, "已写入表达记忆"));
+        // Per review · L: don't claim "已写入" if memory wasn't written
+        // (critic failed). Surface the actual outcome so re-runs can
+        // distinguish "skipped due to review" from "wrote".
+        const summary = wroteAnything
+          ? `已写入 ${this.state.draft!.sceneDrafts.length} 段表达记忆`
+          : "复核未通过，已跳过表达记忆写入";
+        this.runRecords.push(recordForStage(stage, this.input.provider, summary));
         this.saveCheckpoint(stage);
+        emitComposeStage({
+          ...this.emitCtx(),
+          stage,
+          status: wroteAnything ? "succeeded" : "blocked",
+          summary,
+        });
+        if (wroteAnything && this.state.draft) {
+          emitMemoryWrite({
+            ...this.emitCtx(),
+            count: this.state.draft.sceneDrafts.length,
+            breakdown: "表达记忆",
+          });
+        }
         return;
       }
       default:
@@ -368,7 +475,15 @@ export class SimulationJob {
           value: result,
         });
         currentRun = await this.input.runStore.completeLatestStep(currentRun, ["simulation.stage-result"]);
-        currentRun = await this.input.runStore.markRun(currentRun, "completed");
+        // Per review · M (orchestration mark race): only mark as completed if
+        // the gate didn't request author resolution. ask-author runs stay
+        // "running" until WorldDaemon flips them to "paused" on the next
+        // line, eliminating the brief "completed → paused" window for
+        // cross-process consumers.
+        const askAuthor = result.gateDecisions?.find((d) => d.result === "ask-author");
+        if (!askAuthor) {
+          currentRun = await this.input.runStore.markRun(currentRun, "completed");
+        }
       }
 
       results.push(result);

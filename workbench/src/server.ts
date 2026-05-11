@@ -29,7 +29,11 @@ import {
   maskApiKey,
   NovelRuntimeKernel,
   parseWorldDraft,
-  PersistentRuntimeDaemon,
+  AgentRegistry,
+  Director,
+  GraphRuntimeDaemon,
+  HttpAgentLLMProvider,
+  buildLLMAgentFns,
   rewriteNarrativeScene,
   SimulationRunStore,
   WorldDaemon,
@@ -45,6 +49,12 @@ import {
   normalizeReasoningEffort,
   normalizeThinkingMode,
 } from "../../src/deepseek-profile";
+import {
+  emitConfirmFinalCascade,
+  emitCanonVerdict,
+  emitComposeStage,
+} from "../../src/world-events/emit";
+import { handleWorldEventsRequest } from "../../src/world-events/route";
 import type {
   ApplyWorldDraftRequest,
   AtlasFilePayload,
@@ -308,6 +318,7 @@ class StudioSession {
   private selectedSceneId?: string;
   private lens: NarrativeLens = defaultLens();
   private currentDraft?: NarrativeDraft;
+  private lastComposeRunId?: string;
   private atlasUpdatedFiles: string[] = [];
   private autoRunState?: AutoRunState;
   private latestSimulationRun?: {
@@ -680,11 +691,55 @@ class StudioSession {
     request: WorkbenchRequest,
     provider: WritingModelProvider,
   ): Promise<ComposeResponse> {
+    const runId = `compose-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const chapterId = request.lineId ?? this.selectedLineId;
+    const emitCtx = { runId, chapterId };
+
+    emitComposeStage({ ...emitCtx, stage: "memory-read", status: "started", summary: "memory-read 开始" });
     const context = await this.buildContext(request.lineId, request.lens);
+    emitComposeStage({
+      ...emitCtx,
+      stage: "memory-read",
+      status: "succeeded",
+      summary: `已读取 ${context.memoryPack.factEntries.length} 条事实记忆`,
+    });
+
+    emitComposeStage({ ...emitCtx, stage: "blueprint", status: "started", summary: "blueprint 开始" });
     const plan = await provider.planChapter(context);
+    emitComposeStage({
+      ...emitCtx,
+      stage: "blueprint",
+      status: "succeeded",
+      summary: `已生成章节蓝图：${plan.chapterGoal}`,
+    });
+
+    emitComposeStage({ ...emitCtx, stage: "scene-expand", status: "started", summary: "scene-expand 开始" });
     const sceneCards = await provider.expandScenes(context, plan);
+    emitComposeStage({
+      ...emitCtx,
+      stage: "scene-expand",
+      status: "succeeded",
+      summary: `已展开 ${sceneCards.length} 个场景`,
+    });
+
+    emitComposeStage({ ...emitCtx, stage: "synthesize", status: "started", summary: "synthesize 开始" });
     const draft = await provider.synthesizeProse(context, plan, sceneCards);
+    emitComposeStage({
+      ...emitCtx,
+      stage: "synthesize",
+      status: "succeeded",
+      summary: `已生成 ${draft.chapterText.length} 字正文`,
+    });
+
+    emitComposeStage({ ...emitCtx, stage: "critique", status: "started", summary: "critique 开始" });
     const review = await provider.critiqueChapter(context, draft);
+    emitComposeStage({
+      ...emitCtx,
+      stage: "critique",
+      status: review.passed ? "succeeded" : "failed",
+      summary: review.passed ? "复核通过" : "复核未通过",
+    });
+
     const narrativeDraft = toNarrativeDraft(
       {
         ...draft,
@@ -696,12 +751,14 @@ class StudioSession {
 
     this.currentDraft = narrativeDraft;
     this.selectedSceneId = request.sceneId ?? narrativeDraft.sceneDrafts[0]?.sceneId;
+    this.lastComposeRunId = runId;
 
     return {
       online: isOnlineProvider(provider),
       providerName: provider.name,
       draft: narrativeDraft,
       session: this.sessionState(provider),
+      runId,
     };
   }
 
@@ -884,6 +941,27 @@ class StudioSession {
     });
     this.atlasUpdatedFiles = result.updatedFiles;
 
+    emitComposeStage({
+      runId: this.lastComposeRunId,
+      chapterId: lineId,
+      sceneId: request.sceneId,
+      stage: "memory-write",
+      status: "succeeded",
+      summary: `已写入 ${targetScenes.length} 段终稿记忆`,
+    });
+    emitConfirmFinalCascade({
+      runId: this.lastComposeRunId,
+      chapterId: lineId,
+      sceneId: request.sceneId,
+      summary: `终稿入史 · 记忆 +${targetScenes.length} · 图谱 +${result.updatedFiles.length}`,
+      refs: {
+        lineId,
+        stageId,
+        sceneCount: targetScenes.length,
+        atlasFiles: result.updatedFiles,
+      },
+    });
+
     return {
       ...result,
       session: this.sessionState(provider),
@@ -940,10 +1018,33 @@ class StudioSession {
   }
 }
 
+/**
+ * Per review · B1: cap body size at 1 MB. World drafts + lens forms run well
+ * under that. Without the cap, a hostile (or buggy) client could OOM the
+ * process — especially critical for W5 Cloudflare deployment where memory
+ * is metered. Throws on overrun; caller's catch translates to HTTP 413.
+ */
+const MAX_BODY_BYTES = 1_048_576; // 1 MB
+
+class BodyTooLargeError extends Error {
+  readonly statusCode = 413;
+  constructor() {
+    super("Request body exceeds 1 MB limit");
+  }
+}
+
 async function readJsonBody(request: IncomingMessage): Promise<Partial<WorkbenchRequest & RuntimeStartRequest>> {
   const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
   for await (const chunk of request) {
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    const buf = typeof chunk === "string" ? Buffer.from(chunk) : chunk;
+    totalBytes += buf.byteLength;
+    if (totalBytes > MAX_BODY_BYTES) {
+      // Drain or destroy the rest of the stream + throw.
+      request.destroy();
+      throw new BodyTooLargeError();
+    }
+    chunks.push(buf);
   }
   if (chunks.length === 0) {
     return {};
@@ -955,11 +1056,96 @@ async function readJsonBody(request: IncomingMessage): Promise<Partial<Workbench
 function sendJson(response: ServerResponse, statusCode: number, payload: unknown) {
   response.statusCode = statusCode;
   response.setHeader("Content-Type", "application/json");
+  // Per review · L (MIME confusion): tell browsers not to sniff response
+  // bodies — defense-in-depth against future direct-serve routes that
+  // might accidentally return user content with a JSON Content-Type.
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  // Per review · L: error/state responses should not be cacheable. Atlas
+  // file content has its own caching story (it doesn't go through sendJson).
+  response.setHeader("Cache-Control", "no-store");
   response.end(JSON.stringify(payload));
+}
+
+/**
+ * Per review · M (error-message redaction): strip absolute paths +
+ * sk-/Bearer tokens from error messages before sending to clients.
+ * Localhost devtools today, Cloudflare-exposed tomorrow.
+ */
+function redactErrorMessage(raw: string): string {
+  return raw
+    .replace(/\/Users\/[^\s'"`]+/g, "<path>")
+    .replace(/\/home\/[^\s'"`]+/g, "<path>")
+    .replace(/[A-Z]:\\[^\s'"`]+/g, "<path>")
+    .replace(/sk-[A-Za-z0-9_\-]{8,}/g, "sk-…REDACTED")
+    .replace(/Bearer\s+[A-Za-z0-9_\-.]{8,}/gi, "Bearer …REDACTED");
 }
 
 function createUrl(input: string) {
   return new URL(input, "http://localhost");
+}
+
+/**
+ * Per review · L (NaN coercion): centralized parsePositiveInt that rejects
+ * NaN, negative, and out-of-range values instead of letting them flow
+ * into Math.max / daemon loops where NaN comparisons silently misbehave.
+ */
+function parsePositiveInt(value: unknown, fallback: number, max = 1_000_000): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return Math.min(Math.floor(n), max);
+}
+
+/**
+ * Per review · M (SSRF): /api/settings/ai/validate accepts a baseUrl from
+ * the client and makes outbound HTTP. Restrict to known LLM hosts.
+ *
+ * Today: same-origin Vite dev only — risk is low. Future Cloudflare deploy
+ * with no auth would let any caller probe internal services.
+ *
+ * Allow-list:
+ *   - DeepSeek (api.deepseek.com)
+ *   - OpenAI (api.openai.com)
+ *   - Together / OpenRouter / Voyage (best-effort common hosts)
+ *   - Localhost variants for self-hosted Ollama / vLLM proxies
+ *
+ * Override via env CUSTOM_LLM_HOSTS="host1,host2,..." for self-hosted setups.
+ */
+const DEFAULT_LLM_HOSTS = new Set([
+  "api.deepseek.com",
+  "api.openai.com",
+  "api.together.xyz",
+  "openrouter.ai",
+  "api.voyageai.com",
+  "localhost",
+  "127.0.0.1",
+  "::1",
+]);
+
+function assertAllowedLlmHost(url: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("Invalid baseUrl");
+  }
+  const host = parsed.hostname.toLowerCase();
+  const extras = (process.env.CUSTOM_LLM_HOSTS ?? "")
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+  if (DEFAULT_LLM_HOSTS.has(host) || extras.includes(host)) return;
+  // Block obvious metadata + RFC1918 + link-local
+  if (
+    host.startsWith("169.254.") ||
+    host.startsWith("10.") ||
+    host.startsWith("192.168.") ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+  ) {
+    throw new Error(`Host ${host} blocked (internal/metadata range)`);
+  }
+  throw new Error(
+    `Host ${host} not in LLM allow-list. Set CUSTOM_LLM_HOSTS env var to permit.`,
+  );
 }
 
 export function createWorkbenchApiHandlers(options: WorkbenchHandlersOptions = {}) {
@@ -969,7 +1155,7 @@ export function createWorkbenchApiHandlers(options: WorkbenchHandlersOptions = {
   const aiSettingsStore = options.aiSettingsStore ?? new AiSettingsStore();
   const configuredAtBoot = toAiSettingsPayload(aiSettingsStore).configured;
   let sessionPromise: Promise<StudioSession> | undefined;
-  let runtimeDaemon: PersistentRuntimeDaemon | undefined;
+  let runtimeDaemon: GraphRuntimeDaemon | undefined;
   const syncedRuntimeRunIds = new Set<string>();
 
   function getSession() {
@@ -1024,22 +1210,56 @@ export function createWorkbenchApiHandlers(options: WorkbenchHandlersOptions = {
   }
 
   function getRuntimeDaemon(session: StudioSession) {
-    runtimeDaemon ??= new PersistentRuntimeDaemon({
-      kernel: new NovelRuntimeKernel({
-        engine: session.getEngineForRuntime(),
-        runStore,
-        config: {
-          worldId: "workbench-world",
-          tickPolicy: { mode: "manual", maxTicksPerRun: 1 },
-          autonomy: {
-            autoPromote: "never",
-            requireAuthorOnCanonRisk: true,
-            requireAuthorOnHardDecision: true,
-          },
-          storage: { runRoot: runtimeRoot, checkpointEveryStep: true },
+    if (runtimeDaemon) return runtimeDaemon;
+    const engine = session.getEngineForRuntime();
+    const kernel = new NovelRuntimeKernel({
+      engine,
+      runStore,
+      config: {
+        worldId: "workbench-world",
+        tickPolicy: { mode: "manual", maxTicksPerRun: 1 },
+        autonomy: {
+          autoPromote: "never",
+          requireAuthorOnCanonRisk: true,
+          requireAuthorOnHardDecision: true,
         },
-      }),
+        storage: { runRoot: runtimeRoot, checkpointEveryStep: true },
+      },
+    });
+    // W2 D1: Director makes the daemon arc-aware — phase / tension / focus.
+    // Use callback so dynamic-character additions (W2 D2) are picked up.
+    const director = new Director({
+      parsed: () => engine.getParsedWorld(),
+    });
+    // W3: per-character agent registry — memory streams per active character.
+    const agentRegistry = new AgentRegistry({
+      parsed: () => engine.getParsedWorld(),
+    });
+    // W3.5: if AI settings are configured, use them for agent reflection
+    // (CRITIC-grounded). Otherwise leave undefined → CharacterAgent uses
+    // its deterministic heuristic.
+    const aiSettings = new AiSettingsStore().readSync();
+    const llmFns = aiSettings?.apiKey
+      ? buildLLMAgentFns(
+          new HttpAgentLLMProvider({
+            apiKey: aiSettings.apiKey,
+            baseUrl: aiSettings.baseUrl || "https://api.deepseek.com",
+            model: aiSettings.model,
+            timeoutMs: aiSettings.timeoutMs,
+          }),
+        )
+      : undefined;
+    runtimeDaemon = new GraphRuntimeDaemon({
+      kernel,
+      engine,
+      director,
+      agentRegistry,
+      reflectEveryNTicks: 3,    // every 3 ticks, all agents reflect
+      reflectFn: llmFns?.reflectFn,
+      planFn: llmFns?.planFn,
       defaultDirective: { stageLabel: "世界后台推演", focusCharacterIds: ["林焰"] },
+      checkpointPath: join(runtimeRoot, "runtime-daemon.sqlite"),
+      threadId: "workbench-daemon",
       onTickResult: async (result, directive) => {
         await syncRuntimeRun(session, result.runId, directive);
       },
@@ -1089,6 +1309,11 @@ export function createWorkbenchApiHandlers(options: WorkbenchHandlersOptions = {
     async validateAiSettings(request: AiSettingsRequest) {
       const existing = aiSettingsStore.readSync();
       const effectiveSettings = normalizeAiSettingsRequest(request, existing);
+      // Per review · M (SSRF-adjacent): only let validation hit hosts we
+      // know are LLM providers. baseUrl is user-supplied; without this
+      // an attacker (in a deployed scenario) could probe 169.254.169.254,
+      // 192.168.x.x, etc. Localhost still allowed for dev / proxies.
+      assertAllowedLlmHost(effectiveSettings.baseUrl);
       const validation = await validateDeepSeekConnection({
         ...options.deepseek,
         ...effectiveSettings,
@@ -1128,6 +1353,21 @@ export function createWorkbenchApiHandlers(options: WorkbenchHandlersOptions = {
     },
 
     async clearAiSettings() {
+      // Per review · M: pause + dispose the running daemon before deleting
+      // the key — otherwise it keeps ticking with the now-revoked key.
+      if (runtimeDaemon) {
+        try {
+          runtimeDaemon.pause();
+          await runtimeDaemon.waitForIdle();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[clearAiSettings] failed to gracefully pause runtime daemon:",
+            err instanceof Error ? err.message : err,
+          );
+        }
+        runtimeDaemon = undefined;
+      }
       await aiSettingsStore.clear();
       return withSession(async (session, provider) => ({
         settings: toAiSettingsPayload(aiSettingsStore),
@@ -1146,6 +1386,23 @@ export function createWorkbenchApiHandlers(options: WorkbenchHandlersOptions = {
 
     async applyWorld(request: ApplyWorldDraftRequest) {
       ensureConfigured();
+      // Per review · B2: applyWorld rebuilds the engine + rms memory/atlas.
+      // If a daemon is mid-tick on the OLD engine + an old SQLite checkpoint
+      // file pointing at the now-deleted world, those ticks will fail or
+      // corrupt the new world. Pause + dispose the daemon BEFORE rebuilding.
+      if (runtimeDaemon) {
+        try {
+          runtimeDaemon.pause();
+          await runtimeDaemon.waitForIdle();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[applyWorld] failed to gracefully pause runtime daemon:",
+            err instanceof Error ? err.message : err,
+          );
+        }
+        runtimeDaemon = undefined; // drop reference so next getRuntimeDaemon rebuilds with new engine
+      }
       return withSession(async (session, provider) => {
         await session.applyWorld(request);
         return {
@@ -1457,13 +1714,14 @@ export function createWorkbenchApiMiddleware(options: WorkbenchHandlersOptions =
         return;
       }
       if (request.method === "GET" && parsedUrl.pathname.startsWith("/api/runs/")) {
-        sendJson(
-          response,
-          200,
-          await handlers.getRunDetail({
-            runId: decodeURIComponent(parsedUrl.pathname.split("/").at(-1) ?? ""),
-          }),
-        );
+        const runId = decodeURIComponent(parsedUrl.pathname.split("/").at(-1) ?? "");
+        // Per review · L (runId path traversal): SimulationRunStore.loadRun
+        // uses runId as a path component. Reject anything that could escape.
+        if (!/^[A-Za-z0-9_\-]{1,128}$/.test(runId)) {
+          sendJson(response, 400, { error: "Invalid run id" });
+          return;
+        }
+        sendJson(response, 200, await handlers.getRunDetail({ runId }));
         return;
       }
       if (request.method === "GET" && parsedUrl.pathname === "/api/memory") {
@@ -1488,6 +1746,10 @@ export function createWorkbenchApiMiddleware(options: WorkbenchHandlersOptions =
             path,
           }),
         );
+        return;
+      }
+      if (request.method === "GET" && parsedUrl.pathname === "/api/world-events") {
+        sendJson(response, 200, handleWorldEventsRequest(parsedUrl.searchParams));
         return;
       }
 
@@ -1567,7 +1829,7 @@ export function createWorkbenchApiMiddleware(options: WorkbenchHandlersOptions =
           response,
           200,
           await handlers.runAuto({
-            targetStageCount: Number(body.targetStageCount ?? 1),
+            targetStageCount: parsePositiveInt(body.targetStageCount, 1, 1_000),
             stageLabel: body.stageLabel ?? "自动推进",
             focusCharacterIds: body.focusCharacterIds ?? [],
             intervention: body.intervention,
@@ -1585,9 +1847,15 @@ export function createWorkbenchApiMiddleware(options: WorkbenchHandlersOptions =
           response,
           200,
           await handlers.startRuntime({
-            targetTicks: Number(body.targetTicks ?? 1),
+            // Per review · L (NaN coercion): use parsePositiveInt helper so
+            // `Number("abc")` doesn't reach the daemon as NaN and produce a
+            // never-completing loop.
+            targetTicks: parsePositiveInt(body.targetTicks, 1, 10_000),
             directive: body.directive,
-            tickDelayMs: body.tickDelayMs === undefined ? undefined : Number(body.tickDelayMs),
+            tickDelayMs:
+              body.tickDelayMs === undefined
+                ? undefined
+                : parsePositiveInt(body.tickDelayMs, 0, 60_000),
           }),
         );
         return;
@@ -1600,10 +1868,9 @@ export function createWorkbenchApiMiddleware(options: WorkbenchHandlersOptions =
         sendJson(response, 200, await handlers.resumeRuntime());
         return;
       }
-      if (parsedUrl.pathname === "/api/runtime/status") {
-        sendJson(response, 200, await handlers.runtimeStatus());
-        return;
-      }
+      // (Per review · L: duplicate /api/runtime/status route removed — the
+      // earlier GET handler at the top of this dispatcher covers it. POST
+      // had no body semantics anyway.)
       if (parsedUrl.pathname === "/api/simulation/select-line") {
         sendJson(response, 200, await handlers.selectLine({ lineId: body.lineId ?? "canon" }));
         return;
@@ -1647,7 +1914,22 @@ export function createWorkbenchApiMiddleware(options: WorkbenchHandlersOptions =
 
       sendJson(response, 404, { error: "Not found" });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown workbench error";
+      // Per review · B1: surface 413 for over-large request bodies (not 500).
+      if (error instanceof BodyTooLargeError) {
+        sendJson(response, 413, { error: error.message });
+        return;
+      }
+      // Per review · L (JSON parse → 400 not 500).
+      if (error instanceof SyntaxError && /JSON/i.test(error.message)) {
+        sendJson(response, 400, { error: "Invalid JSON body" });
+        return;
+      }
+      const rawMessage = error instanceof Error ? error.message : "Unknown workbench error";
+      // Per review · M (error message redaction): strip absolute paths +
+      // secrets before sending. Log full message server-side for debugging.
+      // eslint-disable-next-line no-console
+      console.error("[workbench] request error:", rawMessage);
+      const message = redactErrorMessage(rawMessage);
       sendJson(response, 500, { error: message });
     }
   };

@@ -1,6 +1,7 @@
 import type { StageDirective } from "./domain";
 import { NovelRuntimeKernel } from "./novel-runtime-kernel";
 import type { RuntimeDaemonSnapshot, RuntimeDaemonStartRequest, WorldTickResult } from "./runtime-types";
+import { emitPause, emitRuntimeTick } from "./world-events/emit";
 
 export type PersistentRuntimeDaemonInput = {
   kernel: NovelRuntimeKernel;
@@ -74,8 +75,13 @@ export class PersistentRuntimeDaemon {
   pause(): RuntimeDaemonSnapshot {
     if (this.snapshotValue.active) {
       this.pauseRequested = true;
+      // Per review · L: flip active=false immediately so callers using
+      // (active && !paused) as "actually running" don't see the transient
+      // both-true state. The runLoop verifies pauseRequested at the next
+      // tick boundary and exits cleanly.
       this.snapshotValue = {
         ...this.snapshotValue,
+        active: false,
         paused: true,
         pauseReason: "author-paused",
       };
@@ -102,6 +108,11 @@ export class PersistentRuntimeDaemon {
       pauseReason: undefined,
       error: undefined,
     };
+    emitRuntimeTick({
+      runId: previous.lastRunId,
+      phase: "started",
+      summary: "daemon resumed",
+    });
     this.runPromise = this.runLoop(this.lastRequest, previous.completedTicks);
     return this.status();
   }
@@ -157,6 +168,11 @@ export class PersistentRuntimeDaemon {
             paused: true,
             pauseReason: `CanonGate paused: ${result.canonDecision?.result ?? "author action required"}`,
           };
+          emitPause({
+            runId: result.runId,
+            reason: this.snapshotValue.pauseReason ?? "daemon paused",
+            severity: "decision-required",
+          });
           return;
         }
 
@@ -167,6 +183,12 @@ export class PersistentRuntimeDaemon {
             failed: true,
             error: "world tick failed",
           };
+          emitRuntimeTick({
+            runId: result.runId,
+            phase: "failed",
+            tickIndex: index + 1,
+            summary: "world tick failed",
+          });
           return;
         }
 
@@ -182,6 +204,10 @@ export class PersistentRuntimeDaemon {
         active: false,
         completed: this.snapshotValue.completedTicks >= targetTicks,
       };
+      // Per review · M (lastRequest never cleared): drop on terminal states
+      // so a subsequent resume() returns no-op rather than re-running the
+      // request that just finished.
+      if (this.snapshotValue.completed) this.lastRequest = undefined;
     } catch (error) {
       this.snapshotValue = {
         ...this.snapshotValue,
@@ -189,6 +215,9 @@ export class PersistentRuntimeDaemon {
         failed: true,
         error: error instanceof Error ? error.message : String(error),
       };
+      // Drop lastRequest on failure too — re-running a failed directive
+      // without operator intervention is rarely what callers want.
+      this.lastRequest = undefined;
     }
   }
 }

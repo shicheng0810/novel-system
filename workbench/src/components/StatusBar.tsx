@@ -1,5 +1,6 @@
 import type { SimulationRunSummary, WorkbenchSessionState } from "../contracts";
 import type { UIState } from "../store";
+import { Heartbeat } from "./Heartbeat";
 
 type StatusBarProps = {
   session: WorkbenchSessionState | null;
@@ -55,6 +56,7 @@ export function StatusBar({ session, runs, pendingAction, setUI }: StatusBarProp
         <span>{session?.providerName ?? "provider 未知"}</span>
         <span>{session?.aiSettings?.model ?? "—"}</span>
         <span>line {session?.selectedLineId ?? "canon"}</span>
+        <Heartbeat />
         {pendingAction && <span className="status-bar-pending">处理中：{pendingAction}</span>}
       </div>
       <div className="status-bar-right">

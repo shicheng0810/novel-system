@@ -147,6 +147,8 @@ export function App() {
   const [autoRunTarget, setAutoRunTarget] = useState("3");
   const [isLoading, setIsLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [activeComposeRunId, setActiveComposeRunId] = useState<string | null>(null);
+  const [confirmFinalTs, setConfirmFinalTs] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [runtimeRuns, setRuntimeRuns] = useState<SimulationRunSummary[]>([]);
   const [selectedRun, setSelectedRun] = useState<RunDetailResponse | null>(null);
@@ -306,6 +308,7 @@ export function App() {
         lineId: session.selectedLineId,
         lens: buildLensRequest(lensForm),
       });
+      if (response.runId) setActiveComposeRunId(response.runId);
       syncSession(response.session);
     });
   }
@@ -352,11 +355,13 @@ export function App() {
     await runAction("确认终稿", async () => {
       if (!session?.currentDraft) return;
       if (!window.confirm("确认将当前场景写入表达记忆，并触发当前历史线的 Atlas 编译？")) return;
+      const requestedAt = Date.now();
       const response = await workbenchApi.confirmFinal({
         lineId: session.selectedLineId,
         sceneId: selectedSceneId,
         draft: session.currentDraft,
       });
+      setConfirmFinalTs(requestedAt);
       syncSession(response.session);
       await Promise.all([refreshMemory(session.selectedLineId), refreshAtlas(session.selectedLineId)]);
     });
@@ -633,6 +638,8 @@ export function App() {
             rewriteInstruction={rewriteInstruction}
             setRewriteInstruction={setRewriteInstruction}
             pendingAction={pendingAction}
+            activeComposeRunId={activeComposeRunId}
+            confirmFinalTs={confirmFinalTs}
             onCompose={() => void handleCompose()}
             onCritique={() => void handleCritique()}
             onAssemble={() => void handleAssembleChapter()}

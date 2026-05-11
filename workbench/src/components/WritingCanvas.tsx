@@ -6,6 +6,8 @@ import type { WorkbenchSessionState } from "../contracts";
 import type { UIState } from "../store";
 import { InlineSlashMenu, type SlashCommand } from "./InlineSlashMenu";
 import { LensDrawer, type LensFormState } from "./LensDrawer";
+import { SixStageProgress } from "./SixStageProgress";
+import { InscriptionReceipt } from "./InscriptionReceipt";
 
 type WritingCanvasProps = {
   ui: UIState;
@@ -19,6 +21,8 @@ type WritingCanvasProps = {
   rewriteInstruction: string;
   setRewriteInstruction: (value: string) => void;
   pendingAction: string | null;
+  activeComposeRunId: string | null;
+  confirmFinalTs: number | null;
   onCompose: () => void;
   onCritique: () => void;
   onAssemble: () => void;
@@ -42,6 +46,8 @@ export function WritingCanvas(props: WritingCanvasProps) {
     rewriteInstruction,
     setRewriteInstruction,
     pendingAction,
+    activeComposeRunId,
+    confirmFinalTs,
     onCompose,
     onCritique,
     onAssemble,
@@ -88,6 +94,8 @@ export function WritingCanvas(props: WritingCanvasProps) {
           ⌘K
         </button>
       </div>
+
+      <SixStageProgress runId={activeComposeRunId} />
 
       <section className="context-band">
         <div>
@@ -141,6 +149,7 @@ export function WritingCanvas(props: WritingCanvasProps) {
             <h2>{activeDraft?.plan.chapterTitle ?? activeDraft?.plan.chapterGoal ?? "尚未生成章节"}</h2>
             <span>{activeDraft ? `${activeDraft.chapterText.length} 字` : "等待生成"}</span>
           </div>
+          <InscriptionReceipt confirmTs={confirmFinalTs} lineId={session?.selectedLineId} />
           <div className="summary-grid">
             <div>
               <span className="context-label">主冲突</span>

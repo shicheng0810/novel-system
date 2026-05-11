@@ -217,6 +217,7 @@ export type ComposeResponse = {
   providerName: string;
   draft: NarrativeDraft;
   session: WorkbenchSessionState;
+  runId?: string;
 };
 
 export type ConfirmFinalResponse = {

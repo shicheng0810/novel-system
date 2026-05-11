@@ -1,6 +1,7 @@
 import type { NarrativeDraft } from "@novel";
 
 import type { WorkbenchSessionState } from "../../contracts";
+import { WorldEchoes } from "../WorldEchoes";
 
 type NowTabProps = {
   session: WorkbenchSessionState | null;
@@ -14,6 +15,7 @@ export function NowTab({ session, activeDraft }: NowTabProps) {
   if (!pack) {
     return (
       <div className="codex-tab-body">
+        <WorldEchoes chapterId={session?.selectedLineId} />
         <div className="codex-empty">
           <p>这里会显示当前场景关联的：</p>
           <ul className="plain-list">
@@ -30,6 +32,7 @@ export function NowTab({ session, activeDraft }: NowTabProps) {
 
   return (
     <div className="codex-tab-body">
+      <WorldEchoes chapterId={session?.selectedLineId} />
       <section className="codex-card">
         <header>
           <strong>线 · {selectedLine?.label ?? pack.lineLabel}</strong>

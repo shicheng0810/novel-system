@@ -20,6 +20,7 @@ import type {
   WorkbenchSessionState,
   WorldDraftPreview,
 } from "./contracts";
+import type { WorldEvent } from "../../src/world-events/types";
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -135,6 +136,25 @@ export const workbenchApi = {
   },
   atlasFile(lineId: string | undefined, path: string) {
     return requestJson<AtlasFilePayload>(`/api/atlas/file${query({ lineId, path })}`);
+  },
+  worldEvents(params: {
+    chapterId?: string;
+    runId?: string;
+    subsystem?: string;
+    severity?: string;
+    since?: number;
+    limit?: number;
+  } = {}) {
+    return requestJson<{ events: WorldEvent[] }>(
+      `/api/world-events${query({
+        chapterId: params.chapterId,
+        runId: params.runId,
+        subsystem: params.subsystem,
+        severity: params.severity,
+        since: params.since !== undefined ? String(params.since) : undefined,
+        limit: params.limit !== undefined ? String(params.limit) : undefined,
+      })}`,
+    );
   },
   validateAiSettings(request: SaveAiSettingsRequest) {
     return postJson<{

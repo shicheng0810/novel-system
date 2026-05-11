@@ -4,7 +4,7 @@ export type ActivityMode = WorkbenchWorkspace;
 
 export type CodexRailTab = "now" | "world" | "memory" | "atlas";
 
-export type BottomPanelTab = "simulation" | "ticks";
+export type BottomPanelTab = "simulation" | "ticks" | "decisions";
 
 export type UIState = {
   activeMode: ActivityMode;

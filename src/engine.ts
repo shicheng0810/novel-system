@@ -2,10 +2,12 @@ import {
   BranchEvaluation,
   BranchProposal,
   CanonLine,
+  CharacterAnchor,
   CharacterProfile,
   CharacterState,
   ParsedWorldDraft,
   RelationshipAnchor,
+  RelationshipProfile,
   RelationshipState,
   SimulationStage,
   StageDirective,
@@ -32,6 +34,7 @@ import {
 } from "./metaphysics";
 import { evaluateCanonGate } from "./canon-gate";
 import { TruthKernel } from "./truth-core";
+import { emitPromotion } from "./world-events/emit";
 
 type OutcomeSpec = {
   title: string;
@@ -836,6 +839,80 @@ export class WorldHistoryEngine {
     return cloneValue(this.parsed);
   }
 
+  /**
+   * Dynamic character expansion (W2 D2). Adds a new character to the live
+   * world: extends parsed.characters / characterAnchors, builds bazi
+   * candidates, and bootstraps a CharacterState in the current snapshot so
+   * future stages can include them in focus selection + simulation.
+   *
+   * Optionally adds a relationship (with anchor) to an existing character —
+   * intended for "introducedBy" semantics.
+   *
+   * Idempotent on profile.id: re-adding the same id is a no-op.
+   */
+  addCharacter(input: {
+    profile: CharacterProfile;
+    anchor?: CharacterAnchor;
+    relationship?: RelationshipProfile;
+    relationshipAnchor?: RelationshipAnchor;
+  }): void {
+    if (this.parsed.characters.some((c) => c.id === input.profile.id)) {
+      return; // idempotent
+    }
+    this.parsed.characters.push(cloneValue(input.profile));
+    if (input.anchor) {
+      this.parsed.characterAnchors.push(cloneValue(input.anchor));
+    }
+    if (input.relationship) {
+      this.parsed.relationships.push(cloneValue(input.relationship));
+      // Bootstrap RelationshipState in current snapshot.
+      const sp = statusProfile(input.relationship.status);
+      this.currentSnapshot.relationships[input.relationship.id] = {
+        key: input.relationship.id,
+        left: input.relationship.left,
+        right: input.relationship.right,
+        status: input.relationship.status,
+        trust: sp.trust,
+        hostility: sp.hostility,
+        notes: [input.relationship.history, input.relationship.tension],
+      };
+    }
+    if (input.relationshipAnchor) {
+      this.parsed.relationshipAnchors.push(cloneValue(input.relationshipAnchor));
+    }
+
+    // Build bazi candidates + select default.
+    const candidates = buildBaziCandidates(input.profile, this.parsed);
+    this.baziCandidates.set(input.profile.id, candidates);
+    const selectedId = candidates[0]?.id;
+    if (!selectedId) {
+      throw new Error(`No bazi candidate could be built for ${input.profile.id}`);
+    }
+    this.selectedCandidates.set(input.profile.id, selectedId);
+    const selected = candidates[0];
+    const fateProfile = selected.fateProfile;
+
+    // Bootstrap CharacterState in the current snapshot (mirrors
+    // buildInitialSnapshot logic for parity).
+    this.currentSnapshot.characters[input.profile.id] = {
+      name: input.profile.name,
+      faction: input.profile.faction,
+      role: input.profile.role,
+      traits: [...input.profile.traits],
+      goal: input.profile.goal,
+      stance: input.profile.stance,
+      resource: input.profile.resource,
+      progress: 0,
+      pressure: 0,
+      lastAction: "idle",
+      alive: true,
+      notes: ["dynamic-introduction"],
+      candidateId: fateProfile.candidateId,
+      fateProfile,
+      currentFortune: buildFortuneCycle(0, fateProfile),
+    };
+  }
+
   getBaziCandidates(characterId: string): BaziCandidate[] {
     return cloneValue(this.baziCandidates.get(characterId) ?? []);
   }
@@ -1102,9 +1179,91 @@ export class WorldHistoryEngine {
     const latestStage = this.canonLine.stages.at(-1);
     if (latestStage) {
       this.currentSnapshot = cloneValue(latestStage.snapshot);
+    } else {
+      // Per review · M: empty-stages branch is defensive but possible.
+      // Fall back to the canon initial snapshot so currentSnapshot doesn't
+      // diverge from the new canon line.
+      const initialSnap = this.canonLine.snapshots["initial"];
+      if (initialSnap) {
+        this.currentSnapshot = cloneValue(initialSnap);
+      }
     }
 
+    // Per review · M (branches Map unbounded): prune branches forked from
+    // stages no longer reachable from the new canon line. The promoted
+    // branch's own descendants (if any) survive; everything else is moved
+    // to archivedTimelines for trace + dropped from the live Map.
+    const reachableStageIds = new Set(this.canonLine.stages.map((s) => s.id));
+    for (const [bid, b] of [...this.branches.entries()]) {
+      // Keep the just-promoted branch's lineage by source stage; discard others
+      if (b.sourceStageId && !reachableStageIds.has(b.sourceStageId)) {
+        this.branches.delete(bid);
+        this.canonLine.archivedTimelines.push({
+          lineId: bid,
+          label: b.label,
+          eventCount: b.events.length,
+          stageCount: b.stages.length,
+        });
+      }
+    }
+
+    // Per review · D4: a branch forked BEFORE a dynamic addCharacter() call
+    // has snapshots missing the new characters. After promote, scan
+    // parsed.characters and back-fill any missing CharacterStates into the
+    // currentSnapshot (and the latest stage's snapshot). Without this, the
+    // newly-added character is silently absent from canon while still listed
+    // in parsed.characters — state divergence.
+    for (const character of this.parsed.characters) {
+      if (this.currentSnapshot.characters[character.id]) continue;
+      const candidates = this.baziCandidates.get(character.id);
+      const fateProfile = candidates?.[0]?.fateProfile;
+      if (!fateProfile) continue;
+      const state = {
+        name: character.name,
+        faction: character.faction,
+        role: character.role,
+        traits: [...character.traits],
+        goal: character.goal,
+        stance: character.stance,
+        resource: character.resource,
+        progress: 0,
+        pressure: 0,
+        lastAction: "idle",
+        alive: true,
+        notes: [`promoted-from-${branchId}; back-filled (not present in branch snapshots)`],
+        candidateId: fateProfile.candidateId,
+        fateProfile,
+        currentFortune: buildFortuneCycle(0, fateProfile),
+      };
+      this.currentSnapshot.characters[character.id] = state;
+      if (latestStage) {
+        latestStage.snapshot.characters[character.id] = cloneValue(state);
+      }
+    }
+
+    emitPromotion({
+      branchId,
+      promotedStageId: branch.sourceStageId,
+      refs: { replacedLineId },
+    });
     return this.getCanonLine();
+  }
+
+  /**
+   * Archive a branch — remove it from `branches` and record in history.
+   * Used by world-daemon.resumeWithDecision when author chooses "reject" or
+   * "archive" (review · D1). Idempotent: no-op if branch doesn't exist.
+   */
+  archiveBranch(branchId: string): void {
+    const branch = this.branches.get(branchId);
+    if (!branch) return;
+    this.branches.delete(branchId);
+    this.canonLine.archivedTimelines.push({
+      lineId: branchId,
+      label: branch.label,
+      eventCount: branch.events.length,
+      stageCount: branch.stages.length,
+    });
   }
 
   getCanonLine(): CanonLine {
