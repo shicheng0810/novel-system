@@ -1,0 +1,518 @@
+[
+  {
+    "id": "S01",
+    "title": "LangGraph Studio",
+    "url": "https://docs.langchain.com/langgraph-platform/langgraph-studio",
+    "accessed_date": "2026-05-11",
+    "category": "Agent frameworks",
+    "visual_pattern": "把 agent graph 的节点、状态和运行路径可视化，强调从图结构理解后台推理。",
+    "cognitive_principle": "可观测性应贴近真实执行模型：节点、边、状态变更，而不是抽象成一个 spinner。",
+    "why_it_works": "让黑箱拆成阶段化 trace；失败时节点定位清楚。",
+    "why_it_sometimes_fails": "如果每个节点都全量展示，会把作者变成运维人员。",
+    "applicability_to_novel_system": "可映射到 6-stage pipeline 的轻量阶段条，不把完整 graph 塞进主画布。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "LangSmith Studio - Docs by LangChain"
+    }
+  },
+  {
+    "id": "S02",
+    "title": "LangSmith traces",
+    "url": "https://docs.smith.langchain.com/observability",
+    "accessed_date": "2026-05-11",
+    "category": "Agent frameworks",
+    "visual_pattern": "以 trace tree / spans 展示 LLM 调用、工具调用、延迟和输入输出。",
+    "cognitive_principle": "异步复杂系统需要统一 trace id 与 span 层级。",
+    "why_it_works": "跨组件追踪同一 run，适合 debug。",
+    "why_it_sometimes_fails": "默认视图太工程化，不适合作家日常。",
+    "applicability_to_novel_system": "后台保留 trace，前台只抽取“世界事件摘要”。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "LangSmith Observability - Docs by LangChain"
+    }
+  },
+  {
+    "id": "S03",
+    "title": "Microsoft AutoGen Studio",
+    "url": "https://microsoft.github.io/autogen/stable/user-guide/autogenstudio-user-guide/index.html",
+    "accessed_date": "2026-05-11",
+    "category": "Agent frameworks",
+    "visual_pattern": "用低代码 UI 搭建 multi-agent workflow，并查看 agent 消息/运行。",
+    "cognitive_principle": "多智能体系统要暴露“谁在说话/思考/行动”。",
+    "why_it_works": "agent 间对话让系统显得有社会性。",
+    "why_it_sometimes_fails": "对非技术作者可能过多强调聊天记录。",
+    "applicability_to_novel_system": "角色代理反思/计划可做成“角色低语”而非完整日志。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "AutoGen Studio &#8212; AutoGen"
+    }
+  },
+  {
+    "id": "S04",
+    "title": "OpenAI Assistants / Threads docs",
+    "url": "https://platform.openai.com/docs/assistants/overview",
+    "accessed_date": "2026-05-11",
+    "category": "Agent frameworks",
+    "visual_pattern": "thread/run/step 模型把长任务拆成 run steps 与 status。",
+    "cognitive_principle": "长任务状态要有可恢复的生命周期与可解释中间状态。",
+    "why_it_works": "用户知道当前是 queued/in_progress/requires_action/completed。",
+    "why_it_sometimes_fails": "状态名若过于技术化，会变成另一层黑话。",
+    "applicability_to_novel_system": "写作 pipeline 可暴露“读记忆/定蓝图/扩场/合成/审稿/落记忆”。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Assistants migration guide | OpenAI API"
+    }
+  },
+  {
+    "id": "S05",
+    "title": "Cursor Agent interface",
+    "url": "https://docs.cursor.com/chat/agent",
+    "accessed_date": "2026-05-11",
+    "category": "Agent frameworks",
+    "visual_pattern": "IDE agent 展示正在读文件、改文件、运行命令，用户可中断。",
+    "cognitive_principle": "自主代理要把动作动词化：正在读、正在写、正在验证。",
+    "why_it_works": "减少等待焦虑并支持介入。",
+    "why_it_sometimes_fails": "太多文件级动作会干扰创作心流。",
+    "applicability_to_novel_system": "把世界动作压成“世界正在回忆/推演/入史”。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Cursor Docs — Agent, Rules, MCP, Skills &amp; CLI"
+    }
+  },
+  {
+    "id": "S06",
+    "title": "Replit Agent",
+    "url": "https://docs.replit.com/replitai/agent",
+    "accessed_date": "2026-05-11",
+    "category": "Agent frameworks",
+    "visual_pattern": "Agent 以步骤计划、操作和结果组织软件生成过程。",
+    "cognitive_principle": "计划-执行-反馈循环可以形成任务节奏。",
+    "why_it_works": "适合让用户看见进度与下一步。",
+    "why_it_sometimes_fails": "对小说系统不应呈现为施工工地。",
+    "applicability_to_novel_system": "底栏 Runtime 可承载详细 steps，画布只显示短促回响。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Replit Docs"
+    }
+  },
+  {
+    "id": "S07",
+    "title": "EVE Online overview",
+    "url": "https://wiki.eveuniversity.org/Overview",
+    "accessed_date": "2026-05-11",
+    "category": "MMO + idle/incremental games",
+    "visual_pattern": "Overview 把巨大宇宙压缩成可过滤、可排序、持续更新的战术列表。",
+    "cognitive_principle": "复杂世界需要一个按相关性过滤的“雷达”。",
+    "why_it_works": "实时、可扫视、默认支持行动。",
+    "why_it_sometimes_fails": "过滤错误会让玩家错过关键威胁。",
+    "applicability_to_novel_system": "CodexRail Now 可变成 author radar：只显示当前章节相关世界事件。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Overview - EVE University Wiki"
+    }
+  },
+  {
+    "id": "S08",
+    "title": "Stardew Valley calendar and clock",
+    "url": "https://stardewvalleywiki.com/Calendar",
+    "accessed_date": "2026-05-11",
+    "category": "MMO + idle/incremental games",
+    "visual_pattern": "日历/时钟把季节、生日、节日和每日节奏连成可预期循环。",
+    "cognitive_principle": "节奏来自周期性与预告，而不只是事件流。",
+    "why_it_works": "让玩家感到世界按自己的时间运转。",
+    "why_it_sometimes_fails": "过强日程会压迫自由创作。",
+    "applicability_to_novel_system": "daemon tick / qimen pattern 可转译成“世界时辰/气机”。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Calendar - Stardew Valley Wiki"
+    }
+  },
+  {
+    "id": "S09",
+    "title": "Disco Elysium Thought Cabinet",
+    "url": "https://discoelysium.fandom.com/wiki/Thought_Cabinet",
+    "accessed_date": "2026-05-11",
+    "category": "MMO + idle/incremental games",
+    "visual_pattern": "Thought Cabinet 把内心思想当作可孵化、可完成、可改变属性的对象。",
+    "cognitive_principle": "内在状态也应有进度、代价与完成回响。",
+    "why_it_works": "抽象心理过程变成可感知系统。",
+    "why_it_sometimes_fails": "游戏化过度会削弱文学感。",
+    "applicability_to_novel_system": "角色反思可显示为“心念孵化/顿悟”，不是 debug log。",
+    "fetch": {
+      "ok": false,
+      "status": null,
+      "title_seen": "",
+      "error": "HTTPError: HTTP Error 403: Forbidden"
+    }
+  },
+  {
+    "id": "S10",
+    "title": "Crusader Kings III notifications",
+    "url": "https://ck3.paradoxwikis.com/Interface",
+    "accessed_date": "2026-05-11",
+    "category": "MMO + idle/incremental games",
+    "visual_pattern": "以消息、弹窗、右侧提示、日志组织王朝事件和紧急决策。",
+    "cognitive_principle": "事件严重度分层：必须处理、建议查看、可归档。",
+    "why_it_works": "玩家能从宏观历史流里抓住关键选择。",
+    "why_it_sometimes_fails": "通知过载会导致麻木。",
+    "applicability_to_novel_system": "CanonGate / pause / promotion 需要 severity routing。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Client Challenge"
+    }
+  },
+  {
+    "id": "S11",
+    "title": "Universal Paperclips",
+    "url": "https://www.decisionproblem.com/paperclips/",
+    "accessed_date": "2026-05-11",
+    "category": "MMO + idle/incremental games",
+    "visual_pattern": "极简数值面板通过解锁、计数增长和阶段变化制造系统生命感。",
+    "cognitive_principle": "统一感可来自少量核心指标的持续变化。",
+    "why_it_works": "无需复杂动画也能让玩家感到机器在运转。",
+    "why_it_sometimes_fails": "纯数字会牺牲叙事质感。",
+    "applicability_to_novel_system": "Memory/Atlas counts 可配合“刚增长”与阶段性解锁。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": ""
+    }
+  },
+  {
+    "id": "S12",
+    "title": "Factorio production statistics",
+    "url": "https://wiki.factorio.com/Production_statistics",
+    "accessed_date": "2026-05-11",
+    "category": "MMO + idle/incremental games",
+    "visual_pattern": "生产图用时间窗口显示输入/输出速率与瓶颈。",
+    "cognitive_principle": "系统节奏可以用速率与趋势呈现，而不是静态总量。",
+    "why_it_works": "适合发现异常和建立节拍感。",
+    "why_it_sometimes_fails": "对创作 UI 太工业化。",
+    "applicability_to_novel_system": "Runtime tab 可有 world throughput；主画布只展示轻量心跳。",
+    "fetch": {
+      "ok": false,
+      "status": null,
+      "title_seen": "",
+      "error": "TimeoutError: The read operation timed out"
+    }
+  },
+  {
+    "id": "S13",
+    "title": "Dwarf Fortress announcements/reports",
+    "url": "https://dwarffortresswiki.org/index.php/Announcements",
+    "accessed_date": "2026-05-11",
+    "category": "MMO + idle/incremental games",
+    "visual_pattern": "矮人堡垒用 announcements/reports 把模拟世界事件不断吐出。",
+    "cognitive_principle": "模拟世界需要“编年史式事件流”。",
+    "why_it_works": "事件文本让随机模拟变成故事。",
+    "why_it_sometimes_fails": "重要/琐碎混杂时可读性下降。",
+    "applicability_to_novel_system": "世界回响 feed 应可折叠、可过滤、可汇总。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Announcement - Dwarf Fortress Wiki"
+    }
+  },
+  {
+    "id": "S14",
+    "title": "Datadog Watchdog",
+    "url": "https://docs.datadoghq.com/watchdog/",
+    "accessed_date": "2026-05-11",
+    "category": "Observability",
+    "visual_pattern": "Watchdog 自动检测异常并给出提示，减少用户主动查图。",
+    "cognitive_principle": "可观测性要从 pull 变成 push：异常主动浮出。",
+    "why_it_works": "降低发现问题成本。",
+    "why_it_sometimes_fails": "自动诊断若误报会损害信任。",
+    "applicability_to_novel_system": "CanonGate high-risk 与 daemon pause 应主动浮出但可静音。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": ""
+    }
+  },
+  {
+    "id": "S15",
+    "title": "Grafana annotations",
+    "url": "https://grafana.com/docs/grafana/latest/dashboards/annotations/",
+    "accessed_date": "2026-05-11",
+    "category": "Observability",
+    "visual_pattern": "Annotations 在图表时间线上标记部署、事件、告警。",
+    "cognitive_principle": "事件需要被钉到时间轴，解释指标变化。",
+    "why_it_works": "把“发生过什么”与“数值怎么变”合并。",
+    "why_it_sometimes_fails": "手工/噪声注释会污染图。",
+    "applicability_to_novel_system": "历史线可叠加 memory/atlas/gate/promotion marks。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Annotate visualizations | Grafana documentation"
+    }
+  },
+  {
+    "id": "S16",
+    "title": "Honeycomb trace waterfall",
+    "url": "https://docs.honeycomb.io/investigate/traces/",
+    "accessed_date": "2026-05-11",
+    "category": "Observability",
+    "visual_pattern": "Trace waterfall 按时间展示 spans、层级和延迟。",
+    "cognitive_principle": "复杂请求的统一视角是同一个时间轴下的嵌套工作。",
+    "why_it_works": "找慢点和失败点极强。",
+    "why_it_sometimes_fails": "完整 waterfall 对作者太重。",
+    "applicability_to_novel_system": "BottomPanel Runtime detail 可用；主界面只抽象成 6-stage tempo。",
+    "fetch": {
+      "ok": false,
+      "status": null,
+      "title_seen": "",
+      "error": "HTTPError: HTTP Error 404: Not Found"
+    }
+  },
+  {
+    "id": "S17",
+    "title": "Sentry breadcrumbs",
+    "url": "https://docs.sentry.io/product/issues/issue-details/breadcrumbs/",
+    "accessed_date": "2026-05-11",
+    "category": "Observability",
+    "visual_pattern": "Breadcrumbs 记录错误前的一串用户/系统事件。",
+    "cognitive_principle": "事后解释需要前因后果的小面包屑。",
+    "why_it_works": "debug 和叙事复盘都需要上下文。",
+    "why_it_sometimes_fails": "只在出错后出现会错过日常节奏价值。",
+    "applicability_to_novel_system": "每章生成可保留“世界刚才发生了什么”的 breadcrumb。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Using Breadcrumbs"
+    }
+  },
+  {
+    "id": "S18",
+    "title": "Linear Cycles",
+    "url": "https://linear.app/docs/cycles",
+    "accessed_date": "2026-05-11",
+    "category": "Observability",
+    "visual_pattern": "Cycles 把工作组织进固定时间盒与进度视图。",
+    "cognitive_principle": "周期容器让持续工作有节奏与归属。",
+    "why_it_works": "减少散乱任务感。",
+    "why_it_sometimes_fails": "周期不适合所有创造性流程。",
+    "applicability_to_novel_system": "章节/阶段可成为 tempo container，承载推演与写作事件。",
+    "fetch": {
+      "ok": false,
+      "status": null,
+      "title_seen": "",
+      "error": "HTTPError: HTTP Error 404: Not Found"
+    }
+  },
+  {
+    "id": "S19",
+    "title": "Sudowrite Story Bible",
+    "url": "https://docs.sudowrite.com/using-sudowrite/story-bible",
+    "accessed_date": "2026-05-11",
+    "category": "Writing tools",
+    "visual_pattern": "Story Bible 将角色、世界、概要作为生成上下文来源。",
+    "cognitive_principle": "写作 AI 需要显式展示哪些 canon 被用于生成。",
+    "why_it_works": "提高作者对上下文注入的信任。",
+    "why_it_sometimes_fails": "如果自动引用不透明，仍会产生漂移恐惧。",
+    "applicability_to_novel_system": "Now tab 应显示 sourcePack derived 的“本段引用了哪些世界事实”。",
+    "fetch": {
+      "ok": false,
+      "status": null,
+      "title_seen": "",
+      "error": "HTTPError: HTTP Error 500: Internal Server Error"
+    }
+  },
+  {
+    "id": "S20",
+    "title": "Novelcrafter Codex",
+    "url": "https://docs.novelcrafter.com/en/articles/8671137-the-codex",
+    "accessed_date": "2026-05-11",
+    "category": "Writing tools",
+    "visual_pattern": "Codex 管理人物、地点、物品等，并可被写作过程引用。",
+    "cognitive_principle": "知识库不是仓库，而是生成时的上下文供应。",
+    "why_it_works": "统一 story bible 与生成。",
+    "why_it_sometimes_fails": "过度手工维护会拖慢写作。",
+    "applicability_to_novel_system": "记忆/图谱变化需反向告诉画布：本次写作新增了什么 canon。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Need Help? - Novelcrafter Help"
+    }
+  },
+  {
+    "id": "S21",
+    "title": "Scrivener compile",
+    "url": "https://scrivener.tenderapp.com/help/kb/features-and-usage/what-is-compile",
+    "accessed_date": "2026-05-11",
+    "category": "Writing tools",
+    "visual_pattern": "Compile 把草稿、结构和格式规则合成为输出文档。",
+    "cognitive_principle": "复杂级联操作需要明确“预览—执行—完成”反馈。",
+    "why_it_works": "降低最终导出焦虑。",
+    "why_it_sometimes_fails": "编译错误信息可能太技术化。",
+    "applicability_to_novel_system": "confirm-final cascade 可借鉴 compile feedback。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Features and Usage / FAQs - Literature and Latte Support"
+    }
+  },
+  {
+    "id": "S22",
+    "title": "Obsidian Graph view",
+    "url": "https://help.obsidian.md/plugins/graph",
+    "accessed_date": "2026-05-11",
+    "category": "Writing tools",
+    "visual_pattern": "Graph view 让笔记之间的链接形成可视网络。",
+    "cognitive_principle": "关联结构能增强“世界整体性”的感受。",
+    "why_it_works": "直观展示局部与全局关联。",
+    "why_it_sometimes_fails": "大图容易变成漂亮但不可用的星云。",
+    "applicability_to_novel_system": "Atlas tab 适合局部图谱，不宜占主画布。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Graph view - Obsidian Help"
+    }
+  },
+  {
+    "id": "S23",
+    "title": "Roam daily notes",
+    "url": "https://roamresearch.com/#/app/help/page/Vu1MmjinS",
+    "accessed_date": "2026-05-11",
+    "category": "Writing tools",
+    "visual_pattern": "Daily notes 以日期为默认入口，将零散想法汇入时间流。",
+    "cognitive_principle": "时间流可统一异构信息。",
+    "why_it_works": "降低归档摩擦。",
+    "why_it_sometimes_fails": "长期会产生流水账。",
+    "applicability_to_novel_system": "世界事件流可按“本章/今日推演”自动归档。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Roam Research – A note taking tool for networked thought."
+    }
+  },
+  {
+    "id": "S24",
+    "title": "Notion AI sidebar",
+    "url": "https://www.notion.com/help/notion-ai",
+    "accessed_date": "2026-05-11",
+    "category": "Writing tools",
+    "visual_pattern": "AI 作为侧边助手嵌入文档，围绕当前页面提供操作。",
+    "cognitive_principle": "AI 功能应贴近主对象，而非把用户带离文档。",
+    "why_it_works": "保持文档中心性。",
+    "why_it_sometimes_fails": "侧栏过强会分裂注意力。",
+    "applicability_to_novel_system": "符合 prose-canvas-first：所有提示以画布为中心、详情在 Rail。",
+    "fetch": {
+      "ok": false,
+      "status": null,
+      "title_seen": "",
+      "error": "HTTPError: HTTP Error 404: Not Found"
+    }
+  },
+  {
+    "id": "S25",
+    "title": "Twitch chat replay",
+    "url": "https://help.twitch.tv/s/article/video-on-demand?language=en_US",
+    "accessed_date": "2026-05-11",
+    "category": "Livestream + chat",
+    "visual_pattern": "回放时聊天按原始时间戳同步出现。",
+    "cognitive_principle": "旁路事件流与主内容同频，形成现场感。",
+    "why_it_works": "让观看者知道当时发生的社会反应。",
+    "why_it_sometimes_fails": "聊天噪声可能遮蔽内容。",
+    "applicability_to_novel_system": "写作画布旁可有低噪“世界回响”，按章节时间同步。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "On-Demand Content on Twitch"
+    }
+  },
+  {
+    "id": "S26",
+    "title": "Slack threads",
+    "url": "https://slack.com/help/articles/115000769927-Use-threads-to-organize-discussions",
+    "accessed_date": "2026-05-11",
+    "category": "Livestream + chat",
+    "visual_pattern": "线程把相关讨论收束到一个父消息下，避免污染频道主流。",
+    "cognitive_principle": "事件细节应可钻取但不淹没主流。",
+    "why_it_works": "主流保持清爽，细节可追溯。",
+    "why_it_sometimes_fails": "过多线程可能割裂上下文。",
+    "applicability_to_novel_system": "每个世界事件一行，点击展开 run/canon/memory details。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Use threads to organize discussions | Slack"
+    }
+  },
+  {
+    "id": "S27",
+    "title": "Telegram sendChatAction",
+    "url": "https://core.telegram.org/bots/api#sendchataction",
+    "accessed_date": "2026-05-11",
+    "category": "Livestream + chat",
+    "visual_pattern": "typing/uploading 等短状态告诉对方“对端正在行动”。",
+    "cognitive_principle": "微状态能缓解等待且无需完整解释。",
+    "why_it_works": "简单、低成本、强即时感。",
+    "why_it_sometimes_fails": "状态太泛会失去信息量。",
+    "applicability_to_novel_system": "StatusBar 可显示“世界正在回忆/推演/落印”。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Telegram Bot API"
+    }
+  },
+  {
+    "id": "S28",
+    "title": "VS Code Tasks",
+    "url": "https://code.visualstudio.com/docs/debugtest/tasks",
+    "accessed_date": "2026-05-11",
+    "category": "IDEs",
+    "visual_pattern": "后台任务有输出、问题匹配、状态栏与终端集成。",
+    "cognitive_principle": "长任务要有可查看详情的后台通道和简短状态入口。",
+    "why_it_works": "兼顾专注与可追溯。",
+    "why_it_sometimes_fails": "输出终端不适合非工程用户。",
+    "applicability_to_novel_system": "BottomPanel Runtime 是详情；StatusBar 是入口。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Integrate with External Tools via Tasks"
+    }
+  },
+  {
+    "id": "S29",
+    "title": "IntelliJ Event Log / Notifications",
+    "url": "https://www.jetbrains.com/help/idea/notifications.html",
+    "accessed_date": "2026-05-11",
+    "category": "IDEs",
+    "visual_pattern": "IDE 用通知气泡、事件日志和严重度管理后台事件。",
+    "cognitive_principle": "通知需要可读、可回看、可按严重度控制。",
+    "why_it_works": "既不打断所有事，也不丢重要事。",
+    "why_it_sometimes_fails": "通知疲劳。",
+    "applicability_to_novel_system": "世界事件分级：ambient / notable / decision-required。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Notifications | IntelliJ&nbsp;IDEA Documentation"
+    }
+  },
+  {
+    "id": "S30",
+    "title": "GitHub Copilot Chat status",
+    "url": "https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide",
+    "accessed_date": "2026-05-11",
+    "category": "IDEs",
+    "visual_pattern": "IDE 内 Copilot Chat 围绕当前文件/选择上下文回答并显示进行状态。",
+    "cognitive_principle": "AI 状态应绑定当前工作对象。",
+    "why_it_works": "用户理解 AI 正在处理“这一段/这一章”。",
+    "why_it_sometimes_fails": "上下文不明时易误用。",
+    "applicability_to_novel_system": "局部重写与写续段应显示本段 sourcePack 与 pipeline stage。",
+    "fetch": {
+      "ok": true,
+      "status": 200,
+      "title_seen": "Asking GitHub Copilot questions in your IDE - GitHub Docs"
+    }
+  }
+]
