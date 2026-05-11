@@ -132,7 +132,7 @@ pre {
 
 .studio-shell {
   min-height: 100vh;
-  padding: 20px;
+  padding: 20px 20px 56px;
 }
 
 .topbar {
@@ -644,4 +644,553 @@ pre {
   .inspector {
     display: none;
   }
+
+  .codex-rail {
+    display: none;
+  }
+}
+
+/* ─── Activity Bar (replaces .rail) ────────────────────────────────────────── */
+.activity-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 251, 245, 0.8), rgba(242, 232, 216, 0.96)),
+    linear-gradient(180deg, rgba(143, 59, 32, 0.04), transparent);
+  box-shadow: var(--shadow);
+  align-self: start;
+  position: sticky;
+  top: 20px;
+}
+
+.activity-bar button {
+  display: grid;
+  gap: 6px;
+  padding: 14px 10px;
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.activity-bar button span {
+  font-size: 1rem;
+}
+
+.activity-bar button small {
+  color: inherit;
+  opacity: 0.74;
+  line-height: 1.35;
+  font-size: 0.78rem;
+}
+
+/* ─── Canvas Area (writing + bottom panel) ─────────────────────────────────── */
+.canvas-area {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.writing-canvas {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 22px;
+  flex: 1;
+  overflow: auto;
+}
+
+.writing-canvas.typewriter .scene-reader pre {
+  scroll-margin-block: 50vh;
+}
+
+/* ─── Canvas Dock ──────────────────────────────────────────────────────────── */
+.canvas-dock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(255, 252, 246, 0.9), rgba(244, 234, 218, 0.82));
+  border: 1px solid var(--line);
+}
+
+.canvas-dock-title {
+  font-size: 1.1rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvas-dock-meta {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.canvas-dock-hint {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.canvas-dock-hint code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(143, 59, 32, 0.1);
+  color: var(--ember);
+  font-family: "Consolas", "Cascadia Code", monospace;
+  font-size: 0.85em;
+}
+
+/* ─── Lens Drawer ──────────────────────────────────────────────────────────── */
+.lens-drawer.collapsed {
+  padding: 12px 18px;
+}
+
+.lens-drawer.collapsed .form-grid {
+  display: none;
+}
+
+.lens-toggle {
+  font-size: 0.85rem;
+}
+
+/* ─── Continuation zone (写续段 + inline slash) ────────────────────────────── */
+.continuation-zone {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.36);
+  border: 1px solid rgba(73, 55, 35, 0.12);
+}
+
+.continuation-zone header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.continuation-zone h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.continuation-zone small {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.inline-slash-wrap {
+  position: relative;
+}
+
+.inline-slash-wrap textarea {
+  min-height: 88px;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.inline-slash-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow: auto;
+  z-index: 30;
+  list-style: none;
+  padding: 6px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 252, 247, 0.98);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 4px;
+}
+
+.inline-slash-menu button {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.36);
+  border: 1px solid transparent;
+}
+
+.inline-slash-menu button:hover {
+  border-color: var(--line);
+}
+
+.inline-slash-menu button span {
+  color: var(--ember);
+  font-family: "Consolas", "Cascadia Code", monospace;
+  font-size: 0.92rem;
+}
+
+.inline-slash-menu button small {
+  color: var(--ink-soft);
+}
+
+/* ─── Codex Rail (replaces .inspector) ─────────────────────────────────────── */
+.codex-rail {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(246, 240, 231, 0.95), rgba(239, 231, 218, 0.92));
+  box-shadow: var(--shadow);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  align-self: start;
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 96px);
+}
+
+.codex-rail.collapsed {
+  padding: 14px 8px;
+  align-items: center;
+  width: 48px;
+  min-width: 48px;
+}
+
+.rail-expand,
+.rail-collapse {
+  font-size: 0.85rem;
+  padding: 6px 10px;
+}
+
+.codex-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.codex-tabs button {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  border-radius: var(--radius-sm);
+}
+
+.codex-tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.codex-tab-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.codex-card {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 252, 246, 0.7);
+  border: 1px solid rgba(73, 55, 35, 0.12);
+  display: grid;
+  gap: 8px;
+}
+
+.codex-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.codex-card header strong {
+  font-size: 0.98rem;
+}
+
+.codex-card header small {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.codex-summary {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  font-size: 0.92rem;
+}
+
+.codex-meta {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.codex-pre {
+  margin: 0;
+  font-size: 0.86rem;
+  max-height: 240px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.36);
+  line-height: 1.6;
+}
+
+.codex-textarea {
+  min-height: 220px;
+  font-family: "Consolas", "Cascadia Code", monospace;
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.codex-empty {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  color: var(--ink-soft);
+  line-height: 1.65;
+  font-size: 0.92rem;
+}
+
+.codex-empty-cta {
+  margin-top: 8px;
+  align-self: flex-start;
+}
+
+.atlas-tab .codex-card {
+  max-height: none;
+}
+
+/* ─── Bottom Panel ─────────────────────────────────────────────────────────── */
+.bottom-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(255, 252, 245, 0.92), rgba(243, 233, 218, 0.92));
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.bottom-panel.collapsed {
+  padding: 0;
+}
+
+.bottom-panel.open {
+  padding: 14px 18px 18px;
+}
+
+.bottom-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 10px 18px;
+  border-radius: 0;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.bottom-panel.collapsed .bottom-panel-header {
+  border-radius: var(--radius-lg);
+}
+
+.bottom-panel-header-open {
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+
+.bottom-panel-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.bottom-panel-tabs button {
+  font-size: 0.9rem;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+}
+
+.bottom-panel-toggle {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.bottom-panel-body {
+  display: grid;
+  gap: 14px;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.simulation-body {
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.2fr);
+}
+
+.runtime-body {
+  grid-template-columns: minmax(260px, 0.8fr) minmax(260px, 0.8fr) minmax(320px, 1fr);
+}
+
+.inline-target {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.inline-target input {
+  width: 80px;
+}
+
+.timeline-card {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .simulation-body,
+  .runtime-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Status Bar ───────────────────────────────────────────────────────────── */
+.status-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 18px;
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.95), rgba(238, 228, 211, 0.98));
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -4px 12px rgba(47, 32, 18, 0.08);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.status-bar-left,
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-bar-pending {
+  color: var(--ember);
+}
+
+.runtime-pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink);
+  font-size: 0.82rem;
+}
+
+.runtime-pill-running {
+  background: linear-gradient(135deg, var(--ember), #76311a);
+  color: #fff8f1;
+  border-color: transparent;
+}
+
+.runtime-pill-paused {
+  background: rgba(186, 135, 80, 0.4);
+}
+
+.runtime-pill-failed {
+  background: rgba(143, 59, 32, 0.18);
+  color: var(--ember);
+}
+
+/* ─── Command Palette ──────────────────────────────────────────────────────── */
+.command-palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(31, 27, 23, 0.32);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 14vh;
+}
+
+.command-palette {
+  width: min(640px, 92%);
+  background: rgba(255, 252, 246, 0.99);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.command-palette input {
+  font-size: 1.05rem;
+  padding: 12px 14px;
+}
+
+.command-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  overflow: auto;
+}
+
+.command-list button {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid transparent;
+}
+
+.command-list button:hover {
+  border-color: var(--line);
+}
+
+.command-list small {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+/* ─── Update studio-frame for new triple-column layout ─────────────────────── */
+.studio-frame {
+  grid-template-columns: 112px minmax(0, 1fr) 360px;
 }
