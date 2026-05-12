@@ -162,15 +162,26 @@ function llmEntryToCandidate(
   raw: Record<string, unknown>,
   index: number,
 ): CandidateAction {
+  const KNOWN_AXES = [
+    "initiative",
+    "discipline",
+    "opportunism",
+    "volatility",
+    "attachment",
+    "exposure",
+    "delay",
+    "rupture",
+    "reconciliation",
+    "hidden-threat",
+  ] as const;
+  type KnownAxis = typeof KNOWN_AXES[number];
   const axes = Array.isArray(raw.axisHints) ? (raw.axisHints as string[]) : [];
   return {
     candidateId: `${input.frame.runId}-${input.character.id}-llm-${index}`,
     characterId: input.character.id,
     action: String(raw.action ?? `${input.character.name}行动`),
     intent: String(raw.intent ?? input.character.goal),
-    axisHints: axes.filter((a): a is CandidateAction["axisHints"][number] =>
-      ["initiative","discipline","opportunism","volatility","attachment","exposure","delay","rupture","reconciliation","hidden-threat"].includes(a),
-    ) as CandidateAction["axisHints"],
+    axisHints: axes.filter((a): a is KnownAxis => (KNOWN_AXES as readonly string[]).includes(a)),
     affectsLocationId: raw.affectsLocationId ? String(raw.affectsLocationId) : undefined,
     affectsRelationshipId: raw.affectsRelationshipId ? String(raw.affectsRelationshipId) : undefined,
   };
