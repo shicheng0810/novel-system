@@ -8,10 +8,11 @@
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { describe, expect, test } from "vitest";
 
-const ROOT = new URL("../src/", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("../src/", import.meta.url));
 
 function walk(dir: string): string[] {
   const out: string[] = [];
