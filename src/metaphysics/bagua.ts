@@ -1,22 +1,12 @@
-import type { StageDirective } from "../domain";
+// Phase 3 · bagua situation derivation.
+// Port of v2 src/metaphysics/bagua.ts to v3 types.
 
-export type BaguaTrigram = "乾" | "坤" | "震" | "巽" | "坎" | "离" | "艮" | "兑";
+import type { BaguaSituation } from "../domain/metaphysics";
+import type { StageDirective } from "../domain/world";
 
-export type BaguaSituation = {
-  situationId: string;
-  internalTrigram: BaguaTrigram;
-  externalTrigram: BaguaTrigram;
-  opposition?: {
-    left: string;
-    right: string;
-    pressure: string;
-  };
-  changingLines: number[];
-  structuralTags: string[];
-  narrativeEffect: string;
-};
+type Trigram = "乾" | "坤" | "震" | "巽" | "坎" | "离" | "艮" | "兑";
 
-const effects: Record<BaguaTrigram, string> = {
+const EFFECTS: Record<Trigram, string> = {
   乾: "权威推进，强者意志压入局面。",
   坤: "群体承压，资源与承载成为主要矛盾。",
   震: "惊动发动，突发事件推动角色表态。",
@@ -32,46 +22,37 @@ function includesAny(text: string, words: string[]): boolean {
 }
 
 export function deriveBaguaSituation(directive: StageDirective): BaguaSituation {
-  const text = [directive.stageLabel, directive.intervention ?? "", directive.focusCharacterIds.join("，")].join(" ");
-  const tags: string[] = [];
-  let internalTrigram: BaguaTrigram = "坤";
-  let externalTrigram: BaguaTrigram = "艮";
-  const changingLines: number[] = [3];
+  const text = [
+    directive.stageLabel,
+    directive.intervention ?? "",
+    directive.focusCharacterIds.join("，"),
+  ].join(" ");
+
+  const tags: BaguaSituation["structuralTags"] = [];
+  let internal: Trigram = "坤";
+  let external: Trigram = "艮";
 
   if (includesAny(text, ["内应", "潜伏", "密", "暗", "陷", "危"])) {
-    internalTrigram = "坎";
+    internal = "坎";
     tags.push("hidden-threat");
   }
   if (includesAny(text, ["暴露", "搜查", "证据", "名声", "显"])) {
-    externalTrigram = "离";
+    external = "离";
     tags.push("exposure");
-    changingLines.push(5);
   } else if (includesAny(text, ["爆裂", "惊", "突发", "发动"])) {
-    externalTrigram = "震";
-    tags.push("sudden-shock");
-  } else if (includesAny(text, ["渗透", "传播", "风声"])) {
-    externalTrigram = "巽";
-    tags.push("infiltration");
-  } else if (includesAny(text, ["试炼", "守", "封", "关", "门槛"])) {
-    externalTrigram = "艮";
-    tags.push("threshold");
+    external = "震";
+    tags.push("rupture");
+  } else if (includesAny(text, ["试炼", "守", "封", "关", "门槛", "压"])) {
+    external = "艮";
+    tags.push("delay");
   }
-
-  if (tags.length === 0) {
-    tags.push("threshold");
-  }
+  if (tags.length === 0) tags.push("delay");
 
   return {
-    situationId: `bagua-${internalTrigram}${externalTrigram}-${tags.join("-")}`,
-    internalTrigram,
-    externalTrigram,
-    opposition: {
-      left: effects[internalTrigram],
-      right: effects[externalTrigram],
-      pressure: `${internalTrigram}${externalTrigram}相叠，${effects[internalTrigram]}${effects[externalTrigram]}`,
-    },
-    changingLines: [...new Set(changingLines)].sort((left, right) => left - right),
+    situationId: `bagua-${internal}${external}-${tags.join("-")}`,
+    internalTrigram: internal,
+    externalTrigram: external,
     structuralTags: [...new Set(tags)],
-    narrativeEffect: `${effects[internalTrigram]}${effects[externalTrigram]}`,
+    narrativeEffect: `${EFFECTS[internal]}${EFFECTS[external]}`,
   };
 }

@@ -1,111 +1,112 @@
 import { describe, expect, test } from "vitest";
 
-import type { QimenContext, QimenModifier } from "../src/domain";
-import { deriveBaguaSituation } from "../src/metaphysics/bagua";
-import { buildMetaphysicsFrame } from "../src/metaphysics/frame";
-import { buildQimenBoard } from "../src/metaphysics/qimen-board";
-import { parseWorldDraft } from "../src/parser";
+import { buildFrame } from "../src/metaphysics/frame";
+import type { ParsedWorldDraft, StageDirective } from "../src/domain/world";
 
-describe("bagua situation", () => {
-  test("maps hidden danger and exposure pressure to 坎离 structure", () => {
-    const situation = deriveBaguaSituation({
-      stageLabel: "丹谷搜查",
-      intervention: "地火丹谷丹炉爆裂，执法堂搜查内应，密信暴露。",
-      focusCharacterIds: ["苏雪"],
-    });
+const draft: ParsedWorldDraft = {
+  worldSpec: {
+    genre: "修仙",
+    timeScale: "阶段",
+    cultivationSystem: "灵海",
+    worldRules: [],
+    factions: [],
+    locations: [],
+  },
+  characters: [
+    {
+      id: "林焰",
+      name: "林焰",
+      baziRaw: "丙午,丙午,丁巳,丁未",
+      faction: "青岳宗",
+      role: "外门",
+      traits: ["倔强"],
+      goal: "x",
+      stance: "x",
+      resource: "x",
+    },
+    {
+      id: "苏雪",
+      name: "苏雪",
+      baziRaw: "辛酉,癸亥,壬申,辛丑",
+      faction: "青岳宗",
+      role: "执事",
+      traits: ["冷静"],
+      goal: "y",
+      stance: "y",
+      resource: "y",
+    },
+  ],
+  relationships: [],
+  characterAnchors: [],
+  relationshipAnchors: [],
+};
 
-    expect(situation.internalTrigram).toBe("坎");
-    expect(situation.externalTrigram).toBe("离");
-    expect(situation.structuralTags).toContain("hidden-threat");
-    expect(situation.structuralTags).toContain("exposure");
-  });
+const directiveCalm: StageDirective = {
+  stageLabel: "外门日常",
+  focusCharacterIds: ["林焰"],
+};
+const directiveShock: StageDirective = {
+  stageLabel: "突发惊变",
+  intervention: "丹谷被入侵",
+  focusCharacterIds: ["林焰"],
+};
 
-  test("maps trial and blockage pressure to 艮 structure", () => {
-    const situation = deriveBaguaSituation({
-      stageLabel: "外门试炼",
-      focusCharacterIds: ["林焰"],
-    });
-
-    expect(situation.externalTrigram).toBe("艮");
-    expect(situation.narrativeEffect).toContain("门槛");
-  });
-});
-
-describe("qimen board", () => {
-  test("converts an existing qimen context into a manual-lite board", () => {
-    const context: QimenContext = {
-      sourceMode: "manual",
-      pattern: "惊门迫宫",
-      locationFocus: "地火丹谷",
-      eventType: "危机爆发",
-      strongSituationScore: 3,
-      allowHardDecision: true,
-    };
-    const modifier: QimenModifier = {
-      timingShift: "redirect",
-      outcomeBias: "twist",
-      timingWeight: 2,
-      outcomeWeight: 1,
-      hardDecision: { type: "outcome", verdict: "惊门强局允许结果反转" },
-    };
-
-    const board = buildQimenBoard({ context, modifier, stageNumber: 2 });
-
-    expect(board.school).toBe("manual-lite");
-    expect(board.palaces[board.activePalace - 1].door).toBe("惊门");
-    expect(board.hardDecisionAllowed).toBe(true);
-    expect(board.focusPalaces).toContain(board.activePalace);
-  });
-});
-
-const frameDraft = `
-# 世界设定
-题材：东方玄幻
-时间尺度：阶段
-修炼体系：灵海
-世界规则：
-- 玄脉共鸣会放大角色的欲望
-
-# 势力
-- 青岳宗：正宗
-
-# 地点
-- 地火丹谷：炼丹重地
-
-# 角色
-- 苏雪 | baziRaw=辛巳,癸酉,己亥,乙丑 | description=外冷内热，重秩序 | faction=青岳宗 | role=丹谷执事 | traits=冷静,克制,重情 | goal=守住丹谷 | stance=守宗 | resource=地火炉令
-
-# 关系
-
-# 单角色锚点
-- 苏雪 | cannot=无因失守底线 | must_trend=在规则与情感之间摇摆 | stage_goal=守住丹谷
-
-# 关系锚点
-`;
-
-describe("metaphysics frame", () => {
-  test("combines bazi, bagua, and qimen into traceable influences", () => {
-    const parsed = parseWorldDraft(frameDraft);
-    const frame = buildMetaphysicsFrame({
-      runId: "run-frame",
-      parsed,
+describe("v3 metaphysics frame", () => {
+  test("frame contains influences for each character + qimen + bagua", () => {
+    const frame = buildFrame({
+      runId: "r1",
+      worldId: "w1",
       stageNumber: 1,
-      directive: {
-        stageLabel: "丹谷搜查",
-        focusCharacterIds: ["苏雪"],
-        intervention: "地火丹谷丹炉爆裂，执法堂搜查内应。",
-        qimenOverride: {
-          pattern: "惊门迫宫",
-          locationFocus: "地火丹谷",
-          eventType: "危机爆发",
-          allowHardDecision: true,
-        },
-      },
+      parsed: draft,
+      directive: directiveCalm,
     });
+    const characters = frame.influences.filter((i) => i.target.kind === "character");
+    expect(characters.map((i) => i.target.kind === "character" ? i.target.characterId : "").sort()).toEqual(["林焰", "苏雪"]);
+    expect(frame.influences.some((i) => i.source === "qimen")).toBe(true);
+    expect(frame.influences.some((i) => i.source === "bagua")).toBe(true);
+  });
 
-    expect(frame.influences.some((influence) => influence.source === "bazi")).toBe(true);
-    expect(frame.influences.some((influence) => influence.source === "bagua")).toBe(true);
-    expect(frame.influences.some((influence) => influence.source === "qimen")).toBe(true);
-    expect(frame.trace.map((trace) => trace.source)).toEqual(expect.arrayContaining(["bazi", "bagua", "qimen"]));
+  test("different directives produce different qimen patterns", () => {
+    const calmFrame = buildFrame({
+      runId: "r-calm",
+      worldId: "w1",
+      stageNumber: 1,
+      parsed: draft,
+      directive: directiveCalm,
+    });
+    const shockFrame = buildFrame({
+      runId: "r-shock",
+      worldId: "w1",
+      stageNumber: 1,
+      parsed: draft,
+      directive: directiveShock,
+    });
+    expect(calmFrame.qimenContext.pattern).not.toBe(shockFrame.qimenContext.pattern);
+  });
+
+  test("trace records each rule application", () => {
+    const frame = buildFrame({
+      runId: "r1",
+      worldId: "w1",
+      stageNumber: 1,
+      parsed: draft,
+      directive: directiveCalm,
+    });
+    const sources = new Set(frame.trace.map((t) => t.source));
+    expect(sources.has("bazi")).toBe(true);
+    expect(sources.has("bagua")).toBe(true);
+    expect(sources.has("qimen")).toBe(true);
+  });
+
+  test("explanation has fate / fortune / qimen layers populated", () => {
+    const frame = buildFrame({
+      runId: "r1",
+      worldId: "w1",
+      stageNumber: 2,
+      parsed: draft,
+      directive: directiveShock,
+    });
+    expect(frame.explanation.fateLayer).toContain("林焰");
+    expect(frame.explanation.qimenLayer).toContain(frame.qimenContext.pattern);
   });
 });

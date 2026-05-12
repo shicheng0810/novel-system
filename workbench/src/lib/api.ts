@@ -1,5 +1,5 @@
 // HTTP client for the v3 server. Endpoint paths and bodies match
-// src/v3/server/actions.ts. No polling — push updates come over SSE.
+// src/server/actions.ts. No polling — push updates come over SSE.
 
 import type { DaemonStatus, WorldEvent, WorldSnapshot } from "../types";
 

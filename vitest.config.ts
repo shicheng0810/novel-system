@@ -5,9 +5,6 @@ export default defineConfig({
     exclude: [
       "**/node_modules/**",
       "**/dist/**",
-      "**/_legacy/**",
-      "tests/_legacy/**",
-      "tests/deepseek.integration.test.ts",
     ],
   },
 });

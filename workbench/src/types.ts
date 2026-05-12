@@ -1,6 +1,6 @@
-// Shared types between the v3 backend (src/v3/domain/*) and the workbench
+// Shared types between the v3 backend (src/domain/*) and the workbench
 // frontend. Re-exported here so the frontend doesn't have to reach into
-// src/v3/ directly (vite's @v3 alias would also work, but a re-export keeps
+// src/ directly (vite's @v3 alias would also work, but a re-export keeps
 // the surface explicit).
 
 export type EventSubsystem =

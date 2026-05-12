@@ -9,7 +9,7 @@ describe("package scripts", () => {
       scripts: Record<string, string>;
     };
 
-    for (const scriptName of ["demo", "demo:deepseek"]) {
+    for (const scriptName of ["sandbox"]) {
       const script = packageJson.scripts[scriptName];
       const match = /^tsx\s+(.+)$/.exec(script);
       expect(match?.[1], `${scriptName} should run a tsx entrypoint`).toBeTruthy();

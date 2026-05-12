@@ -1,81 +1,44 @@
-// Phase 0: gutted to the surface that still compiles. v3 architecture lives in src/v3/*
-// (see /root/.claude/plans/system-reminder-you-re-running-in-buzzing-kitten.md).
-// Modules removed in Phase 0 (now in src/_legacy/, to be rewritten in Phase 2-5):
-//   - memory, context-cache, run-store, orchestration
-//   - runtime-trace, narrative-session
-//   - world-daemon, novel-runtime-kernel, persistent-runtime-daemon
-// Modules expected by old README but never committed (will be rewritten in v3):
-//   - graph-runtime-daemon, director, character-{synthesizer,agent}
-//   - anti-slop-sanitizer, xianxia-verifier
-//   - agent-llm-{provider,bridge}, embedding-provider
-//   - atomic-fs, memory-index, metaphysics/lunar-bazi
+// Novel System v3 · public API barrel.
+// See src/README.md for architecture layers and design notes.
 
+// Layer 1 · domain (pure types + helpers)
 export * from "./domain";
-export * from "./runtime-types";
-export * from "./context-pack";
-export * from "./runtime-worker";
-export * from "./metaphysics";
-export * from "./metaphysics/bagua";
-export * from "./metaphysics/frame";
-export * from "./metaphysics/qimen-board";
-export * from "./canon-gate";
-export * from "./engine";
-export * from "./agents/provider";
-export * from "./narrative";
-export * from "./deepseek-profile";
-export * from "./deepseek";
-export * from "./ai-settings";
-export * from "./truth-core";
-export * from "./read-models";
-export * from "./reading-artifacts";
-export * from "./parser";
 
-import { draftNarrative } from "./narrative";
-import { WorldHistoryEngine } from "./engine";
-import { parseWorldDraft } from "./parser";
+// Layer 2 · services
+export { EventBus, type EventListener, type Unsubscribe, nowEvent } from "./services/event-bus";
+export { WorldStore } from "./services/world-store";
+export { MemoryService, type WriteMemoryInput } from "./services/memory-service";
+export { AtlasService, type AtlasFile, type AtlasTreeNode } from "./services/atlas-service";
+export type { LLMProvider, LlmCompleteRequest, LlmCompleteResult, LlmStructuredRequest, LlmStructuredResult, LlmMessage, LlmRole } from "./services/llm/types";
+export { MockLLMProvider } from "./services/llm/mock";
+export { DeepSeekProvider, DEFAULT_DEEPSEEK_PROFILE, type DeepSeekProfile, type DeepSeekProviderOptions } from "./services/llm/deepseek";
+export type { EmbeddingProvider } from "./services/embedding/types";
+export { MockEmbeddingProvider } from "./services/embedding/mock";
+export { HttpEmbeddingProvider, type HttpEmbeddingOptions } from "./services/embedding/http";
 
-export function buildDemoReport(draftText: string, options: { expandMetaphysics?: boolean } = {}): string {
-  const engine = new WorldHistoryEngine(parseWorldDraft(draftText));
-  const firstFocus = engine.getParsedWorld().characters[0]?.id ?? "";
-  const secondFocus = engine.getParsedWorld().characters[1]?.id ?? firstFocus;
-  const result = engine.runStage({
-    stageLabel: "外门试炼",
-    focusCharacterIds: [firstFocus].filter(Boolean),
-  });
-  const narrative = draftNarrative({
-    line: engine.getCanonLine(),
-    lens: {
-      focusCharacterIds: [secondFocus].filter(Boolean),
-      style: "omniscient-web",
-      stageRange: [result.canonStage.id],
-      chapterGoal: "展示这一阶段里各方势力第一次真正撞上台面",
-      sceneCount: 7,
-      targetLength: [2800, 3300],
-      factConstraint: "medium-expansion",
-    },
-  });
-  const metaphysics = options.expandMetaphysics
-    ? [
-        "术数解释",
-        result.canonStage.metaphysicsExplanation.fateLayer,
-        result.canonStage.metaphysicsExplanation.fortuneLayer,
-        result.canonStage.metaphysicsExplanation.qimenLayer,
-      ].join("\n")
-    : "";
+// Data plane
+export { openDb, migrate, schemaVersion, type Db } from "./data/db";
 
-  return [
-    "正史阶段",
-    result.canonStage.events.map((event) => `- ${event.title}: ${event.summary}`).join("\n"),
-    "分叉建议",
-    result.branchEvaluations.map((branch) => `- ${branch.title}: ${branch.scores.total}`).join("\n"),
-    "章节计划",
-    narrative.plan.summary,
-    "场景列表",
-    narrative.sceneSummaries.join("\n"),
-    "短章节正文",
-    narrative.chapterText,
-    metaphysics,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-}
+// Metaphysics layer
+export { computeBazi, fateFromBazi, parsePillars, type BirthInput } from "./metaphysics/bazi";
+export { buildQimenBoard, buildQimenModifier, defaultQimenContext, type QimenBoard, type QimenPalace } from "./metaphysics/qimen";
+export { deriveBaguaSituation } from "./metaphysics/bagua";
+export { buildFrame, type BuildFrameInput } from "./metaphysics/frame";
+export { scoreCandidate, scoreCandidates, normalizeWeights, type CandidateAction, type ScoredCandidate, type ScoreBreakdown } from "./metaphysics/prior";
+
+// Verifiers
+export { sanitizeProse, type SlopReport, type SlopIssue, type SlopCategory } from "./verify/slop";
+export { verifyXianxia, type XianxiaReport, type XianxiaViolation, type XianxiaInput } from "./verify/xianxia";
+
+// Director + agents
+export { Director, type DirectorContext, type DirectorOptions, type TickPlan, type ArcPhase } from "./director/director";
+export { CharacterAgent, type AgentInput, type Reflection, type CharacterAgentOptions } from "./agents/character";
+export { AgentRegistry, type RegistryOptions } from "./agents/registry";
+
+// Engine + daemon
+export { runTick, type EngineDeps } from "./engine/tick";
+export type { TickRequest, TickResult, TickContext, TickPhaseId } from "./engine/types";
+export { Daemon, type DaemonStartRequest, type DaemonStatus } from "./daemon/daemon";
+
+// HTTP/SSE surface
+export { createServer, type CreateServerOptions, type ServerHandle } from "./server";
