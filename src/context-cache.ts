@@ -1,6 +1,8 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { atomicWrite } from "./atomic-fs";
+
 import type { ContextPack } from "./context-pack";
 
 export type ContextCacheReason = "cold" | "continued" | "evict" | "shutdown" | "canon-gate" | "author-handoff";
@@ -43,7 +45,12 @@ export class ContextCache {
       blockLabels: pack.blocks.map((block) => block.label),
       pack,
     };
-    await writeFile(this.snapshotPath(pack.packId), `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
+    // Per review · M (non-atomic writes): rename-after-fsync to avoid
+    // partial-file corruption + parallel-reader crashes on listSnapshots().
+    await atomicWrite(
+      this.snapshotPath(pack.packId),
+      Buffer.from(`${JSON.stringify(snapshot, null, 2)}\n`, "utf8"),
+    );
     return snapshot;
   }
 
@@ -89,7 +96,10 @@ export class ContextCache {
       hits: snapshot.hits + 1,
       lastUsedAt: new Date().toISOString(),
     };
-    await writeFile(this.snapshotPath(packId), `${JSON.stringify(updated, null, 2)}\n`, "utf8");
+    await atomicWrite(
+      this.snapshotPath(packId),
+      Buffer.from(`${JSON.stringify(updated, null, 2)}\n`, "utf8"),
+    );
     return updated;
   }
 

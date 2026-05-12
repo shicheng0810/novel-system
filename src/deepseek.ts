@@ -41,7 +41,30 @@ import {
 const DEFAULT_MODEL = DEFAULT_DEEPSEEK_PROFILE.model;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_NARRATIVE_TARGET_LENGTH: [number, number] = [2800, 3300];
-const MAX_LENGTH_REPAIR_ATTEMPTS = 3;
+
+/**
+ * Number of LLM-based length-repair attempts when the first synthesize
+ * response is out of `lens.targetLength` range.
+ *
+ * Each attempt is a full DeepSeek HTTP call (~30-90s with thinking, ~10-30s
+ * without). Setting this to 0 skips LLM repair entirely — the local
+ * `hardFitOverlongChapter` truncator handles over-length chapters; under-
+ * length chapters are returned as-is.
+ *
+ * Override via env var `NOVEL_LENGTH_REPAIR_ATTEMPTS` (0-3 typical).
+ *
+ * Default 0 per user request 2026-05-10: each repair attempt costs 30-90s
+ * with no quality guarantee, and hardFit truncation is "good enough" for
+ * typical 200-500 char overshoots. If you need stricter length adherence
+ * for a specific chapter, raise via env var.
+ */
+function maxLengthRepairAttempts(): number {
+  const envVal = process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS;
+  if (envVal === undefined) return 0;
+  const n = Number.parseInt(envVal, 10);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.min(n, 5);
+}
 
 type ChatToolCall = {
   id?: string;
@@ -1801,7 +1824,7 @@ export async function synthesizeChapterWithDeepSeek(
   const lengthRepairResponses: TextResult[] = [];
   let hardLengthFitApplied = false;
 
-  while (shouldRepairLength(finalText, input.lens) && lengthRepairResponses.length < MAX_LENGTH_REPAIR_ATTEMPTS) {
+  while (shouldRepairLength(finalText, input.lens) && lengthRepairResponses.length < maxLengthRepairAttempts()) {
     const repairPrompt = composerLengthRepairPrompt(
       input.plan,
       input.sceneCards,
@@ -1877,7 +1900,7 @@ export async function assembleChapterWithDeepSeek(
   const lengthRepairResponses: TextResult[] = [];
   let hardLengthFitApplied = false;
 
-  while (shouldRepairLength(finalText, input.lens) && lengthRepairResponses.length < MAX_LENGTH_REPAIR_ATTEMPTS) {
+  while (shouldRepairLength(finalText, input.lens) && lengthRepairResponses.length < maxLengthRepairAttempts()) {
     const repairPrompt = composerLengthRepairPrompt(
       input.draft.plan,
       sceneCards,

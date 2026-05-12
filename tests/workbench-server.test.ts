@@ -665,6 +665,9 @@ describe("workbench api handlers", () => {
   });
 
   test("confirms author-final text into memory and compiles atlas files for the active line", async () => {
+    const prevEnv = process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS;
+    process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS = "3";
+    try {
     const directory = mkdtempSync(join(tmpdir(), "workbench-memory-atlas-"));
     tempDirs.push(directory);
     process.env.LOCALAPPDATA = directory;
@@ -806,6 +809,10 @@ describe("workbench api handlers", () => {
     expect(chapterNode).toBeTruthy();
     expect(atlasFile.content).toContain("# 正史线 Atlas");
     expect(readFileSync(confirmed.updatedFiles[0], "utf8").length).toBeGreaterThan(0);
+    } finally {
+      if (prevEnv === undefined) delete process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS;
+      else process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS = prevEnv;
+    }
   });
 
   test("reports online mode when deepseek is configured", async () => {
@@ -907,6 +914,9 @@ describe("workbench api handlers", () => {
   });
 
   test("composes and rewrites a chapter through the local workbench api", async () => {
+    const prevEnv = process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS;
+    process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS = "3";
+    try {
     const directory = mkdtempSync(join(tmpdir(), "workbench-compose-"));
     tempDirs.push(directory);
     process.env.LOCALAPPDATA = directory;
@@ -1037,5 +1047,9 @@ describe("workbench api handlers", () => {
     expect(composed.draft.review.passed).toBe(true);
     expect(rewritten.draft.sceneDrafts[0].text).toBe(untouched);
     expect(rewritten.draft.sceneDrafts[1].text).toBe(rewrittenScene);
+    } finally {
+      if (prevEnv === undefined) delete process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS;
+      else process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS = prevEnv;
+    }
   });
 });

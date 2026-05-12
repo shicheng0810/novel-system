@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { homedir } from "node:os";
+import { homedir, platform } from "node:os";
 
 import {
   DEFAULT_DEEPSEEK_PROFILE,
@@ -51,7 +51,14 @@ export class AiSettingsStore {
     }
     try {
       return JSON.parse(readFileSync(this.filePath, "utf8")) as AiSettings;
-    } catch {
+    } catch (err) {
+      // Per review · L: don't silently swallow — the user sees a "key not set"
+      // error downstream when the actual cause is a corrupt config file.
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[ai-settings] failed to parse ${this.filePath}:`,
+        err instanceof Error ? err.message : err,
+      );
       return undefined;
     }
   }
@@ -74,6 +81,20 @@ export class AiSettingsStore {
     };
     await mkdir(join(this.filePath, ".."), { recursive: true });
     await writeFile(this.filePath, JSON.stringify(settings, null, 2), "utf8");
+    // Per review · L1: apiKey + secrets must not be world-readable. chmod 0o600.
+    // Windows: chmod is a no-op (NTFS ACL semantics differ); we accept the
+    // limitation and surface it in a console warning.
+    if (platform() !== "win32") {
+      try {
+        await chmod(this.filePath, 0o600);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[ai-settings] chmod 0o600 failed (config file may be world-readable):",
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }
     return settings;
   }
 

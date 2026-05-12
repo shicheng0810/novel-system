@@ -59,6 +59,12 @@ function parseCharacter(line: string): CharacterProfile | undefined {
   }
   const attributes = parseAttributes(rawAttributes);
   const name = rawName.trim();
+  // Per review · L (xianxia-verifier name length): reject pathologically
+  // long names so they don't blow up dynamic regex compilation downstream.
+  // 32 chars is generous for CJK pen names; anything beyond is operator typo.
+  if (name.length > 32) {
+    throw new Error(`parseCharacter: name "${name.slice(0, 16)}…" exceeds 32-char limit`);
+  }
   return {
     id: createCharacterId(name),
     name,

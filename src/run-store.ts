@@ -1,6 +1,8 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
+import { atomicWrite } from "./atomic-fs";
+
 import type { StageDirective } from "./domain";
 import type {
   ArtifactKind,
@@ -23,7 +25,9 @@ function runIdFromTime(): string {
 
 async function writeJson(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  // Per review · M (non-atomic writes): atomic rename prevents partial-write
+  // corruption on SIGKILL/OOM mid-flush.
+  await atomicWrite(path, Buffer.from(`${JSON.stringify(value, null, 2)}\n`, "utf8"));
 }
 
 async function readJson<T>(path: string): Promise<T> {

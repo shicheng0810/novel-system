@@ -870,6 +870,11 @@ describe("deepseek narrative integration", () => {
   });
 
   test("repairs DeepSeek prose when the first compose pass exceeds the lens target length", async () => {
+    // Length-repair LLM loop is opt-in via NOVEL_LENGTH_REPAIR_ATTEMPTS env var
+    // (default: 0, hardFit local truncation handles overlength chapters).
+    const prevEnv = process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS;
+    process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS = "3";
+    try {
     const { input, stageResult } = createFixture();
     const lens = {
       ...input.lens,
@@ -918,9 +923,16 @@ describe("deepseek narrative integration", () => {
     expect(draft.chapterText.length).toBeLessThanOrEqual(1100);
     expect(draft.sceneDrafts).toHaveLength(4);
     expect(draft.runRecords[0]?.conclusion).toContain("校准长度");
+    } finally {
+      if (prevEnv === undefined) delete process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS;
+      else process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS = prevEnv;
+    }
   });
 
   test("keeps repairing DeepSeek prose until it satisfies the lens target length", async () => {
+    const prevEnv = process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS;
+    process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS = "3";
+    try {
     const { input, stageResult } = createFixture();
     const lens = {
       ...input.lens,
@@ -959,6 +971,10 @@ describe("deepseek narrative integration", () => {
     expect(draft.chapterText.split(/\n{2,}/).filter((paragraph) => paragraph.trim())).toHaveLength(6);
     expect(draft.chapterText.length).toBeGreaterThanOrEqual(900);
     expect(draft.chapterText.length).toBeLessThanOrEqual(1100);
+    } finally {
+      if (prevEnv === undefined) delete process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS;
+      else process.env.NOVEL_LENGTH_REPAIR_ATTEMPTS = prevEnv;
+    }
   });
 
   test("falls back to json mode when strict tool calls do not return valid tool arguments", async () => {

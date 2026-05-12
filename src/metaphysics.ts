@@ -11,34 +11,12 @@ import {
   QimenModifier,
   RelationshipProfile,
 } from "./domain";
+import { computeBaziFromBirth, parsePillarsRaw, type BirthInput, type EnrichedBaziChart } from "./metaphysics/lunar-bazi";
 
-const STEM_ELEMENT: Record<string, string> = {
-  甲: "木",
-  乙: "木",
-  丙: "火",
-  丁: "火",
-  戊: "土",
-  己: "土",
-  庚: "金",
-  辛: "金",
-  壬: "水",
-  癸: "水",
-};
-
-const BRANCH_ELEMENT: Record<string, string> = {
-  子: "水",
-  丑: "土",
-  寅: "木",
-  卯: "木",
-  辰: "土",
-  巳: "火",
-  午: "火",
-  未: "土",
-  申: "金",
-  酉: "金",
-  戌: "土",
-  亥: "水",
-};
+// Re-export the lunar-javascript-backed entry points for the rest of the system
+// (dynamic-character generator will call computeBaziFromBirth at NPC creation).
+export { computeBaziFromBirth, parsePillarsRaw };
+export type { BirthInput, EnrichedBaziChart };
 
 type ElementScores = Record<string, number>;
 
@@ -59,6 +37,9 @@ function keywords(text: string): string[] {
     .filter(Boolean);
 }
 
+// Element-score helpers for natural-language description analysis
+// (NOT for bazi pillar parsing — that lives in lunar-bazi.ts now).
+// Used by inferDescriptionCandidates() to score traits like "倔强 / 护短 / 求突破".
 function emptyElementScores(): ElementScores {
   return { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
 }
@@ -136,35 +117,11 @@ function buildFateProfile(
 }
 
 function parseBaziRaw(raw: string): BaziChart {
-  const pillars = raw
-    .split(/[,\s|]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-  const scores = emptyElementScores();
-
-  for (const pillar of pillars) {
-    const stem = pillar[0];
-    const branch = pillar[1];
-    if (STEM_ELEMENT[stem]) {
-      scores[STEM_ELEMENT[stem]] += 2;
-    }
-    if (BRANCH_ELEMENT[branch]) {
-      scores[BRANCH_ELEMENT[branch]] += 1;
-    }
-  }
-
-  const dominantElements = topElements(scores);
-  return {
-    raw,
-    pillars,
-    dominantElements,
-    tenGodHints: dominantElements.map((element) => `${element}势明显`),
-    favorableElements: dominantElements.slice(0, 1),
-    unfavorableElements: Object.entries(scores)
-      .sort((left, right) => left[1] - right[1])
-      .slice(0, 1)
-      .map(([element]) => element),
-  };
+  // Delegate to lunar-javascript-backed wrapper.  EnrichedBaziChart is a
+  // superset of BaziChart (extra optional fields), so structural assignment
+  // is safe.  This swap is the W1 D1 step of the v2 architecture roadmap
+  // (.audit/20260510-deep-research/synthesis.md).
+  return parsePillarsRaw(raw);
 }
 
 function parseArchetypeDraft(raw: string): ArchetypeProfile {
