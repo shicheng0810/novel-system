@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import Database from "better-sqlite3";
 
-const SCHEMA_VERSION = "v3.0.0";
+const SCHEMA_VERSION = "v3.1.0";
 const SCHEMA_PATH = join(dirname(fileURLToPath(import.meta.url)), "schema.sql");
 
 export type Db = Database.Database;
@@ -35,13 +35,30 @@ export function migrate(db: Db): void {
   if (!stored) {
     db.prepare("INSERT INTO _meta(key, value) VALUES (?, ?)")
       .run("schema_version", SCHEMA_VERSION);
-  } else if (stored.value !== SCHEMA_VERSION) {
-    // Phase 0: no migration ladder yet. New version on a populated DB is an error.
-    throw new Error(
-      `world.db schema version mismatch: stored=${stored.value} expected=${SCHEMA_VERSION}. ` +
-        `Manual migration required (no v3 ladder yet).`,
-    );
+    return;
   }
+  if (stored.value === SCHEMA_VERSION) return;
+
+  // ladder: v3.0.0 → v3.1.0 adds embedding_* columns to ai_settings.
+  if (stored.value === "v3.0.0") {
+    addColumnIfMissing(db, "ai_settings", "embedding_api_key", "TEXT");
+    addColumnIfMissing(db, "ai_settings", "embedding_base_url", "TEXT");
+    addColumnIfMissing(db, "ai_settings", "embedding_model", "TEXT");
+    addColumnIfMissing(db, "ai_settings", "embedding_dim", "INTEGER");
+    db.prepare("UPDATE _meta SET value = ? WHERE key = 'schema_version'").run(SCHEMA_VERSION);
+    return;
+  }
+
+  throw new Error(
+    `world.db schema version mismatch: stored=${stored.value} expected=${SCHEMA_VERSION}. ` +
+      `No migration ladder from ${stored.value}; manual migration required.`,
+  );
+}
+
+function addColumnIfMissing(db: Db, table: string, column: string, type: string): void {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (cols.some((c) => c.name === column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
 }
 
 export function schemaVersion(): string {

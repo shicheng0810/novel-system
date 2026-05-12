@@ -50,8 +50,21 @@
 
 **Why**: 两个 daemon 抢 SQLite 写 + 抢 WorldStore 状态会撞车。WeakMap 锁可在测试中独立 db 时绕开，对生产环境强制单实例。
 
+## ADR-009: Domain-pure Markdown world parser
+
+**Decided**: `src/domain/parse-world.ts` 实现 `parseWorldMarkdown(md): ParsedWorldDraft`，只用 `String.prototype.split` + 简单正则，不引 marked / unified / remark / micromark 任何 Markdown 库。
+
+**Why**: 世界 Markdown 是受控的 KV 格式（`# 角色` + `- {id} | k=v | k=v`），不是任意 CommonMark。引完整 parser 会把构建产物体积翻倍且无任何对应收益。手写解析器 < 200 行，在 `examples/sample-world.md` 上有 fixture 测试覆盖，11 case 全过。layer-isolation 测试自动拒绝 domain/ → services/engine/* 的导入，所以这个文件留在 domain/ 永远是纯函数。
+
+## ADR-010: ai_settings as runtime-mutable LLM/embedder source
+
+**Decided**: `createServer()` 在 boot 时 `AiSettingsStore.load()`，按行内容实例化 `DeepSeekProvider` / `HttpEmbeddingProvider` 或 fallback 到 Mock。POST `/api/settings/ai` 后服务**就地重建** llm + embedder（`deps.rebuildAi(next)`），引擎下一 tick 自动用新 provider。
+
+**Why**: v2 把 DeepSeek key 写 `studio-config.json`，每次改 key 都要重启 node。把状态全部塞 SQLite 单文件后（ADR-001）这条也该跟进。`MemoryService.setEmbedder(e)` 是为了不重建整个 MemoryService 让向量召回平滑切换。env-var fallback (`DEEPSEEK_API_KEY`) 在 SQLite 行为空时生效，首次部署不用 SQL。
+
 ## 备忘
 
 - 不做云部署 / multi-user / auth（单机工具定位）
 - 不引 tRPC / GraphQL（type-safety 走共享 types.ts 已够）
 - 不动 `corpus/`（世界 Markdown 范例语料）
+- v3.0 → v3.1 schema 升级只加列、不改表结构；`migrate()` 内嵌 ALTER TABLE ladder，老 db 自动升

@@ -3,6 +3,7 @@
 
 // Layer 1 · domain (pure types + helpers)
 export * from "./domain";
+export { parseWorldMarkdown } from "./domain/parse-world";
 
 // Layer 2 · services
 export { EventBus, type EventListener, type Unsubscribe, nowEvent } from "./services/event-bus";
@@ -15,6 +16,7 @@ export { DeepSeekProvider, DEFAULT_DEEPSEEK_PROFILE, type DeepSeekProfile, type 
 export type { EmbeddingProvider } from "./services/embedding/types";
 export { MockEmbeddingProvider } from "./services/embedding/mock";
 export { HttpEmbeddingProvider, type HttpEmbeddingOptions } from "./services/embedding/http";
+export { AiSettingsStore, maskApiKey, type AiSettings } from "./services/ai-settings-store";
 
 // Data plane
 export { openDb, migrate, schemaVersion, type Db } from "./data/db";

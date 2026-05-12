@@ -4,3 +4,4 @@ export * from "./world";
 export * from "./metaphysics";
 export * from "./canon";
 export * from "./narrative";
+export { parseWorldMarkdown } from "./parse-world";

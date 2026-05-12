@@ -46,6 +46,14 @@ npm run workbench:dev             # 启动 → http://127.0.0.1:5173
 
 **Metaphysics-as-prior** —— 八字 / 奇门 / 八卦 通过 `metaphysics/frame.ts` 输出 Influence 列表，`metaphysics/prior.ts` 的 `scoreCandidate` 把 Influence 投射到候选 action，输出 0..1 概率权重 + 可解释打分。Branches phase 用它选 top-K；UI 显示"为什么这个分支胜出"。
 
+## Phase 状态
+
+| Phase | What | Status |
+|---|---|---|
+| 0–6 | Layered v3 rewrite (data / domain / services / engine / daemon / server / frontend) | ✅ |
+| 6.5 | Frontend completion (Codex Rail tabs / Bottom Panel / 6-stage 灯轨 / `/` & ⌘K / chapter view / draft uploader / settings modal) | ✅ |
+| 7 | Markdown world parser · `/api/settings/ai` & `/api/chapters/*` · DeepSeek auto-wire from `ai_settings` · v3.1 schema migration · 2 bug fixes · dead v2 code removed · docs refresh | ✅ |
+
 ## 详细文档
 
 - **架构设计**：[`docs/architecture.md`](./docs/architecture.md)

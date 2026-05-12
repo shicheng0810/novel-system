@@ -28,13 +28,14 @@ src/v3/
 | Phase | What | Status |
 |---|---|---|
 | 0 | Scaffold + clear broken exports | ✅ done |
-| 1 | Data plane (SQLite schema) + Domain types | pending |
-| 2 | Services (event-bus, world-store, memory, atlas, llm, embedding) | pending |
-| 3 | Metaphysics-as-prior (real candidate scorer) | pending |
-| 4 | Tick engine + director + character agents + verifiers | pending |
-| 5 | Daemon + HTTP/SSE surface | pending |
-| 6 | Frontend rewrite (zustand + SSE + feature split) | pending |
-| 7 | Promote `src/v3/*` → `src/*`, delete `_legacy/`, refresh docs | pending |
+| 1 | Data plane (SQLite schema) + Domain types | ✅ done |
+| 2 | Services (event-bus, world-store, memory, atlas, llm, embedding) | ✅ done |
+| 3 | Metaphysics-as-prior (real candidate scorer) | ✅ done |
+| 4 | Tick engine + director + character agents + verifiers | ✅ done |
+| 5 | Daemon + HTTP/SSE surface | ✅ done |
+| 6 | Frontend rewrite (zustand + SSE + feature split) | ✅ done |
+| 6.5 | Codex Rail tabs · Bottom Panel · 6-stage 灯轨 · `/` & ⌘K · ChapterView · WorldUploader · SettingsModal | ✅ done |
+| 7 | Markdown parser · AI settings + chapters API · DeepSeek auto-wire · v3.1 schema · bug fixes · dead-code purge · docs | ✅ done |
 
 ## Hard invariants
 

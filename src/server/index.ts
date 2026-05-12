@@ -11,13 +11,19 @@ import { AtlasService } from "../services/atlas-service";
 import { EventBus } from "../services/event-bus";
 import { MemoryService } from "../services/memory-service";
 import { WorldStore } from "../services/world-store";
+import { AiSettingsStore, type AiSettings } from "../services/ai-settings-store";
 import { MockLLMProvider } from "../services/llm/mock";
+import { DeepSeekProvider } from "../services/llm/deepseek";
+import { HttpEmbeddingProvider } from "../services/embedding/http";
+import type { EmbeddingProvider } from "../services/embedding/types";
 import type { LLMProvider } from "../services/llm/types";
 
 import {
   applyWorldDraft,
   atlasFile,
   atlasTree,
+  chaptersGet,
+  chaptersList,
   compose,
   daemonPause,
   daemonResume,
@@ -26,6 +32,8 @@ import {
   daemonStep,
   eventsQuery,
   recallMemory,
+  settingsAiGet,
+  settingsAiSave,
   worldSnapshot,
   type ServerDeps,
 } from "./actions";
@@ -46,9 +54,18 @@ export function createServer(options: CreateServerOptions): ServerHandle {
   const db = openDb({ rootDir: options.rootDir });
   const bus = new EventBus(db);
   const worldStore = new WorldStore(db);
-  const memory = new MemoryService(db, bus);
+  const aiSettings = new AiSettingsStore(db);
+  const initial = aiSettings.load();
+  const memory = new MemoryService(db, bus, embedderFromSettings(initial));
   const atlas = new AtlasService(db, bus);
-  const llm: LLMProvider = options.llm ?? new MockLLMProvider();
+
+  // The active LLM provider is rebuildable when /api/settings/ai is saved.
+  // We thread it through the deps via a mutable wrapper so registry/daemon
+  // always see the latest provider without reconstructing them.
+  const llmRef: { current: LLMProvider } = {
+    current: options.llm ?? buildLlm(initial),
+  };
+
   const emptyParsed = {
     worldSpec: { genre: "", timeScale: "", cultivationSystem: "", worldRules: [], factions: [], locations: [] },
     characters: [],
@@ -67,9 +84,21 @@ export function createServer(options: CreateServerOptions): ServerHandle {
       return worldStore.load(worldId)?.parsed ?? emptyParsed;
     },
   });
-  const daemon = new Daemon({ db, bus, worldStore, memory, atlas, registry, llm });
+  // Engine reads deps.llm by reference; rebinding deps.llm after a settings
+  // save propagates to the next tick.
+  const deps: ServerDeps = {
+    db, bus, worldStore, memory, atlas, registry, aiSettings,
+    get llm() { return llmRef.current; },
+    set llm(v: LLMProvider) { llmRef.current = v; },
+    daemon: undefined as unknown as Daemon, // set below
+    rebuildAi(next: AiSettings | null) {
+      llmRef.current = options.llm ?? buildLlm(next);
+      memory.setEmbedder(embedderFromSettings(next));
+    },
+  };
+  const daemon = new Daemon({ db, bus, worldStore, memory, atlas, registry, llm: llmRef.current });
+  deps.daemon = daemon;
   daemonRef.current = daemon;
-  const deps: ServerDeps = { db, bus, worldStore, memory, atlas, llm, daemon, registry };
 
   const routes: Array<{
     method: string;
@@ -87,7 +116,11 @@ export function createServer(options: CreateServerOptions): ServerHandle {
     { method: "POST", path: "/api/memory/recall", handler: recallMemory(deps) },
     { method: "GET", path: "/api/atlas/tree", handler: atlasTree(deps) },
     { method: "GET", path: "/api/atlas/file", handler: atlasFile(deps) },
+    { method: "GET", path: "/api/chapters/list", handler: chaptersList(deps) },
+    { method: "GET", path: "/api/chapters/get", handler: chaptersGet(deps) },
     { method: "GET", path: "/api/events/query", handler: eventsQuery(deps) },
+    { method: "GET", path: "/api/settings/ai", handler: async () => settingsAiGet(deps)() },
+    { method: "POST", path: "/api/settings/ai", handler: settingsAiSave(deps) },
   ];
 
   async function requestHandler(req: IncomingMessage, res: ServerResponse, next: () => void): Promise<void> {
@@ -137,4 +170,32 @@ function latestWorldId(db: ReturnType<typeof openDb>): string | undefined {
     .prepare("SELECT world_id FROM world_state ORDER BY updated_at DESC LIMIT 1")
     .get() as { world_id: string } | undefined;
   return row?.world_id;
+}
+
+function buildLlm(settings: AiSettings | null): LLMProvider {
+  if (!settings || !settings.apiKey) return new MockLLMProvider();
+  return new DeepSeekProvider({
+    profile: {
+      apiKey: settings.apiKey,
+      baseUrl: settings.baseUrl,
+      model: settings.model,
+      timeoutMs: settings.timeoutMs,
+      thinkingMode: settings.thinkingMode,
+      reasoningEffort: settings.reasoningEffort,
+      contextWindowTokens: settings.contextWindowTokens,
+      maxOutputTokens: settings.maxOutputTokens,
+    },
+  });
+}
+
+function embedderFromSettings(settings: AiSettings | null): EmbeddingProvider | null {
+  if (!settings?.embeddingApiKey || !settings.embeddingBaseUrl || !settings.embeddingModel) {
+    return null;
+  }
+  return new HttpEmbeddingProvider({
+    apiKey: settings.embeddingApiKey,
+    baseUrl: settings.embeddingBaseUrl,
+    model: settings.embeddingModel,
+    dim: settings.embeddingDim,
+  });
 }

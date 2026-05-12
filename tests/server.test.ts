@@ -158,4 +158,78 @@ describe("v3 server (HTTP actions)", () => {
     const resp = await fetch(`${baseUrl}/api/does-not-exist`);
     expect(resp.status).toBe(404);
   });
+
+  test("POST /api/world/apply-draft accepts raw markdown", async () => {
+    const md = `# 世界设定\n题材：测试\n# 角色\n- 张三 | faction=测试宗 | role=外门 | goal=g | stance=s | resource=r | traits=A,B\n`;
+    const resp = await fetch(`${baseUrl}/api/world/apply-draft`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ worldId: "md1", markdown: md }),
+    });
+    expect(resp.status).toBe(200);
+    const body = (await resp.json()) as { snapshot: { characters: Record<string, unknown> } };
+    expect(body.snapshot.characters["张三"]).toBeTruthy();
+  });
+
+  test("GET/POST /api/settings/ai round-trips with masked output", async () => {
+    const empty = (await (await fetch(`${baseUrl}/api/settings/ai`)).json()) as {
+      configured: boolean;
+    };
+    expect(empty.configured).toBe(false);
+
+    const saved = (await (
+      await fetch(`${baseUrl}/api/settings/ai`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ apiKey: "sk-abcd1234", model: "deepseek-v4-test", baseUrl: "https://x", thinkingMode: "enabled", reasoningEffort: "high", maxOutputTokens: 5000 }),
+      })
+    ).json()) as { configured: boolean; apiKeyMask: string };
+    expect(saved.configured).toBe(true);
+    expect(saved.apiKeyMask).toBe("…1234");
+
+    const reread = (await (await fetch(`${baseUrl}/api/settings/ai`)).json()) as {
+      apiKeyMask: string;
+      model: string;
+    };
+    expect(reread.apiKeyMask).toBe("…1234");
+    expect(reread.model).toBe("deepseek-v4-test");
+  });
+
+  test("GET /api/chapters/list + /get round-trip after a compose tick", async () => {
+    await fetch(`${baseUrl}/api/world/apply-draft`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ worldId: "w1", parsed: draft }),
+    });
+    await fetch(`${baseUrl}/api/daemon/start`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        worldId: "w1",
+        threadId: "t1",
+        targetTicks: 1,
+        composeEvery: 1,
+        composeLens: {
+          focusCharacterIds: ["林焰"],
+          style: "omniscient-web",
+          stageRange: [],
+          chapterGoal: "g",
+          sceneCount: 3,
+          factConstraint: "medium-expansion",
+        },
+      }),
+    });
+    await serverHandle!.deps.daemon.waitForIdle();
+
+    const list = (await (
+      await fetch(`${baseUrl}/api/chapters/list?worldId=w1&limit=10`)
+    ).json()) as Array<{ chapterId: string }>;
+    expect(list.length).toBeGreaterThan(0);
+
+    const chapter = (await (
+      await fetch(`${baseUrl}/api/chapters/get?chapterId=${encodeURIComponent(list[0].chapterId)}`)
+    ).json()) as { chapterId: string; text: string };
+    expect(chapter.chapterId).toBe(list[0].chapterId);
+    expect(typeof chapter.text).toBe("string");
+  });
 });

@@ -52,7 +52,7 @@ export class MemoryService {
   constructor(
     private readonly db: Db,
     private readonly bus: EventBus,
-    private readonly embedder: EmbeddingProvider | null = null,
+    private embedder: EmbeddingProvider | null = null,
   ) {
     this.insertEntry = db.prepare(
       `INSERT INTO memory_entries(
@@ -83,6 +83,14 @@ export class MemoryService {
     this.likeMatch = db.prepare(
       "SELECT entry_id FROM memory_entries WHERE world_id = ? AND line_id = ? AND active = 1 AND payload_json LIKE ? LIMIT 200",
     );
+  }
+
+  /**
+   * Swap the embedding provider at runtime (e.g. when /api/settings/ai
+   * updates the embedding api-key). Pass null to revert to keyword-only.
+   */
+  setEmbedder(embedder: EmbeddingProvider | null): void {
+    this.embedder = embedder;
   }
 
   async write(input: WriteMemoryInput): Promise<MemoryEntry> {

@@ -6,9 +6,12 @@ import { useSessionStore } from "./stores/useSessionStore";
 import { useUIStore } from "./stores/useUIStore";
 
 import { StatusBar } from "./features/status-bar/StatusBar";
-import { WorldEchoes } from "./features/world-echoes/WorldEchoes";
-import { DecisionInbox } from "./features/decision-inbox/DecisionInbox";
 import { WritingCanvas } from "./features/writing-canvas/WritingCanvas";
+import { WorldUploader } from "./features/world-uploader/WorldUploader";
+import { CodexRail } from "./features/codex-rail/CodexRail";
+import { BottomPanel } from "./features/bottom-panel/BottomPanel";
+import { CommandPalette } from "./features/command-palette/CommandPalette";
+import { SettingsModal } from "./features/settings/SettingsModal";
 
 export function App() {
   const connect = useEventStore((s) => s.connect);
@@ -16,9 +19,12 @@ export function App() {
   const ingestRuntimeEvent = useDaemonStore((s) => s.ingestRuntimeEvent);
   const refreshDaemon = useDaemonStore((s) => s.refresh);
   const refreshSession = useSessionStore((s) => s.refresh);
+  const snapshot = useSessionStore((s) => s.snapshot);
   const worldId = useSessionStore((s) => s.worldId);
   const railCollapsed = useUIStore((s) => s.railCollapsed);
-  const bottomPanelOpen = useUIStore((s) => s.bottomPanelOpen);
+  const toggleRail = useUIStore((s) => s.toggleRail);
+  const toggleSettings = useUIStore((s) => s.toggleSettings);
+  const togglePalette = useUIStore((s) => s.toggleCommandPalette);
 
   // Bootstrap: subscribe SSE + initial fetches.
   useEffect(() => {
@@ -40,27 +46,45 @@ export function App() {
     return () => unsub();
   }, [ingestRuntimeEvent]);
 
+  // Global key bindings: ⌘K / Ctrl+K to toggle palette; ⌘\\ to fold rail.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        togglePalette();
+      } else if (meta && e.key === "\\") {
+        e.preventDefault();
+        toggleRail();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [togglePalette, toggleRail]);
+
+  const hasWorld = Boolean(snapshot);
+
   return (
     <div className="app-shell">
       <header className="app-topbar">
         <span className="brand">Novel System · v3</span>
+        <div className="app-topbar__actions">
+          <button type="button" className="ghost" onClick={() => togglePalette()}>⌘K 命令面板</button>
+          <button type="button" className="ghost" onClick={() => toggleSettings()} title="AI 设置">⚙</button>
+        </div>
       </header>
       <div className="app-frame">
-        <WritingCanvas />
-        {!railCollapsed && (
-          <aside className="codex-rail">
-            <WorldEchoes />
-            <DecisionInbox />
-          </aside>
+        {hasWorld ? <WritingCanvas /> : (
+          <main className="writing-canvas">
+            <WorldUploader />
+          </main>
         )}
+        {!railCollapsed && <CodexRail />}
       </div>
-      {bottomPanelOpen && (
-        <section className="bottom-panel">
-          {/* Phase 6.5: simulation controls + runtime ticks tab live here. */}
-          <p>Bottom panel (推演 / Runtime) — to be filled in next iteration.</p>
-        </section>
-      )}
+      <BottomPanel />
       <StatusBar />
+      <CommandPalette />
+      <SettingsModal />
     </div>
   );
 }

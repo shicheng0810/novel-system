@@ -40,13 +40,23 @@ export function evaluateAnchorViolations(
     const character = proposed.characters[anchor.characterId];
     if (!character) continue;
 
-    if (anchor.cannot && !character.alive && /死亡|凋落|身殒/.test(anchor.cannot)) {
-      violations.push({
-        characterId: anchor.characterId,
-        anchorField: "cannot",
-        message: `角色 ${character.name} 的 cannot 锚点被违反：${anchor.cannot}`,
-        severity: "error",
-      });
+    // cannot · evaluated by matching the anchor's forbidden keywords against
+    // the character's lastAction / recent notes. If anchor.cannot mentions a
+    // death-style keyword AND the snapshot reflects death (alive=false OR
+    // notes contain it), surface as error. Otherwise scan all keywords.
+    if (anchor.cannot) {
+      const keywords = splitKeywords(anchor.cannot);
+      const haystacks = [character.lastAction, ...character.notes];
+      const deathLike = /死亡|凋落|身殒/.test(anchor.cannot);
+      const hit = keywords.some((k) => haystacks.some((h) => h.includes(k)));
+      if ((deathLike && !character.alive) || (hit && keywords.length > 0)) {
+        violations.push({
+          characterId: anchor.characterId,
+          anchorField: "cannot",
+          message: `角色 ${character.name} 的 cannot 锚点被触碰：${anchor.cannot}`,
+          severity: "error",
+        });
+      }
     }
 
     if (anchor.mustTrend && character.notes.length > 0) {
@@ -63,6 +73,13 @@ export function evaluateAnchorViolations(
   }
 
   return violations;
+}
+
+function splitKeywords(s: string): string[] {
+  return s
+    .split(/[,，、；;]/)
+    .map((seg) => seg.trim())
+    .filter((seg) => seg.length >= 2);
 }
 
 export function riskFromViolations(violations: AnchorViolation[]): CanonRiskLevel {

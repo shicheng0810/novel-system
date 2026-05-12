@@ -3,18 +3,18 @@
 import { create } from "zustand";
 
 import { api } from "../lib/api";
-import type { WorldSnapshot } from "../types";
+import type { WorldSnapshot, ParsedWorldDraft } from "../types";
 
 type SessionState = {
   worldId: string;
   lineId: string;
   threadId: string;
-  parsed: unknown | null;
+  parsed: ParsedWorldDraft | null;
   snapshot: WorldSnapshot | null;
   draftText: string;
   setDraftText: (text: string) => void;
   refresh: () => Promise<void>;
-  applyDraft: (parsed: unknown) => Promise<void>;
+  applyDraft: (parsed: ParsedWorldDraft) => Promise<void>;
 };
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -31,7 +31,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   async refresh() {
     const resp = await api.worldSnapshot(get().worldId);
-    set({ snapshot: resp.snapshot, parsed: resp.parsed ?? null });
+    set({ snapshot: resp.snapshot, parsed: (resp.parsed as ParsedWorldDraft | null) ?? null });
   },
 
   async applyDraft(parsed) {

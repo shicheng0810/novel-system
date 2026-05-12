@@ -146,7 +146,8 @@ export class Daemon {
     };
     const tickIndex = this.status.completedTicks;
     const plan = this.director?.plan({ tickIndex, history: [] });
-    const useDirective = directive ?? plan ? this.director!.toDirective(plan!) : (directive ?? base.initialDirective);
+    const useDirective =
+      directive ?? (plan ? this.director!.toDirective(plan) : base.initialDirective);
     if (!useDirective) throw new Error("step() could not derive a directive");
     const result = await runTick(this.deps, {
       worldId: base.worldId,

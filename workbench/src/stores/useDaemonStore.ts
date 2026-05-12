@@ -6,11 +6,21 @@ import { create } from "zustand";
 import { api } from "../lib/api";
 import type { DaemonStatus } from "../types";
 
+export type ComposeLensInput = {
+  focusCharacterIds: string[];
+  chapterGoal?: string;
+  sceneCount?: number;
+};
+
 type DaemonState = {
   status: DaemonStatus | null;
   busy: boolean;
   refresh: () => Promise<void>;
-  start: (req: { targetTicks: number; composeEvery?: number }) => Promise<void>;
+  start: (req: {
+    targetTicks: number;
+    composeEvery?: number;
+    composeLens?: ComposeLensInput;
+  }) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   step: () => Promise<void>;
@@ -28,11 +38,23 @@ export const useDaemonStore = create<DaemonState>((set, get) => ({
   async start(req) {
     set({ busy: true });
     try {
+      const composeLens = req.composeLens
+        ? {
+            focusCharacterIds: req.composeLens.focusCharacterIds,
+            style: "omniscient-web",
+            stageRange: [],
+            chapterGoal: req.composeLens.chapterGoal,
+            sceneCount: req.composeLens.sceneCount ?? 4,
+            targetLength: [2800, 3300],
+            factConstraint: "medium-expansion",
+          }
+        : undefined;
       const status = await api.daemonStart({
         worldId: "default",
         threadId: "workbench",
         targetTicks: req.targetTicks,
         composeEvery: req.composeEvery,
+        composeLens,
       });
       set({ status });
     } finally {

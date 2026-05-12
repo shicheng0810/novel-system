@@ -201,5 +201,9 @@ CREATE TABLE IF NOT EXISTS ai_settings (
   reasoning_effort TEXT,
   context_window_tokens INTEGER,
   max_output_tokens INTEGER,
+  embedding_api_key   TEXT,
+  embedding_base_url  TEXT,
+  embedding_model     TEXT,
+  embedding_dim       INTEGER,
   updated_at     INTEGER NOT NULL
 );

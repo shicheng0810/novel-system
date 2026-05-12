@@ -30,8 +30,11 @@ curl -X POST http://127.0.0.1:5173/api/settings/ai \
 ```
 
 存到 `.novel-system/world.db` 的 `ai_settings` 表里（v3 不再写独立 JSON 文件）。
+GET `/api/settings/ai` 取回的 apiKey 始终脱敏（只回 `apiKeyMask`）。
 
-**注**：Phase 7 时 `/api/settings/ai` 路由还没接，配置直接写 SQLite 或环境变量 `DEEPSEEK_API_KEY` 等暂未实现。
+启动期：server `createServer()` 开 DB 后立刻 `AiSettingsStore.load()`。若行里有 `apiKey` 就实例化 `DeepSeekProvider`，否则回到 `MockLLMProvider`。embedder 同理（`embedding_api_key + embedding_base_url + embedding_model` 三项齐全才接 `HttpEmbeddingProvider`）。
+
+环境变量兜底：`DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` 在 SQLite 行为空时被读为默认值（首次部署不用先写 SQLite）。
 
 ## 3. 跑端到端 demo
 
@@ -63,15 +66,21 @@ npm run sandbox
 - `baziRaw="..."`：4 柱（年/月/日/时），系统按子平派解析；或 `archetypeDraft="水金偏旺、谋定后动"` 跳过真八字
 - `cannot` / `mustTrend` / `stageGoal`：硬约束，CanonGate phase 评估锚点违规
 
-**应用世界**：
+**应用世界**：直接喂 Markdown 或已 parse 的对象都行。
 
 ```bash
+# Markdown 直传（推荐）
 curl -X POST http://127.0.0.1:5173/api/world/apply-draft \
   -H 'content-type: application/json' \
-  -d '{"worldId":"my-novel","parsed": {/* parsed draft */}}'
+  -d "$(jq -n --rawfile md examples/sample-world.md '{worldId:"my-novel", markdown:$md}')"
+
+# 或已 parse 的对象
+curl -X POST http://127.0.0.1:5173/api/world/apply-draft \
+  -H 'content-type: application/json' \
+  -d '{"worldId":"my-novel","parsed": {/* ParsedWorldDraft */}}'
 ```
 
-（前端 `/api/world/apply-draft` 当前接受已 parse 好的对象；Markdown 解析器是 plan 后续追加项。）
+前端：打开 `http://127.0.0.1:5173` 看到落地的「加载世界 Markdown」面板，可粘贴文本、上传 `.md`、或一键加载 `examples/sample-world.md`。
 
 ## 5. 核心 API
 
@@ -115,6 +124,28 @@ curl -X POST http://127.0.0.1:5173/api/memory/recall \
 ```bash
 curl 'http://127.0.0.1:5173/api/atlas/tree?worldId=my-novel'
 curl 'http://127.0.0.1:5173/api/atlas/file?worldId=my-novel&path=characters/林焰.md'
+```
+
+### Chapters（章节阅读）
+
+```bash
+# 列最近 20 章（按 updated_at DESC）
+curl 'http://127.0.0.1:5173/api/chapters/list?worldId=my-novel&limit=20'
+
+# 取单章全文 + scenes + review
+curl 'http://127.0.0.1:5173/api/chapters/get?chapterId=chapter-...'
+```
+
+### AI 设置
+
+```bash
+# 读（apiKey 始终脱敏）
+curl http://127.0.0.1:5173/api/settings/ai
+
+# 写：未填字段保留旧值；apiKey 留空也不会清空已有
+curl -X POST http://127.0.0.1:5173/api/settings/ai \
+  -H 'content-type: application/json' \
+  -d '{"apiKey":"sk-...","model":"deepseek-v4-pro","maxOutputTokens":12000}'
 ```
 
 ### World snapshot
@@ -164,12 +195,10 @@ npm --prefix workbench run build
 
 ## 9. 已知限制
 
-- ❌ 没有云部署
-- ❌ Markdown 解析器是 plan 待办（当前 apply-draft 接受 ParsedWorldDraft 对象）
-- ❌ AI settings 路由暂未接（直接写 SQLite ai_settings 或测试时用 MockLLMProvider）
-- ❌ inline `/` 命令、命令面板 ⌘K、Codex Rail 标签页、Bottom Panel ticks tab 都待 Phase 6.5 接入
+- ❌ 没有云部署 / multi-user / auth（单机工具定位）
 - ⚠️ trigram FTS5 对 <3 字查询走 LIKE 兜底
 - ⚠️ 单 Daemon 实例 per Db（构造第二个会抛）
+- ⚠️ 「续段稿」textarea 暂为占位 —— 章节是 daemon 产出的，作者直接续段对接 LLM 的功能留给后续迭代
 
 每个 Phase 的实施记录在 git log 里，搜 `(Phase N)`。
 
@@ -181,9 +210,11 @@ import {
   openDb,
   parsePillars, computeBazi, fateFromBazi,
   buildFrame, scoreCandidate, normalizeWeights,
+  parseWorldMarkdown,
 
   // Layer 2
   EventBus, WorldStore, MemoryService, AtlasService,
+  AiSettingsStore, maskApiKey,
   MockLLMProvider, DeepSeekProvider, DEFAULT_DEEPSEEK_PROFILE,
   MockEmbeddingProvider, HttpEmbeddingProvider,
 
