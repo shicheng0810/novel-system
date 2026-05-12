@@ -1,36 +1,30 @@
+// Phase 0: gutted to the surface that still compiles. v3 architecture lives in src/v3/*
+// (see /root/.claude/plans/system-reminder-you-re-running-in-buzzing-kitten.md).
+// Modules removed in Phase 0 (now in src/_legacy/, to be rewritten in Phase 2-5):
+//   - memory, context-cache, run-store, orchestration
+//   - runtime-trace, narrative-session
+//   - world-daemon, novel-runtime-kernel, persistent-runtime-daemon
+// Modules expected by old README but never committed (will be rewritten in v3):
+//   - graph-runtime-daemon, director, character-{synthesizer,agent}
+//   - anti-slop-sanitizer, xianxia-verifier
+//   - agent-llm-{provider,bridge}, embedding-provider
+//   - atomic-fs, memory-index, metaphysics/lunar-bazi
+
 export * from "./domain";
 export * from "./runtime-types";
-export * from "./run-store";
 export * from "./context-pack";
-export * from "./context-cache";
-export * from "./narrative-session";
-export * from "./runtime-trace";
 export * from "./runtime-worker";
-export * from "./persistent-runtime-daemon";
-export * from "./graph-runtime-daemon";
-export * from "./director";
-export * from "./character-synthesizer";
-export * from "./character-agent";
-export * from "./anti-slop-sanitizer";
-export * from "./xianxia-verifier";
-export * from "./agent-llm-provider";
-export * from "./agent-llm-bridge";
-export * from "./embedding-provider";
-export * from "./novel-runtime-kernel";
 export * from "./metaphysics";
 export * from "./metaphysics/bagua";
 export * from "./metaphysics/frame";
 export * from "./metaphysics/qimen-board";
 export * from "./canon-gate";
 export * from "./engine";
-export * from "./world-daemon";
 export * from "./agents/provider";
 export * from "./narrative";
-export * from "./orchestration";
 export * from "./deepseek-profile";
 export * from "./deepseek";
 export * from "./ai-settings";
-export * from "./memory";
 export * from "./truth-core";
 export * from "./read-models";
 export * from "./reading-artifacts";

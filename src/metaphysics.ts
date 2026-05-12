@@ -11,12 +11,74 @@ import {
   QimenModifier,
   RelationshipProfile,
 } from "./domain";
-import { computeBaziFromBirth, parsePillarsRaw, type BirthInput, type EnrichedBaziChart } from "./metaphysics/lunar-bazi";
 
-// Re-export the lunar-javascript-backed entry points for the rest of the system
-// (dynamic-character generator will call computeBaziFromBirth at NPC creation).
-export { computeBaziFromBirth, parsePillarsRaw };
-export type { BirthInput, EnrichedBaziChart };
+// TODO Phase 3: replace this stub with src/v3/metaphysics/bazi.ts (lunar-javascript backed).
+// For now, keep parser inline so the engine continues to compile.
+export type BirthInput = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+};
+export type EnrichedBaziChart = BaziChart & { __stub?: true };
+
+const STEM_ELEMENTS: Record<string, string> = {
+  甲: "木", 乙: "木", 丙: "火", 丁: "火", 戊: "土",
+  己: "土", 庚: "金", 辛: "金", 壬: "水", 癸: "水",
+};
+const BRANCH_ELEMENTS: Record<string, string> = {
+  子: "水", 丑: "土", 寅: "木", 卯: "木", 辰: "土", 巳: "火",
+  午: "火", 未: "土", 申: "金", 酉: "金", 戌: "土", 亥: "水",
+};
+const STEMS = Object.keys(STEM_ELEMENTS);
+const BRANCHES = Object.keys(BRANCH_ELEMENTS);
+
+function dominantFromPillars(pillars: string[]): string[] {
+  const tally: Record<string, number> = {};
+  for (const pillar of pillars) {
+    for (const ch of pillar) {
+      const el = STEM_ELEMENTS[ch] ?? BRANCH_ELEMENTS[ch];
+      if (el) tally[el] = (tally[el] ?? 0) + 1;
+    }
+  }
+  return Object.entries(tally)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([el]) => el);
+}
+
+export function computeBaziFromBirth(_input: BirthInput): EnrichedBaziChart {
+  // Phase 0 stub: returns a placeholder chart. Real lunar calc lands in Phase 3.
+  const pillars = ["甲子", "甲子", "甲子", "甲子"];
+  const chart: BaziChart = {
+    raw: pillars.join(","),
+    pillars,
+    dominantElements: dominantFromPillars(pillars),
+    tenGodHints: [],
+    favorableElements: [],
+    unfavorableElements: [],
+  };
+  return chart as EnrichedBaziChart;
+}
+
+export function parsePillarsRaw(raw: string): EnrichedBaziChart {
+  const pieces = raw.split(",").map((p) => p.trim()).filter(Boolean).slice(0, 4);
+  const pillars = pieces.map((p) => {
+    const stem = STEMS.find((s) => p.includes(s)) ?? "甲";
+    const branch = BRANCHES.find((b) => p.includes(b)) ?? "子";
+    return `${stem}${branch}`;
+  });
+  while (pillars.length < 4) pillars.push("甲子");
+  const chart: BaziChart = {
+    raw: pillars.join(","),
+    pillars,
+    dominantElements: dominantFromPillars(pillars),
+    tenGodHints: [],
+    favorableElements: [],
+    unfavorableElements: [],
+  };
+  return chart as EnrichedBaziChart;
+}
 
 type ElementScores = Record<string, number>;
 

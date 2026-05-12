@@ -21,5 +21,6 @@
       "@novel": ["../src/index.ts"]
     }
   },
-  "include": ["src", "vite.config.ts", "types.d.ts"]
+  "include": ["src", "vite.config.ts", "types.d.ts"],
+  "exclude": ["src/_legacy-server.ts", "node_modules"]
 }

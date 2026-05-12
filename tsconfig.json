@@ -9,5 +9,6 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "workbench/src/server.ts", "workbench/src/contracts.ts", "workbench/src/sampleWorld.ts", "types/**/*.d.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "workbench/src/server.ts", "workbench/src/contracts.ts", "workbench/src/sampleWorld.ts", "types/**/*.d.ts"],
+  "exclude": ["src/_legacy/**", "tests/_legacy/**", "workbench/src/_legacy-server.ts", "node_modules"]
 }
