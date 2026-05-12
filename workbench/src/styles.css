@@ -1194,3 +1194,98 @@ pre {
 .studio-frame {
   grid-template-columns: 112px minmax(0, 1fr) 360px;
 }
+
+/* ─── v3 shell additions ─────────────────────────────────────────────────── */
+.app-shell {
+  display: grid;
+  grid-template-rows: 44px 1fr auto 28px;
+  height: 100vh;
+  background: #fafaf7;
+  color: #1c1a16;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC";
+}
+.app-topbar {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid #e7e3d8;
+  font-weight: 600;
+}
+.app-topbar .brand { color: #4a423a; }
+.app-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  overflow: hidden;
+}
+.app-frame .codex-rail {
+  border-left: 1px solid #e7e3d8;
+  padding: 12px;
+  overflow-y: auto;
+  background: #fdfcf6;
+}
+
+.writing-canvas { display: grid; grid-template-rows: auto 1fr auto; padding: 16px; gap: 12px; }
+.canvas-dock { display: flex; justify-content: space-between; font-size: 0.92rem; color: #4a4035; }
+.canvas-dock .dock-stage { margin-left: 12px; color: #837665; }
+.canvas-dock .dock-phase { color: #837665; }
+.canvas-editor {
+  width: 100%; height: 100%; border: 1px solid #e7e3d8; border-radius: 4px;
+  padding: 16px; font-family: ui-serif, "Songti SC", Georgia, serif;
+  font-size: 1.05rem; line-height: 1.7; resize: none; background: #fff;
+}
+.canvas-controls { display: flex; gap: 12px; align-items: center; font-size: 0.92rem; }
+.canvas-controls input { width: 64px; margin-left: 4px; }
+.canvas-controls button { padding: 6px 12px; cursor: pointer; }
+
+.world-echoes h3 { margin: 0 0 8px; font-size: 0.95rem; color: #4a423a; }
+.world-echoes ul { list-style: none; padding: 0; margin: 0; }
+.world-echoes .echo {
+  display: grid; grid-template-columns: 60px 18px 60px 1fr;
+  gap: 6px; align-items: baseline; padding: 4px 0; font-size: 0.88rem;
+  border-bottom: 1px dotted #ebe5d6;
+}
+.world-echoes .echo--notable { color: #5a4f3a; }
+.world-echoes .echo--decision-required { color: #983b2b; font-weight: 600; }
+.world-echoes .echo__time { color: #998c75; font-variant-numeric: tabular-nums; }
+.world-echoes--empty, .decision-inbox--empty { color: #998c75; font-size: 0.9rem; padding: 8px 0; }
+
+.decision-inbox h3 { margin: 16px 0 8px; font-size: 0.95rem; color: #983b2b; }
+.decision-inbox ul { list-style: none; padding: 0; margin: 0; }
+.decision-inbox li { padding: 6px 0; border-bottom: 1px dotted #ebe5d6; }
+.decision__verb { font-weight: 600; color: #983b2b; }
+.decision__summary { font-size: 0.88rem; color: #4a4035; }
+
+.bottom-panel {
+  border-top: 1px solid #e7e3d8;
+  padding: 12px 16px;
+  background: #f5f1e6;
+  font-size: 0.9rem;
+  color: #6b5e4d;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border-top: 1px solid #e7e3d8;
+  font-size: 0.82rem;
+  color: #6b5e4d;
+  background: #f8f4ea;
+}
+.status-bar__left { display: flex; align-items: center; gap: 8px; }
+.sse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #c4bcaa; transition: background 200ms;
+}
+.sse-dot--open { background: #6e9c5b; }
+.sse-dot--connecting { background: #d1b357; }
+.sse-dot--error { background: #b8453a; }
+.heartbeat { font-variant-numeric: tabular-nums; }
+.runtime-pill {
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: #ece5cf;
+  color: #4a423a;
+  font-variant-numeric: tabular-nums;
+}

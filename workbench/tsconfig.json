@@ -22,5 +22,5 @@
     }
   },
   "include": ["src", "vite.config.ts", "types.d.ts"],
-  "exclude": ["src/_legacy-server.ts", "node_modules"]
+  "exclude": ["src/_legacy-server.ts", "src/_legacy-components", "node_modules"]
 }
