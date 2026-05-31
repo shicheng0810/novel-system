@@ -61,8 +61,38 @@ export function SettingsModal() {
     });
   }, [open]);
 
+  function validate(): string | null {
+    // Client-side checks before hitting server. Returns first error or null.
+    if (form.apiKey && form.apiKey.length < 8) {
+      return "API Key 看起来过短（至少 8 字符）";
+    }
+    if (form.baseUrl && !/^https?:\/\/[^\s]+/.test(form.baseUrl)) {
+      return "Base URL 需以 http:// 或 https:// 开头";
+    }
+    if (form.embeddingApiKey && form.embeddingApiKey.length < 8) {
+      return "Embedding API Key 看起来过短（至少 8 字符）";
+    }
+    if (form.embeddingBaseUrl && !/^https?:\/\/[^\s]+/.test(form.embeddingBaseUrl)) {
+      return "Embedding Base URL 需以 http:// 或 https:// 开头";
+    }
+    if (!Number.isFinite(form.maxOutputTokens) || form.maxOutputTokens <= 0) {
+      return "Max output tokens 必须为正整数";
+    }
+    if (!Number.isFinite(form.embeddingDim) || form.embeddingDim <= 0) {
+      return "Embedding dim 必须为正整数";
+    }
+    return null;
+  }
+
   async function onSave() {
+    const validationError = validate();
+    if (validationError) {
+      setStatus("error");
+      setMessage(validationError);
+      return;
+    }
     setStatus("saving");
+    setMessage("");
     try {
       // Only include keys actually set in the form so existing fields aren't blanked.
       const payload: Record<string, unknown> = {

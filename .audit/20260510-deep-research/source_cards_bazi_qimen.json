@@ -1,0 +1,308 @@
+{
+  "schema_version": "1.0",
+  "topic": "Bazi/Qimen computational integration for narrative simulation",
+  "generated_at": "2026-05-09",
+  "retrieved_at": "2026-05-09",
+  "sources": [
+    {
+      "id": "S1",
+      "title": "6tail/lunar-javascript",
+      "url": "https://github.com/6tail/lunar-javascript",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Reference-grade Chinese lunar calendar library covering solar terms, gan-zhi, four pillars (bazi), nayin, ten gods, shensha, taboo days, lunar mansions; MIT license; v1.7.4 published May 2026 on cdnjs.",
+      "relevance": "Primary backend candidate for deterministic bazi pillar generation. Sister Python lib (lunar-python) makes it cross-stack.",
+      "reliability": "High. Most-cited Chinese lunar lib in Asian dev community; powers iztro, qfdk/qimen, ziwei-doushu engines."
+    },
+    {
+      "id": "S2",
+      "title": "yuangu/sxtwl_cpp (Shouxing astronomical calendar)",
+      "url": "https://github.com/yuangu/sxtwl_cpp",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "C++ port of Shouxing astronomical calendar with verified data BC722-1960 against Zhang Peiyu, Chen Yuan, Fang Shiming historical tables. Python/Java/Lua bindings via SWIG; long double precision.",
+      "relevance": "Authoritative gold standard for date->ganzhi conversion when historical accuracy matters; useful as ground-truth oracle for testing lunar-javascript.",
+      "reliability": "High. Calibrated against three independent historical reference works."
+    },
+    {
+      "id": "S3",
+      "title": "alvamind/bazi-calculator-by-alvamind",
+      "url": "https://github.com/alvamind/bazi-calculator-by-alvamind",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Modern TypeScript bazi calculator and analyzer for Node.js with full pillar + analysis API. npm/yarn/pnpm install.",
+      "relevance": "Higher-level wrapper alternative to building on raw lunar-javascript; designed for application embedding.",
+      "reliability": "Medium. Single-author repo; less battle-tested than lunar-javascript."
+    },
+    {
+      "id": "S4",
+      "title": "cantian-ai/bazi-mcp",
+      "url": "https://github.com/cantian-ai/bazi-mcp",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "MCP server (TypeScript, ISC, Node 22+) exposing getBaziDetail, getSolarTimes, getChineseCalendar. Originated as the OpenAI GPT Store 'Chinese Bazi Fortune Teller' product. Underlying calc lib not specified in docs; school not declared.",
+      "relevance": "Direct precedent for invoking bazi tools from an LLM agent (our exact use case). MCP transport already aligns with our Hermes stack.",
+      "reliability": "Medium-high. Actively maintained, productized; opaque on calc internals."
+    },
+    {
+      "id": "S5",
+      "title": "BaZi-Based Character Simulation Benchmark (arxiv 2510.23337)",
+      "url": "https://arxiv.org/html/2510.23337v1",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "First benchmark for bazi persona reasoning. Celebrity-50 dataset (50 people, 488 QA pairs across wealth/health/kinship/career/relationships). BaZi-LLM hybrid (rule-based mapper + DeepSeek-R1 generator + Doubao-1.5-Thinking reasoner) beats DeepSeek-v3 by 30.3%, GPT-5-mini by 62.6%. Shuffled-birthdays ablation drops accuracy by up to 45.7% confirming temporal alignment. Achieves 60% on 2024 Global Fortune-Teller Championship (3rd place tier).",
+      "relevance": "Strongest empirical evidence that symbolic-bazi-as-prior actually improves LLM persona/temporal reasoning. Directly validates our thesis.",
+      "reliability": "High for direction; medium for absolute numbers (LLM-generated narratives in dataset bias risk acknowledged by authors)."
+    },
+    {
+      "id": "S6",
+      "title": "MirrorAI-Lab/BaZi-Persona",
+      "url": "https://github.com/MirrorAI-Lab/BaZi-Persona",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Companion repo to arxiv 2510.23337 paper. Hosts Celebrity50_zh.json plus the rule-based mapping + LLM glue. 13 stars, 4 commits.",
+      "relevance": "Reference implementation for bazi-as-prior in narrative; small enough to cherry-pick the rule mapper.",
+      "reliability": "Medium. Active but young."
+    },
+    {
+      "id": "S7",
+      "title": "DestinyLinker/MingLi-Bench",
+      "url": "https://github.com/DestinyLinker/MingLi-Bench",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "MIT-licensed Python benchmark; 160 multiple-choice questions across 12 life dimensions sourced from 2022-2025 Global Fortune Teller Competition. Pre-computes bazi/ziwei via iztro, supports openai/anthropic/google/deepseek/doubao via --astro and --cot flags. Tianfu Agent reports 50% trimmed-mean accuracy vs 40% best-LLM baseline (human top-20 average 53.5%).",
+      "relevance": "Externally validated evaluation harness we can adopt verbatim for our own bazi-aware narrative branch scorer.",
+      "reliability": "High. Reproducible CLI, transparent scoring, multi-vendor."
+    },
+    {
+      "id": "S8",
+      "title": "FANzR-arch/Numerologist_skills",
+      "url": "https://github.com/FANzR-arch/Numerologist_skills",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Engineering framework specifically targeting LLM hallucinations in Chinese astrology. Three-layer architecture: (1) Python deterministic computation (ships qimen_cli.py for actual qimen 排盘), (2) reference-document rule constraints, (3) prompt-engineering for inquiry order. Covers qimen + ziwei + bazi.",
+      "relevance": "Closest to the architecture we should adopt: deterministic core + reference-rule layer + LLM expression. Validates 'don't ask the LLM to do the math' principle.",
+      "reliability": "Medium. Solo-author but architecturally aligned with industry practice."
+    },
+    {
+      "id": "S9",
+      "title": "qfdk/qimen",
+      "url": "https://github.com/qfdk/qimen",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "MIT Node.js qimen library; 转盘排法 (rotating-disk method). Built on Express + lunar-javascript. Modular files: bamen.js (eight gates), bashen.js (eight spirits), jiuxing.js (nine stars), dipan.js (earth disk). Outputs nine-palace grid with heaven disk, eight gates, nine stars, eight spirits, hidden stems.",
+      "relevance": "Drop-in qimen 转盘 backend. Modular file split makes it easy to swap school logic.",
+      "reliability": "Medium. Deterministic logic but limited automated tests visible."
+    },
+    {
+      "id": "S10",
+      "title": "dxbuyi/qimen.skill (Claude Code skill)",
+      "url": "https://github.com/dxbuyi/qimen.skill",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "MIT-licensed Claude Code skill: Python (qimen_paipan.py) does deterministic 时家奇门 转盘 排盘, emits both human nine-palace grid and JSON between markers. Claude is restricted to interpretation (用神 → 格局 → 门星神 → 生克 → conclusion). Authors flag ~1-day error margins near solar-term transitions.",
+      "relevance": "Direct architectural template for our Novel System: math in deterministic Python, narrative in LLM. Same separation-of-concerns we want.",
+      "reliability": "High for design intent; medium for calc precision (self-acknowledged 1-day boundary errors)."
+    },
+    {
+      "id": "S11",
+      "title": "oceanjustinlin/qimen",
+      "url": "https://github.com/oceanjustinlin/qimen",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "MIT JS/Vue/Python project. Two-tier AI: Gemini-Flash router classifies the question into 6 domains (财运/事业/感情/健康/交易/杂事), Gemini-Pro produces deep analysis. Daily/monthly/annual scoring 45-98 with deterministic local calc. Bazi engine handles solar/lunar/ganzhi input + true-solar-time correction + day-master strength + favorable elements + 三柱 timeline.",
+      "relevance": "Demonstrates the question-routing pattern (intent classification before symbolic interpretation) we'll need for narrative branches mapped to event-types.",
+      "reliability": "Medium. Active personal project, polished UI."
+    },
+    {
+      "id": "S12",
+      "title": "SylarLong/iztro",
+      "url": "https://github.com/SylarLong/iztro",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "MIT TypeScript ziwei doushu library, 3.7k stars, ~20KB minified. Generates 12-palace charts, four pillars, major/minor luck cycles + transits, four-transformations detection. ES6/CJS/CDN; supports zh-CN/zh-TW/en/ja/ko/vi. v2.3+ offers plugin system for school variants.",
+      "relevance": "Best-in-class ziwei backend if we add 紫微 as a parallel layer to bazi. Plugin system aligns with school-pluggable architecture.",
+      "reliability": "High. Most popular ziwei JS lib; adopted by MingLi-Bench and Renhuai123/ziwei-doushu."
+    },
+    {
+      "id": "S13",
+      "title": "masterai-top/Bazi-Ziwei-Qimen-Dunjia-Divination-System-Source-Code",
+      "url": "https://github.com/masterai-top/Bazi-Ziwei-Qimen-Dunjia-Divination-System-Source-Code",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Java commercial-grade source covering bazi + ziwei + qimen + 七政四余 + 大六壬 + 神煞. Web realtime 排盘.",
+      "relevance": "Reference implementation for cross-system normalization (multiple Chinese metaphysics schools simultaneously).",
+      "reliability": "Medium. Marketed for commercial license; quality of inner algorithms not auditable from README alone."
+    },
+    {
+      "id": "S14",
+      "title": "Zhihu - 八字流派简介 (Bazi schools overview)",
+      "url": "https://zhuanlan.zhihu.com/p/588532174",
+      "type": "blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Standard Chinese-language reference describing 子平派 (rule-based, Ten Gods, ancient corpus 渊海子平 + 三命通会), 盲派 (image-driven, event-prediction-focused, oral lineage), 新派 (modern numeric day-master strength).",
+      "relevance": "Confirms the three-school taxonomy we need to choose between. 子平派 is the canonical school for personality archetype mapping.",
+      "reliability": "Medium. Community blog; aligns with multiple independent sources."
+    },
+    {
+      "id": "S15",
+      "title": "Easy Feng Shui - Qimen 转盘 vs 飞盘",
+      "url": "https://easy-fengshui.com/chinese-metaphysics-qimen-understanding-the-core-principles-of-qimen-dunjia/",
+      "type": "blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "转盘 (rotating-disk) - symbols/gates/stars rotate as a whole, 八神, faster but ~60% accuracy claim; 飞盘 (flying-palace) - symbols arranged sequentially yang-up/yin-down, 九神, slower but ~80-90% accuracy claim. 转盘 = 后天 relationships; 飞盘 = 先天.",
+      "relevance": "Direct decision-input for which qimen variant to standardize on. Most open-source libs implement 转盘 (qfdk, dxbuyi); we should match for ecosystem alignment unless higher precision is required.",
+      "reliability": "Medium. Practitioner accuracy claims unverified; structural distinction is canonical."
+    },
+    {
+      "id": "S16",
+      "title": "Dougles Chan - The Different Schools of Qi Men Dun Jia",
+      "url": "https://dougleschan.com/qi-men-dun-jia/the-different-schools-of-qi-men-dun-jia/",
+      "type": "blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Four scope schools - 年家/月家/日家/时家奇门. Modern practice converges on 时家奇门 for resolution. 时家 splits into 拆补法 (Chai Bu) and 置闰法 (Zhi Run). Year-stem method now archaic.",
+      "relevance": "Tells us which qimen scope to use for narrative-branch decisions: 时家 (hour-level) - that maps cleanly to in-story event timing.",
+      "reliability": "Medium. Practitioner authority but commercially incentivized."
+    },
+    {
+      "id": "S17",
+      "title": "Qimen Dunjia - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Qimen_Dunjia",
+      "type": "encyclopedia",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Encyclopedic background on three奇 (乙丙丁), 六仪 (戊己庚辛壬癸), 八门 (休生伤杜景死惊开), 九星, 八神/九神, 九宫. Historically a strategic/military divination tool (Zhuge Liang associated). Used for picking action timing and direction.",
+      "relevance": "Definitive vocabulary mapping we need for symbol -> narrative-event semantics.",
+      "reliability": "High for general structure; thin on contemporary algorithmic details."
+    },
+    {
+      "id": "S18",
+      "title": "Cultist Simulator (Weather Factory / Alexis Kennedy)",
+      "url": "https://en.wikipedia.org/wiki/Alexis_Kennedy",
+      "type": "encyclopedia",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Card-based occult narrative sim (2018). Aspect cycle Lantern -> Forge -> Edge -> Winter -> Heart -> Grail -> Moth -> ... fixed compass of metaphysical principles that drive every card and ritual. 7 years of design behind a 'feels-like-magic' opacity model.",
+      "relevance": "Closest design analogue to bazi-as-prior: a small fixed set of symbolic principles + combinatorial narrative engine. Validates that opaque-by-design symbolic systems work commercially.",
+      "reliability": "High. Industry-published, well-documented."
+    },
+    {
+      "id": "S19",
+      "title": "CK3 Dev Diary #58 - Stre(ss)tching the traits",
+      "url": "https://forum.paradoxplaza.com/forum/developer-diary/ck3-dev-diary-58-stre-ss-tching-the-traits.1472092/",
+      "type": "dev_diary",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Crusader Kings 3 stress system: each character has 3 personality traits; actions inconsistent with traits add stress; 4 stress levels gate mental breaks; mental break unlocks coping-mechanism traits (mostly negative). Stress 100 -> mandatory break.",
+      "relevance": "Reference architecture for trait-driven narrative pressure. Maps cleanly onto bazi day-master + 用神/忌神: actions against the chart accumulate 'narrative dissonance' that eventually forces a beat.",
+      "reliability": "High. Official developer source."
+    },
+    {
+      "id": "S20",
+      "title": "Caves of Qud procedural mutation/history system",
+      "url": "https://www.gamedeveloper.com/design/tapping-into-the-potential-of-procedural-generation-in-caves-of-qud",
+      "type": "industry_article",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "70+ mutation traits, mutation points spent at level-up. World seeded with 5 generated Sultans whose biographies populate ruins/lore via word-of-mouth/text artifacts (Dwarf Fortress lineage). WFC (wave-function collapse) for buildings.",
+      "relevance": "Industry reference for trait-as-prior + generated history that propagates through narrative artifacts. Closest 'live-world' analogue to bazi-driven destiny propagation.",
+      "reliability": "High. Authoritative developer interview."
+    },
+    {
+      "id": "S21",
+      "title": "Disco Elysium - Thought Cabinet & 24-skill personality system",
+      "url": "https://discoelysium.fandom.com/wiki/Thought_Cabinet",
+      "type": "wiki",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "24 personified skills literally talk to player. Thoughts internalize over time and rewire dialogue options - merely accepting an unprocessed thought changes voice. Red/white skill checks gate narrative branches.",
+      "relevance": "Industry-validated proof that interior personality machinery can be made *the* gameplay surface. Shows the upper bound of where bazi-driven internal voice could go in a novel sim.",
+      "reliability": "High. Well-documented commercial title."
+    },
+    {
+      "id": "S22",
+      "title": "Sullivan - Tarot-based Narrative Generation (FDG 2018)",
+      "url": "https://dl.acm.org/doi/abs/10.1145/3235765.3235819",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Anne Sullivan (Georgia Tech) academic paper on tarot-as-narrative-generator. Cards' rich symbolism gives a corpus for high variance story synopses + tagline generation.",
+      "relevance": "Academic precedent for the exact methodological move we're proposing - using a small fixed symbolic system as a generative scaffold.",
+      "reliability": "High. Peer-reviewed FDG paper."
+    },
+    {
+      "id": "S23",
+      "title": "Mythic GME 2E + Ironsworn oracle systems",
+      "url": "https://www.wordmillgames.com/page/mythic-gme.html",
+      "type": "tabletop_rules",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Mythic GME: scene/event/list-driven solo RPG; Fate Chart for yes/no oracles; Action+Subject meaning tables. Ironsworn parallels with Action+Theme oracle and 'Tell the Truth' tables that establish world facts.",
+      "relevance": "Battle-tested scaffolds for solo narrative generation. The Action+Subject pair is a 1-symbol-pair-> sentence-fragment generator and a perfect test bed for bazi-symbol-pair -> branch-prompt mapping.",
+      "reliability": "High. Decade+ of solo-RPG community use."
+    },
+    {
+      "id": "S24",
+      "title": "玄派 / 墨星写作 / 笔灵 / 星月写作 (Chinese web-novel author tools)",
+      "url": "https://www.mx-xz.com/ai-scq/",
+      "type": "product_landing",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Major Chinese web-novel writing assistants offer character-name generators, level/realm generators, technique-name generators, item-grade generators, plot-formula generators (200+ on 笔灵). Cultivation-genre coverage strong, but no explicit bazi/qimen/命格 module documented across 玄派/墨星/笔灵/星月写作.",
+      "relevance": "Confirms our differentiation gap: nobody in the Chinese web-novel tooling market has shipped bazi-driven character/branch consistency. There is a real product opening.",
+      "reliability": "Medium-high. Multiple cross-corroborated landing pages."
+    },
+    {
+      "id": "S25",
+      "title": "凡人修仙传 (Wonglu) worldbuilding consistency analysis",
+      "url": "https://zhuanlan.zhihu.com/p/448237275",
+      "type": "blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Genre-defining cultivation novel praised specifically for logical self-consistency of cultivation/resource economy. 命格 not made an explicit mechanical layer in canonical text; consistency is enforced via author discipline rather than algorithm.",
+      "relevance": "Reference for 'good' cultivation worldbuilding without algorithmic 命格. Shows the gap: top novels imply 命格 but don't compute it; an author tool could.",
+      "reliability": "Medium. Critical fan analysis."
+    },
+    {
+      "id": "S26",
+      "title": "Cantian AI wiki - Shensha & metaphysics knowledge graph",
+      "url": "https://www.cantian.ai/wiki/shensha/shensha_intro/",
+      "type": "industry_blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Shensha (神煞) = auxiliary symbolic stars: ~20+ classical entries (天乙贵人, 文昌, 桃花, 羊刃, 劫煞, ...) used as event-flavor modifiers atop the Ten Gods structural skeleton. Cantian organizes 山命通会 + 易经 etc. into knowledge-graph form for LLM consumption.",
+      "relevance": "Provides the symbolic-modifier vocabulary we'd map to event archetypes (e.g. 桃花 -> romance branch weight, 羊刃 -> conflict-prone branch).",
+      "reliability": "Medium-high. Commercial vendor but transparently sourced classics."
+    },
+    {
+      "id": "S27",
+      "title": "真太阳时 / 早晚子时 controversies",
+      "url": "https://www.shenjige.cn/details/RD_IfLAgza.html",
+      "type": "blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Three time-systems used by practitioners: 北京时间 (mean solar), 真太阳时 (true solar), 平气定气 (constant/positioned solar terms). Boundary controversy: 23:00-24:00 is 晚子时 - mainstream switches day at 23:00 but minority view defers to midnight. Affects pillar generation directly.",
+      "relevance": "Critical configuration knob the project must make explicit (default + override). Honesty surface for the user.",
+      "reliability": "High. Multiple sources corroborate."
+    },
+    {
+      "id": "S28",
+      "title": "PMC8226147 - Universality of Science and TCM (philosophical survey)",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8226147/",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Qi/TCM-style metaphysical concepts are non-falsifiable in the Popperian sense; epistemically distinct from scientific claims. Pragmatic stance: useful instruments need not be scientifically true to be functionally indispensable.",
+      "relevance": "Provides the framing language for our honesty disclaimer: we use bazi as a *narrative consistency prior*, not a divinatory truth claim.",
+      "reliability": "High. PMC peer-reviewed."
+    },
+    {
+      "id": "S29",
+      "title": "anthonylee1994/qimen + ownthink/Qimen + Yvainovski/QiMenDunJia",
+      "url": "https://github.com/anthonylee1994/qimen",
+      "type": "github_repo",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Smaller qimen 排盘 implementations (TS/Python/Java), academic or hobby-grade. Ecosystem is fragmented; no dominant qimen lib comparable to lunar-javascript's position for bazi.",
+      "relevance": "Shows we can probably stand up our own thin qimen layer over lunar-javascript primitives; no clear must-adopt dependency.",
+      "reliability": "Medium. Heterogeneous quality."
+    },
+    {
+      "id": "S30",
+      "title": "PANGeA - Procedural AI Narrative for Turn-Based Games (arxiv 2404.19721)",
+      "url": "https://arxiv.org/pdf/2404.19721",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "LLM dynamically evaluates inputs against game rules; uses Big Five personality model to constrain NPC responses for narrative consistency. General pattern: symbolic-prior + LLM-generation > LLM-only.",
+      "relevance": "Methodological parallel to BaZi-LLM (S5): replace Big Five with bazi 十神/格局 as a richer culturally-grounded prior.",
+      "reliability": "High. arxiv preprint, methodology-focused."
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "task_id": "novel-system-rebuild-20260510",
+  "phase": "local-mvp-complete",
+  "started_at": "2026-05-10T03:55Z",
+  "completed_at": "2026-05-10T04:33Z",
+  "scope": "destructive rebuild, local-first; cloud deploy deferred",
+  "completed_phases": [
+    "runbook",
+    "safety-net (zip backup)",
+    "recon (src is browser-safe)",
+    "scaffold web/ (deps + tooling)",
+    "app shell (router, activity bar, codex rail, bottom panel, status bar, command palette)",
+    "api bridge (re-export workbench/server.ts)",
+    "writing vertical slice (lens form + compose + scenes + critic)",
+    "5 workspace stubs (simulation/runtime/world/memory/atlas)",
+    "data shape alignment for writing+world"
+  ],
+  "next_step": "user verifies in browser; if green, port server.ts into web/, then plan cloud deploy",
+  "verification": {
+    "typecheck": "pass",
+    "dev_server_boot": "ok at http://127.0.0.1:5173/",
+    "api_session": "200, returns real session JSON"
+  },
+  "artifacts": {
+    "rebuild_root": "web/",
+    "readme": "web/README.md",
+    "workbench_backup": ".audit/20260510-rebuild/workbench-snapshot-20260510.zip",
+    "checkpoints": ".audit/20260510-rebuild/checkpoints.md"
+  },
+  "open_gaps": [
+    "memory/atlas/runtime endpoint shapes need real-call validation",
+    "Monaco/CodeMirror world editor (deferred)",
+    "virtualized memory list (deferred)",
+    "tests not yet ported",
+    "cloud deploy (Cloudflare Pages + Workers) deferred"
+  ],
+  "blockers": []
+}

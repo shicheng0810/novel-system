@@ -11,6 +11,9 @@ type Command = {
   label: string;
   hint?: string;
   disabled?: boolean;
+  // P1-A · Small caps label (e.g. "捷径") to mark power-user shortcuts that
+  // duplicate primary surfaces (e.g. BottomPanel daemon-start form).
+  tag?: string;
   run: () => Promise<void> | void;
 };
 
@@ -27,12 +30,16 @@ export function CommandPalette() {
 
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
+  // P2-D · Incrementing this changes the empty-state element key, re-mounting
+  // it and re-firing the shake keyframe. Used when Enter pressed with no match.
+  const [shakeNonce, setShakeNonce] = useState(0);
 
   const commands: Command[] = useMemo(() => [
     {
       id: "load-sample",
       label: "加载示例世界",
       hint: "POST /api/world/apply-draft",
+      tag: "捷径",
       run: async () => {
         await api.applyWorldDraft({ worldId, markdown: sampleWorld });
         await refresh();
@@ -41,16 +48,19 @@ export function CommandPalette() {
     {
       id: "daemon-start-5",
       label: "启动 daemon · 5 步 · composeEvery=3",
+      tag: "捷径",
       run: () => start({ targetTicks: 5, composeEvery: 3 }),
     },
     {
       id: "daemon-start-1",
       label: "启动 daemon · 1 步（不 compose）",
+      tag: "捷径",
       run: () => start({ targetTicks: 1, composeEvery: 99 }),
     },
     {
       id: "daemon-pause",
       label: "暂停 daemon",
+      tag: "捷径",
       run: () => pause(),
     },
     {
@@ -101,6 +111,9 @@ export function CommandPalette() {
         if (cmd && !cmd.disabled) {
           void cmd.run();
           close();
+        } else if (filtered.length === 0) {
+          // P2-D · Visual no-match feedback — empty state shakes briefly.
+          setShakeNonce((n) => n + 1);
         }
       }
     }
@@ -131,7 +144,14 @@ export function CommandPalette() {
           }}
         />
         <ul className="command-palette__list">
-          {filtered.length === 0 && <li className="command-palette__empty">没有匹配命令</li>}
+          {filtered.length === 0 && (
+            <li
+              key={`empty-${shakeNonce}`}
+              className={`command-palette__empty${shakeNonce > 0 ? " command-palette__empty--shake" : ""}`}
+            >
+              没有匹配命令
+            </li>
+          )}
           {filtered.map((c, i) => (
             <li
               key={c.id}
@@ -145,6 +165,7 @@ export function CommandPalette() {
               }}
             >
               <span className="command-palette__label">{c.label}</span>
+              {c.tag && <span className="command-palette__tag">[{c.tag}]</span>}
               {c.hint && <span className="command-palette__hint">{c.hint}</span>}
             </li>
           ))}

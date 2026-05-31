@@ -12,6 +12,7 @@ import { CodexRail } from "./features/codex-rail/CodexRail";
 import { BottomPanel } from "./features/bottom-panel/BottomPanel";
 import { CommandPalette } from "./features/command-palette/CommandPalette";
 import { SettingsModal } from "./features/settings/SettingsModal";
+import { WayfinderLine } from "./features/wayfinder/WayfinderLine";
 
 export function App() {
   const connect = useEventStore((s) => s.connect);
@@ -68,6 +69,7 @@ export function App() {
     <div className="app-shell">
       <header className="app-topbar">
         <span className="brand">Novel System · v3</span>
+        <WayfinderLine />
         <div className="app-topbar__actions">
           <button type="button" className="ghost" onClick={() => togglePalette()}>⌘K 命令面板</button>
           <button type="button" className="ghost" onClick={() => toggleSettings()} title="AI 设置">⚙</button>

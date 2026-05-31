@@ -1331,29 +1331,181 @@ pre {
 .world-uploader__status--success { color: var(--mint); }
 .world-uploader__status--error { color: var(--ember); }
 
-/* ----- SixStageProgress 灯轨 ----- */
+/* ----- SixStageProgress 灯轨 · 一炷香 · 六阶灯 ----- */
+.lamp-track {
+  padding: 14px 12px 4px;
+  opacity: 0.62;
+  transition: opacity 720ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lamp-track--lit { opacity: 1; }
+
 .six-stage-progress {
   list-style: none;
-  padding: 6px 12px;
+  padding: 0 6px;
   margin: 0;
   display: flex;
-  gap: 16px;
+  align-items: flex-start;
   font-size: 13px;
-  align-items: center;
+  position: relative;
 }
-.stage-dot { display: flex; align-items: center; gap: 6px; }
+
+.stage-dot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  padding: 0 4px;
+}
+
+/* 火索 connector —— 灯与灯之间细丝相连 */
+.stage-dot:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 7px; /* 对齐 pip 中心 */
+  left: calc(50% + 10px);
+  right: calc(-50% + 10px);
+  height: 1px;
+  background: var(--line);
+  transition: background 540ms cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 0;
+}
+
+/* 前一盏已燃尽 → 火索定为古铜 */
+.stage-dot--from-done:not(:last-child)::after {
+  background: linear-gradient(90deg, var(--bronze) 0%, rgba(186, 135, 80, 0.45) 100%);
+}
+
+/* 前一盏正在燃 → 火索朱砂流动 */
+.stage-dot--from-active:not(:last-child)::after {
+  background: linear-gradient(
+    90deg,
+    var(--ember) 0%,
+    rgba(143, 59, 32, 0.42) 38%,
+    rgba(143, 59, 32, 0.12) 70%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  animation: ember-flow 2.4s linear infinite;
+}
+
+@keyframes ember-flow {
+  0% { background-position: 220% 0; }
+  100% { background-position: -120% 0; }
+}
+
 .stage-dot__pip {
-  width: 10px;
-  height: 10px;
+  position: relative;
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
   border: 1px solid var(--line-strong);
   background: transparent;
+  z-index: 1;
+  transition: background 360ms ease, border-color 360ms ease, transform 360ms ease;
 }
-.stage-dot--done .stage-dot__pip { background: var(--bronze); border-color: var(--bronze); }
-.stage-dot--active .stage-dot__pip { background: var(--ember); border-color: var(--ember); box-shadow: 0 0 0 3px var(--ember-soft); }
-.stage-dot--blocked .stage-dot__pip { background: #b8453a; border-color: #b8453a; }
-.stage-dot__label { color: var(--ink-soft); }
-.stage-dot--active .stage-dot__label, .stage-dot--blocked .stage-dot__label { color: var(--ink); font-weight: 600; }
+
+/* 已燃灯 · 古铜定光 */
+.stage-dot--done .stage-dot__pip {
+  background: var(--bronze);
+  border-color: var(--bronze);
+  box-shadow: 0 0 0 1px rgba(186, 135, 80, 0.18);
+}
+
+/* 当下灯 · 朱砂火苗 + 吐纳呼吸 */
+.stage-dot--active .stage-dot__pip {
+  background: var(--ember);
+  border-color: var(--ember);
+  animation: ember-breathe 1.8s cubic-bezier(0.4, 0, 0.4, 1) infinite;
+}
+
+/* active 灯的外晕 — 一层弥散的香雾 */
+.stage-dot--active .stage-dot__pip::before {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(143, 59, 32, 0.22) 0%, transparent 65%);
+  animation: ember-halo 2.4s cubic-bezier(0.4, 0, 0.4, 1) infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes ember-breathe {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(143, 59, 32, 0.42);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(143, 59, 32, 0.14);
+    transform: scale(1.18);
+  }
+}
+
+@keyframes ember-halo {
+  0%, 100% { opacity: 0.55; transform: scale(0.9); }
+  50%      { opacity: 0.95; transform: scale(1.22); }
+}
+
+/* 受阻灯 · 急促朱红 */
+.stage-dot--blocked .stage-dot__pip {
+  background: #b8453a;
+  border-color: #b8453a;
+  animation: ember-block 0.9s ease-in-out infinite;
+}
+@keyframes ember-block {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(184, 69, 58, 0.55); }
+  50%      { box-shadow: 0 0 0 6px rgba(184, 69, 58, 0); }
+}
+
+.stage-dot__label {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  transition: color 320ms ease, font-weight 320ms ease;
+}
+.stage-dot--done .stage-dot__label    { color: var(--bronze); }
+.stage-dot--active .stage-dot__label  { color: var(--ember); font-weight: 600; }
+.stage-dot--blocked .stage-dot__label { color: #b8453a; font-weight: 600; }
+
+/* 灯下低声 · 念白 */
+.lamp-track__whisper {
+  margin-top: 14px;
+  padding: 0 12px;
+  min-height: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Palatino Linotype", "Book Antiqua", "Noto Serif SC", serif;
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+}
+.lamp-track__cinder {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ember);
+  box-shadow: 0 0 6px rgba(143, 59, 32, 0.55);
+  animation: cinder-glow 2.2s ease-in-out infinite;
+}
+@keyframes cinder-glow {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+.lamp-track__phrase {
+  animation: phrase-in 480ms ease-out both;
+}
+.lamp-track__phrase--dim {
+  color: rgba(95, 86, 74, 0.55);
+  animation: none;
+}
+@keyframes phrase-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 0.86; transform: translateY(0); }
+}
 
 /* ----- WritingCanvas tab strip ----- */
 .canvas-dock__right { display: flex; gap: 6px; }
@@ -1542,3 +1694,607 @@ pre {
 .settings__modal input, .settings__modal select { padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; }
 .settings__status--saved { color: var(--mint); }
 .settings__status--error { color: var(--ember); }
+
+/* =============================================================================
+   Redesign · 20260517 interaction redesign
+   皮一 Wayfinder · 皮一 StatusPulse 听筒 · 皮二 CouncilCard · BottomPanel preview
+   ============================================================================= */
+
+/* ----- 引路 · Wayfinder line in topbar ----- */
+.wayfinder {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  margin: 0 24px;
+  /* Sits in the topbar gap between brand and actions */
+}
+.wayfinder__phrase {
+  font-family: "Palatino Linotype", "Book Antiqua", "Noto Serif SC", serif;
+  font-style: italic;
+  font-size: 0.86rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.78;
+  animation: wayfinder-fade-in 320ms ease-out both;
+  user-select: none;
+  /* Subtle scrim glyph before/after for visual framing — only at ≥720px */
+}
+@keyframes wayfinder-fade-in {
+  from { opacity: 0; transform: translateY(-1px); }
+  to   { opacity: 0.78; transform: translateY(0); }
+}
+.wayfinder__phrase--interactive {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin: -2px -8px;
+  transition: background 200ms ease, color 200ms ease;
+}
+.wayfinder__phrase--interactive:hover {
+  color: var(--ember);
+  background: rgba(143, 59, 32, 0.06);
+  opacity: 1;
+}
+.wayfinder__phrase--interactive:focus-visible {
+  outline: 1px solid var(--ember);
+  outline-offset: 2px;
+}
+
+/* ----- 静观 · StatusBar listening post ----- */
+.status-bar {
+  /* Override default footer to allow expansion. */
+  display: block;
+  padding: 0;
+  position: relative;
+  transition: background 240ms ease;
+}
+.status-bar__line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  height: 28px;
+  gap: 10px;
+}
+.status-bar .heartbeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin: -2px -8px;
+  transition: background 200ms ease, color 200ms ease;
+  max-width: 64ch;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.status-bar .heartbeat:hover {
+  background: rgba(143, 59, 32, 0.05);
+  color: var(--ink);
+}
+.status-bar .heartbeat:focus-visible {
+  outline: 1px solid var(--ember);
+  outline-offset: 2px;
+}
+.heartbeat__cinder {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--ember);
+  box-shadow: 0 0 4px rgba(143, 59, 32, 0.45);
+  animation: cinder-glow 2.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.heartbeat__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-style: italic;
+  font-size: 0.82rem;
+}
+
+/* Expanded listening-post mode */
+.status-bar--expanded {
+  background: var(--surface-alt);
+  border-top: 1px solid var(--line);
+}
+.status-bar__expanded {
+  padding: 8px 12px 10px;
+  cursor: pointer;
+  animation: listening-post-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes listening-post-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.status-bar__expanded-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--line);
+  margin-bottom: 6px;
+}
+.status-bar__expanded-title {
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  font-style: italic;
+  flex: 0 0 auto;
+}
+.status-bar__expanded-close {
+  flex: 1;
+  text-align: right;
+  font-size: 0.74rem;
+}
+.status-bar__expanded-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 96px;
+  overflow: hidden;
+}
+.status-bar__expanded-empty {
+  font-style: italic;
+  font-size: 0.78rem;
+}
+.status-bar__expanded-row {
+  display: grid;
+  grid-template-columns: 64px 56px 1fr;
+  gap: 10px;
+  font-size: 0.8rem;
+  align-items: baseline;
+}
+.status-bar__expanded-row--notable {
+  color: var(--ink);
+}
+.status-bar__expanded-row--decision-required {
+  color: var(--ember);
+  font-weight: 500;
+}
+.status-bar__expanded-time {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 0.72rem;
+}
+.status-bar__expanded-verb {
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  font-weight: 600;
+}
+.status-bar__expanded-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Allow the app-shell grid to flex when status-bar expands */
+.app-shell:has(.status-bar--expanded) {
+  grid-template-rows: 44px 1fr auto auto;
+}
+
+/* ----- 议事 · CouncilCard (DecisionInbox) ----- */
+/* Specificity bump (chained class) to outweigh legacy `.decision-inbox h3` (line ~1252) */
+.decision-inbox .decision-inbox__title {
+  margin: 14px 0 10px;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.decision-inbox__cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.council-card {
+  position: relative;
+  padding: 14px 16px 14px;
+  background: var(--paper-strong);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 1px 0 rgba(73, 55, 35, 0.04);
+  animation: council-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: opacity 320ms ease, transform 320ms ease;
+}
+@keyframes council-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.council-card__seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  color: var(--ember);
+  font-weight: 600;
+  font-size: 1.02rem;
+  letter-spacing: 0.18em;
+  user-select: none;
+}
+.council-card__seal-corner {
+  font-size: 0.92rem;
+  color: var(--bronze);
+  opacity: 0.7;
+  line-height: 1;
+}
+.council-card__seal-corner--tl { margin-bottom: 6px; }
+.council-card__seal-corner--br { margin-top: 6px; }
+.council-card__seal-verb {
+  padding: 0 4px;
+}
+.council-card__summary {
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.council-card__refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+.council-card__ref-k {
+  color: rgba(95, 86, 74, 0.7);
+}
+.council-card__ref-v {
+  color: var(--ink);
+}
+.council-card__hairline {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--line) 20%,
+    var(--line) 80%,
+    transparent 100%
+  );
+  margin: 0 -4px 10px;
+}
+.council-card__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.council-card__action {
+  padding: 6px 14px;
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  font-size: 0.86rem;
+  letter-spacing: 0.16em;
+  transition: background 200ms ease, color 200ms ease, transform 140ms ease;
+}
+.council-card__action--uphold {
+  /* Active stance — slightly stronger */
+  border-color: var(--ember);
+  color: var(--ember);
+}
+.council-card__action--uphold:hover {
+  background: var(--ember);
+  color: var(--paper);
+  border-color: var(--ember);
+}
+.council-card__action--return {
+  /* Passive stance — return to council */
+  color: var(--ink-soft);
+}
+.council-card__action--return:hover {
+  background: rgba(95, 86, 74, 0.08);
+  color: var(--ink);
+}
+
+/* ----- BottomPanel focus preview chip ----- */
+.bottom-panel__focus-preview {
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  font-style: italic;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  color: var(--bronze);
+  opacity: 0.85;
+}
+
+/* ----- Wayfinder responsive — collapse on narrow screens ----- */
+@media (max-width: 720px) {
+  .wayfinder { display: none; }
+}
+
+/* =============================================================================
+   Redesign · 20260518 P1+P2 batch — palette tag · presets · debounced memory
+   · nested atlas · scroll restore · error recovery · echo pill · shake · 重连
+   · skeletons
+   ============================================================================= */
+
+/* ----- P1-A · CommandPalette [捷径] tag ----- */
+.command-palette__tag {
+  color: var(--bronze);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  margin-left: 6px;
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  opacity: 0.85;
+}
+
+/* ----- P1-B · BottomPanel preset chips ----- */
+.sim-controls__row--presets {
+  gap: 6px;
+}
+.sim-controls__preset {
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  letter-spacing: 0.04em;
+  background: var(--paper-strong);
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  transition: color 200ms ease, border-color 200ms ease, background 200ms ease;
+}
+.sim-controls__preset:hover {
+  color: var(--bronze);
+  border-color: var(--bronze);
+  background: rgba(186, 135, 80, 0.08);
+  transform: none; /* override global button hover lift — chips stay flat */
+}
+
+/* ----- P1-C · MemoryTab debounce / count / paginate / kind seal ----- */
+.codex-memory__count {
+  padding: 2px 4px 6px;
+  font-style: italic;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+.codex-memory__kind {
+  display: inline-block;
+  padding: 0 6px;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: var(--bronze);
+  border: 1px solid rgba(186, 135, 80, 0.45);
+  border-radius: 2px;
+  background: rgba(186, 135, 80, 0.05);
+  margin-right: 4px;
+  text-transform: uppercase;
+}
+.codex-memory__more {
+  margin-top: 10px;
+  width: 100%;
+  padding: 6px 0;
+  font-size: 0.78rem;
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+.codex-memory__more:hover {
+  color: var(--bronze);
+  border-color: var(--bronze);
+}
+
+/* ----- P1-D · AtlasTab nested tree + breadcrumb ----- */
+.codex-atlas__tree {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  font-size: 13px;
+}
+.codex-atlas__node-wrapper {
+  list-style: none;
+}
+.codex-atlas__node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 160ms ease, color 160ms ease;
+}
+.codex-atlas__node--folder {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+.codex-atlas__node--file {
+  color: var(--ink);
+}
+.codex-atlas__node--file:hover {
+  background: rgba(143, 59, 32, 0.06);
+  color: var(--ember);
+}
+.codex-atlas__node--folder:hover {
+  background: rgba(73, 55, 35, 0.04);
+  color: var(--ink);
+}
+.codex-atlas__node.active {
+  background: var(--ember-soft);
+  color: var(--ink);
+  font-weight: 600;
+}
+.codex-atlas__disclosure {
+  display: inline-block;
+  width: 12px;
+  font-size: 0.72rem;
+  color: var(--bronze);
+  text-align: center;
+  flex-shrink: 0;
+}
+.codex-atlas__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.codex-atlas__children {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.codex-atlas__detail {
+  margin-top: 14px;
+}
+.codex-atlas__breadcrumb {
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  background: var(--surface-alt);
+  border-radius: 4px 4px 0 0;
+  border: 1px solid var(--line);
+  border-bottom: none;
+}
+.codex-atlas__crumb {
+  display: inline;
+}
+.codex-atlas__crumb-sep {
+  color: var(--bronze);
+  margin: 0 2px;
+  font-size: 0.78rem;
+}
+.codex-atlas .codex-atlas__file {
+  border-radius: 0 0 4px 4px;
+  border-top: none;
+  max-height: 360px;
+}
+
+/* ----- P1-E + P2-A · ChapterView error recovery ----- */
+.chapter-view__error {
+  padding: 16px 20px;
+  margin: 12px 0;
+  border: 1px solid var(--ember);
+  background: var(--ember-soft);
+  border-radius: var(--radius-sm);
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+}
+.chapter-view__error-title {
+  font-weight: 600;
+  color: var(--ember);
+  margin-bottom: 6px;
+}
+.chapter-view__error-detail {
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-style: normal;
+}
+.chapter-view__retry {
+  padding: 4px 14px;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+}
+
+/* ----- P2-B · WorldEchoes "new echo" pill ----- */
+.world-echoes {
+  position: relative;
+}
+.world-echoes__pill {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  padding: 2px 10px;
+  font-size: 0.72rem;
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  letter-spacing: 0.08em;
+  color: var(--ember);
+  background: var(--paper-strong);
+  border: 1px solid var(--ember);
+  border-radius: 999px;
+  cursor: pointer;
+  animation: echo-pill-in 320ms ease-out both;
+}
+.world-echoes__pill:hover {
+  background: var(--ember);
+  color: var(--paper);
+  transform: none;
+}
+@keyframes echo-pill-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.world-echoes ul {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* ----- P2-D · CommandPalette no-match shake ----- */
+.command-palette__empty--shake {
+  animation: palette-shake 360ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  color: var(--ember);
+}
+@keyframes palette-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-3px); }
+  40%, 60% { transform: translateX(3px); }
+}
+
+/* ----- P2-E · SSE 重连 button ----- */
+.status-bar__error {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  color: var(--ember);
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  font-style: italic;
+  font-size: 0.82rem;
+}
+.status-bar__reconnect {
+  padding: 2px 10px;
+  font-size: 0.74rem;
+  font-family: "Palatino Linotype", "Noto Serif SC", serif;
+  letter-spacing: 0.1em;
+  color: var(--ember);
+  border-color: var(--ember);
+  background: var(--paper-strong);
+}
+.status-bar__reconnect:hover {
+  background: var(--ember);
+  color: var(--paper);
+  transform: none;
+}
+
+/* ----- P2-C · CodexRail loading skeletons ----- */
+.codex-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 8px;
+}
+.codex-skeleton__row {
+  height: 12px;
+  background: var(--surface-alt);
+  border-radius: 4px;
+  animation: skeleton-breathe 1.6s ease-in-out infinite;
+  width: 100%;
+}
+.codex-skeleton__row--indent {
+  margin-left: 18px;
+  width: calc(100% - 18px);
+}
+.codex-skeleton__row--short {
+  width: 40%;
+}
+@keyframes skeleton-breathe {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.78; }
+}

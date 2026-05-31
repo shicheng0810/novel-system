@@ -10,6 +10,8 @@ export function BottomPanel() {
   const toggle = useUIStore((s) => s.toggleBottomPanel);
   const status = useDaemonStore((s) => s.status);
   const decisions = useEventStore((s) => s.decisions);
+  const focusIds = useUIStore((s) => s.focusIds);
+  const parsed = useSessionStore((s) => s.parsed);
 
   const summary = status?.active
     ? `▶ 推演 · ${status.completedTicks}/${status.targetTicks}`
@@ -19,11 +21,19 @@ export function BottomPanel() {
         ? `✓ 推演 · ${status.completedTicks}/${status.targetTicks}`
         : "▢ 推演 · 0/0";
 
+  // Show a soft focus preview in the collapsed bar so users see their selection survives.
+  const focusPreview = !open && focusIds.length > 0
+    ? focusIds
+        .map((id) => parsed?.characters?.find((c) => c.id === id)?.name ?? id)
+        .join("·")
+    : null;
+
   return (
     <section className={`bottom-panel${open ? " bottom-panel--open" : ""}`}>
       <div className="bottom-panel__bar" onClick={toggle} role="button">
         <span>{summary}</span>
         <span className="muted">· ★ {decisions.length} 决策</span>
+        {focusPreview && <span className="bottom-panel__focus-preview muted">· 焦点 {focusPreview}</span>}
         <span className="bottom-panel__chevron">{open ? "▾" : "▴"}</span>
       </div>
       {open && (
@@ -43,19 +53,49 @@ function SimControls() {
   const resume = useDaemonStore((s) => s.resume);
   const status = useDaemonStore((s) => s.status);
   const busy = useDaemonStore((s) => s.busy);
+  // focusIds persisted to useUIStore — survives panel close/tab switch.
+  const focusIds = useUIStore((s) => s.focusIds);
+  const toggleFocus = useUIStore((s) => s.toggleFocusId);
 
   const [targetTicks, setTargetTicks] = useState(5);
   const [composeEvery, setComposeEvery] = useState(3);
-  const [focusIds, setFocusIds] = useState<string[]>([]);
   const [chapterGoal, setChapterGoal] = useState("推进核心冲突");
   const [sceneCount, setSceneCount] = useState(4);
 
-  function toggleFocus(id: string) {
-    setFocusIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  // P1-B · Preset chips fill the numeric inputs without auto-submitting.
+  // Click → user verifies values → presses ▶ 启动 separately.
+  function applyPreset(t: number, c: number, s: number) {
+    setTargetTicks(t);
+    setComposeEvery(c);
+    setSceneCount(s);
   }
 
   return (
     <div className="sim-controls">
+      <div className="sim-controls__row sim-controls__row--presets">
+        <span className="muted">快启：</span>
+        <button
+          type="button"
+          className="ghost sim-controls__preset"
+          onClick={() => applyPreset(5, 3, 4)}
+        >
+          5 步 · 每 3 出章
+        </button>
+        <button
+          type="button"
+          className="ghost sim-controls__preset"
+          onClick={() => applyPreset(1, 99, 4)}
+        >
+          1 步 · 不出章
+        </button>
+        <button
+          type="button"
+          className="ghost sim-controls__preset"
+          onClick={() => applyPreset(10, 3, 4)}
+        >
+          10 步 · 长跑
+        </button>
+      </div>
       <div className="sim-controls__row">
         <label>步数<input type="number" min={1} max={50} value={targetTicks} onChange={(e) => setTargetTicks(Math.max(1, Number(e.target.value)))} /></label>
         <label>composeEvery<input type="number" min={1} max={20} value={composeEvery} onChange={(e) => setComposeEvery(Math.max(1, Number(e.target.value)))} /></label>
@@ -81,15 +121,17 @@ function SimControls() {
         <button
           type="button"
           disabled={busy || status?.active || !parsed}
-          onClick={() =>
+          onClick={() => {
+            const fallbackFocus = (parsed?.characters ?? []).slice(0, 2).map((c) => c.id);
+            const effectiveFocus = focusIds.length ? focusIds : fallbackFocus;
             void start({
               targetTicks,
               composeEvery,
-              composeLens: focusIds.length
-                ? { focusCharacterIds: focusIds, chapterGoal, sceneCount }
+              composeLens: effectiveFocus.length
+                ? { focusCharacterIds: effectiveFocus, chapterGoal, sceneCount }
                 : undefined,
-            })
-          }
+            });
+          }}
         >
           ▶ 启动
         </button>

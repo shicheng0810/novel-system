@@ -12,6 +12,15 @@ npm run workbench:dev                # 打开 http://127.0.0.1:5173
 
 如果端口占用，vite 自动找下一个端口。
 
+Actor core 最小路径：
+
+```bash
+npm run check:core                   # strict TypeScript
+npm run test:core                    # core/runtime/content-pack tests
+npm run sandbox:core                 # mock LLM 30 tick 冒烟
+npm run serve:core                   # 打开 http://127.0.0.1:8990
+```
+
 ## 2. 配 AI 设置（可选）
 
 不配 API key 也能跑——所有 LLM 调用 fallback 到 MockLLMProvider（启发式输出）。配了之后：
@@ -35,6 +44,25 @@ GET `/api/settings/ai` 取回的 apiKey 始终脱敏（只回 `apiKeyMask`）。
 启动期：server `createServer()` 开 DB 后立刻 `AiSettingsStore.load()`。若行里有 `apiKey` 就实例化 `DeepSeekProvider`，否则回到 `MockLLMProvider`。embedder 同理（`embedding_api_key + embedding_base_url + embedding_model` 三项齐全才接 `HttpEmbeddingProvider`）。
 
 环境变量兜底：`DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` 在 SQLite 行为空时被读为默认值（首次部署不用先写 SQLite）。
+
+Actor core/live scripts 使用 `.env.example` 里的变量：
+
+```bash
+# 默认 mock，无需配置
+npm run live:smoke
+
+# DeepSeek 直连
+NOVEL_LIVE_LLM=deepseek DEEPSEEK_API_KEY=sk-... npm run live:chapter
+
+# Hermes over SSH
+NOVEL_LIVE_LLM=hermes \
+HERMES_SSH_KEY=/absolute/path/to/key \
+HERMES_HOST=example.com \
+HERMES_USER=ubuntu \
+npm run live:chapter
+```
+
+`.novel-output/llm-config.json` 是网页设置写入的本地 live 配置，含 key 时不要提交；它已被 `.gitignore` 忽略。
 
 ## 3. 跑端到端 demo
 
@@ -191,9 +219,30 @@ curl -X POST http://127.0.0.1:5173/api/daemon/pause
 npm test                # 全部 vitest（90+ tests）
 npm run check           # tsc --noEmit
 npm --prefix workbench run build
+npm run check:core      # actor core strict tsc
+npm run test:core       # actor core 测试
 ```
 
-## 9. 已知限制
+核心架构守卫在 `tests/core/architecture.test.ts`：`core/` 不能含具体 genre 字面量，且不能 import `packs/`。内容包隔离是这个仓库的关键约束。
+
+## 9. Actor Core / 长跑
+
+```bash
+npm run novella         # 8 章短篇，默认 mock，设置 live env 后用真实模型
+npm run longrun         # 长篇长跑，输出 .novel-output/saga
+NOVEL_VIEW=saga npm run serve:core
+```
+
+常用长跑变量：
+
+| 变量 | 作用 |
+|---|---|
+| `NOVEL_TARGET` | 目标章节数，默认 1000 |
+| `NOVEL_SECTIONS` | 每章分段数，默认 4 |
+| `NOVEL_SAGA_DIR` | `.novel-output/` 下的世界目录，默认 `saga` |
+| `NOVEL_PACK` | 内容包选择，默认由 `app/pack-select.ts` 决定 |
+
+## 10. 已知限制
 
 - ❌ 没有云部署 / multi-user / auth（单机工具定位）
 - ⚠️ trigram FTS5 对 <3 字查询走 LIKE 兜底
@@ -202,7 +251,7 @@ npm --prefix workbench run build
 
 每个 Phase 的实施记录在 git log 里，搜 `(Phase N)`。
 
-## 10. 编程接口
+## 11. 编程接口
 
 ```ts
 import {

@@ -18,6 +18,10 @@ type EventState = {
   bulkReplace: (events: WorldEvent[]) => void;
   connect: (options?: { worldId?: string }) => void;
   disconnect: () => void;
+  // Frontend-only optimistic dismiss of a decision.
+  // TODO: backend endpoint /api/decisions/{id}/resolve — when wired,
+  // this should POST then remove on 2xx. Until then, local-only.
+  dismissDecision: (id: string) => void;
 };
 
 let subscription: SseSubscription | null = null;
@@ -74,5 +78,10 @@ export const useEventStore = create<EventState>((set, get) => ({
     subscription?.close();
     subscription = null;
     set({ sseState: "idle" });
+  },
+
+  dismissDecision(id) {
+    // TODO: when /api/decisions/{id}/resolve exists, POST first.
+    set((state) => ({ decisions: state.decisions.filter((e) => e.id !== id) }));
   },
 }));

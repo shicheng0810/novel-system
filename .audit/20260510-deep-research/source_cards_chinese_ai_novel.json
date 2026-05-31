@@ -1,0 +1,286 @@
+{
+  "research_id": "chinese_ai_novel_ecosystem_2026-05-10",
+  "retrieved_at": "2026-05-10",
+  "language_scope": "Chinese-language sources, output English with key Chinese terms preserved",
+  "source_cards": [
+    {
+      "id": "yuewen-miaobi-01",
+      "title": "阅文作家助手 / 阅文妙笔大模型 (Yuewen Group official portal)",
+      "url": "https://write.qq.com/",
+      "type": "platform-official",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Qidian/Yuewen's in-house authoring suite. Integrates DeepSeek-R1 + the proprietary 阅文妙笔 (Miaobi) web-novel LLM. Four flagship features: worldview design, character design, scene description, combat description. Used 100k+ times/week.",
+      "relevance": "Direct competitor / reference. Most established CN platform-native AI tool for our target audience (Qidian xianxia authors)."
+    },
+    {
+      "id": "yuewen-deepseek-deploy",
+      "title": "阅文集团率先部署DeepSeek，邀请全行业作家共同探索AI赋能创作 (BJ Daily, 2025-02-05)",
+      "url": "https://news.bjd.com.cn/2025/02/05/11057592.shtml",
+      "type": "industry-news",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Yuewen integrated independently-deployed DeepSeek-R1 into 作家助手 in Feb 2025, upgrading three modules: smart Q&A, inspiration retrieval, prose polishing. CEO position: 'AIGC will not replace authors; it is the golden finger; the protagonist remains the author.'",
+      "relevance": "Establishes that even the dominant CN platform sees AI as assistant, not generator. Validates our 'co-pilot' framing."
+    },
+    {
+      "id": "fanqie-ai-tools",
+      "title": "番茄小说基于豆包大模型推出AI辅助写作 (industry summary, 2024-2025)",
+      "url": "https://news.qq.com/rain/a/20250423A04AWC00",
+      "type": "platform-feature",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Fanqie launched AI-assist in May 2024 using ByteDance's 豆包 model: 7 features—AI 扩写, AI 改写, 自定义描写, AI 续写, AI 起名, 卡文锦囊, AI 助手. Sept 2024 'AI training clause' provoked author backlash.",
+      "relevance": "Fanqie is largest free CN reader platform; their AI policy directly drives 5,000-AI-novels-per-day flooding."
+    },
+    {
+      "id": "fanqie-5000-flood",
+      "title": "AI写作催生出番茄小说单日五千本首秀奇观 (Zhihu / multiple, March 2025)",
+      "url": "https://www.zhihu.com/question/14058612517",
+      "type": "industry-event",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Post-DeepSeek (Jan 2025), Fanqie daily new-book debuts went 400 → 5,606 (1302% YoY). Platform responded April 2025 with stricter 签约 review and refusal of repeat low-quality submitters.",
+      "relevance": "Shows the 'AI flood' market reality: low-quality, high-volume AI generators are the dominant deployment, not quality-focused systems."
+    },
+    {
+      "id": "qimao-baidu-wenxin",
+      "title": "七猫中文网 AI小助理 + 文心一言 (Qimao official notice, 2023+)",
+      "url": "https://www.qimao.com/gonggao/64c711e2727af1330b0af2e6/",
+      "type": "platform-official",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Qimao built 'AI 小助理' on Baidu 文心一言: 3 modules—码字灵感, 故事设定, 角色起名. Lighter than Yuewen Miaobi.",
+      "relevance": "Mid-tier free platform AI; thin wrapper around general LLM, not novel-tuned."
+    },
+    {
+      "id": "wawawriter",
+      "title": "蛙蛙写作 (Wawa Writer, Hangzhou Yinli Zhihang)",
+      "url": "https://wawawriter.com/app/",
+      "type": "standalone-tool",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "China's most-reviewed standalone AI novel tool. Strong on '黄金三章' opening (80% conflict-construction efficiency claim). Documented weakness: '20章后易出现战力崩坏或人设偏移'—long-novel control fails after ~20 chapters. Parent 波形智能 acquired by OPPO.",
+      "relevance": "Closest commercial peer; their 20-chapter ceiling is the EXACT problem we are trying to solve for 100k+字 cultivation."
+    },
+    {
+      "id": "biling-ai",
+      "title": "笔灵AI (Biling AI)",
+      "url": "https://ibiling.cn/novel-workbench",
+      "type": "standalone-tool",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Vertical CN web-novel tool. '新建作品'-storage of outline+chapters lets AI 续写 recall full settings, partially solving '失忆症'. Reviewed as 'most web-novel-fluent six-sided fighter'.",
+      "relevance": "Demonstrates that author-managed outline+character store is the de-facto pattern in CN tooling. Our agent+八字内核 is one layer above this."
+    },
+    {
+      "id": "xingyue-writing",
+      "title": "星月写作 (Xingyue Writing)",
+      "url": "https://xingyuexiezuo.com/",
+      "type": "standalone-tool",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Full-pipeline CN tool covering 灵感→大纲→正文→润色→发布. Claims 92% character-personality consistency vs Wawa 65% / GPT-4 40%. 18 web-novel sub-genre templates including 玄幻/仙侠. Auto-extracts '高频爆点元素' from Qidian/Fanqie/Feilu.",
+      "relevance": "Most ambitious commercial CN system. Genre-specific tuning exists but is 套路-pattern-mining, not metaphysical-system-aware."
+    },
+    {
+      "id": "mali-writing",
+      "title": "码哩写作 (Mali Writing)",
+      "url": "https://ai-bot.cn/maliwriter/",
+      "type": "standalone-tool",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "AI-assist focused on 'no obvious AI traces' through process-driven steps: 故事设置→要素→大纲→章纲→正文. Targets continuation from any chapter.",
+      "relevance": "Process-discipline approach (vs raw generation). Useful pattern for our chapter-of-the-day cadence."
+    },
+    {
+      "id": "doubao-bytedance",
+      "title": "豆包 (ByteDance Doubao)",
+      "url": "https://www.doubao.com/chat/",
+      "type": "general-llm",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Doubao model deployed across 50+ ByteDance properties incl. Fanqie. Powers Fanqie's AI generation features. General-purpose, not novel-tuned at base.",
+      "relevance": "Default model behind Fanqie AI flood. Wide reach but commodity quality."
+    },
+    {
+      "id": "deepseek-novel-writing",
+      "title": "DeepSeek 写网文 修仙 玄幻 (CSDN industry guide, 2025)",
+      "url": "https://aitool.csdn.net/67b474c9bf22ba11594ab286.html",
+      "type": "practitioner-tutorial",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "DeepSeek used by authors for: worldbuilding skeleton (3-min generation of 势力分布/修炼体系/核心矛盾), logic checking, contradiction detection. Explicit caveat: '不要用它来生成正文，它的梗都太老土了'—do not use it for prose, tropes feel dated.",
+      "relevance": "Authors converged on DeepSeek for outline/setting management, NOT for prose. Confirms scaffolding-vs-generation split."
+    },
+    {
+      "id": "jjwxc-policy",
+      "title": "晋江文学城 AI辅助写作使用规范 (Jinjiang official policy, 2025-02-18)",
+      "url": "https://news.qq.com/rain/a/20250218A07F5700",
+      "type": "platform-policy",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "First CN platform with formal AI policy. Allows 3 levels: 文字型辅助 (proofreading) / 创意型辅助-要素 (inspiration) / 创意型辅助-粗纲 (rough outline). Beyond that = 锁章/黄牌/永久禁榜. CEO: '人类作者参与AI辅助是饮鸩止渴'.",
+      "relevance": "Hard regulatory ceiling on full AI generation in literary CN. Defensive moat for human authors retains value."
+    },
+    {
+      "id": "chinese-mass-media-2025-mar",
+      "title": "国家《人工智能生成合成内容标识办法》 + 番茄小说 AI 选项 (industry consolidated)",
+      "url": "https://m.thepaper.cn/newsDetail_forward_31741852",
+      "type": "regulation",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Cyberspace Administration regulation effective Sept 1, 2025: platforms must label AI-generated content; authors must self-declare. Fanqie added 'AI使用' checkbox Sept 23, 2025.",
+      "relevance": "Compliance baseline. Our system must support author-side AI provenance declaration."
+    },
+    {
+      "id": "webnovelbench-arxiv",
+      "title": "WebNovelBench: Placing LLM Novelists on the Web Novel Distribution (Lin et al., arXiv:2505.14818)",
+      "url": "https://arxiv.org/abs/2505.14818",
+      "type": "academic-benchmark",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Benchmark over 4,000 CN web novels evaluated on 8 narrative dimensions (rhetorical technique, sensory description richness, character balance, etc.) via LLM-as-Judge + PCA percentile. Differentiates human masters / popular novels / LLM output. 24 SOTA LLMs ranked.",
+      "relevance": "Only rigorous CN web-novel eval academia I have. Useful for evaluation methodology."
+    },
+    {
+      "id": "github-yiling-novelgen",
+      "title": "YILING0013/AI_NovelGenerator (GitHub)",
+      "url": "https://github.com/YILING0013/AI_NovelGenerator",
+      "type": "oss-project",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Sequential pipeline (NOT multi-agent): setting → directory → chapter → finalize → consistency check. Vector RAG for context. 7 modules incl. state tracking, foreshadowing mgmt, semantic search, knowledge base. Author admits low maintenance bandwidth.",
+      "relevance": "Most-starred CN long-novel OSS. Shows where the OSS bar is: vector-RAG + sequential prompts. Our agent loop is a step beyond."
+    },
+    {
+      "id": "github-novelforge",
+      "title": "RhythmicWave/NovelForge (GitHub)",
+      "url": "https://github.com/RhythmicWave/NovelForge",
+      "type": "oss-project",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Electron + FastAPI + SQLModel. Card-based authoring + JSON-Schema-validated AI generation. Optional Neo4j knowledge graph for character/plot relations. AGPLv3 + commercial license.",
+      "relevance": "Closest in 'structured cards + schema' philosophy to what we'd want for 八字命格 / 修炼境界 cards. Lacks domain logic—just storage."
+    },
+    {
+      "id": "github-webnovel-writer",
+      "title": "lingfengQAQ/webnovel-writer (GitHub)",
+      "url": "https://github.com/lingfengQAQ/webnovel-writer",
+      "type": "oss-project",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Built on Claude Code. 3-layer Story System: source truth (.story-system/), runtime contracts, read-model projections (.webnovel/). MASTER_SETTING.json + index.db + summaries/ + memory_scratchpad.json + RAG with reranking. 37 genre templates, 200万字+ scale claim.",
+      "relevance": "MOST aligned to our intended architecture (Claude Code + state-as-files + agent loop). Worth deep study; possible fork target."
+    },
+    {
+      "id": "github-aigen-novel",
+      "title": "cjyyx/AI_Gen_Novel (GitHub)",
+      "url": "https://github.com/cjyyx/AI_Gen_Novel",
+      "type": "oss-project",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Multi-agent system applying cognitive writing model (planning/transformation/review) inspired by RecurrentGPT. Memory compression. Acknowledges: 'Current LLMs lack sufficient capability for long-form web novel creation.'",
+      "relevance": "Rare honest CN OSS that admits the unsolved problem. Matches our 'still mostly toys' thesis."
+    },
+    {
+      "id": "github-ainovellab",
+      "title": "xindoo/ai-novel-lab (GitHub)",
+      "url": "https://github.com/xindoo/ai-novel-lab",
+      "type": "oss-project",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Generated complete 100-chapter, 428k+字 urban-fantasy. Layered consistency: macro worldbuilding/character/structure + micro chapter outlines + scene details. AGENTS.md as 'AI constitution'. Coherence improved 73→93/100 via revision loop.",
+      "relevance": "Empirical proof that long-form CN AI novels are achievable today—but only with disciplined AGENTS.md + multi-pass revision. Genre was urban-fantasy, not xianxia."
+    },
+    {
+      "id": "github-long-novel-gpt",
+      "title": "MaoXiaoYuZ/Long-Novel-GPT (GitHub)",
+      "url": "https://github.com/MaoXiaoYuZ/Long-Novel-GPT",
+      "type": "oss-project",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Parallel-thread architecture for unlimited-chapter generation. Stages: chapter creation, plot expansion, manuscript refinement.",
+      "relevance": "Parallel-pipeline approach. Throughput-oriented; not consistency-oriented."
+    },
+    {
+      "id": "github-blinkdl-aiwriter",
+      "title": "BlinkDL/AI-Writer (GitHub)",
+      "url": "https://github.com/BlinkDL/AI-Writer",
+      "type": "oss-project",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Original RWKV-based CN-pretrained novel generator (玄幻/言情). Predates LLM era; small specialist model.",
+      "relevance": "Historical baseline. Shows CN community has been building this since GPT-2 era."
+    },
+    {
+      "id": "github-novelcreator-skill",
+      "title": "leenbj/novel-creator-skill (GitHub)",
+      "url": "https://github.com/leenbj/novel-creator-skill",
+      "type": "oss-project",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Smart-State pattern using file-level long-term memory. Targets 百万字级 sustained creation.",
+      "relevance": "Another file-as-state pattern; converges with webnovel-writer and our planned architecture."
+    },
+    {
+      "id": "huxiu-claude-code-novel",
+      "title": "实测用 Claude Code 写小说，意外发现了组队开挂模式 (Huxiu / Tencent News, Nov 2025)",
+      "url": "https://news.qq.com/rain/a/20251127A05F0800",
+      "type": "practitioner-report",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Claude Code finished '5 days of work' (vs human pro novelist 4-6 hr/day) in <20 min. Sub-agent dispatch (brainstorm / outline / chapter / polish / logic-check). 3-layer memory (short=current chapter / mid=auto-summary / long=outline+character+foreshadow). Successfully placed and recovered foreshadowing across 7 chapters / 21k 字.",
+      "relevance": "VALIDATES Claude Code subagent + file-state architecture for 长篇 CN novel work. Direct empirical evidence."
+    },
+    {
+      "id": "ifanr-jjwx-ai-policy",
+      "title": "七千万用户的网文平台，打出了「反 AI」的第一枪 (ifanr/Tencent, March 2025)",
+      "url": "https://www.ifanr.com/1615633",
+      "type": "industry-analysis",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Editor heuristics for AI detection: 'flowery vocabulary, hard transitions, unstable POV, plot-line drift, no main thread.' Identifies DeepSeek-R1 specific signature: '比喻+数字堆砌, 不必要的意象, 莫名其妙的描写'.",
+      "relevance": "Concrete editor-side AI tells we must avoid. Our system needs an 'AI 痕迹去除' pass."
+    },
+    {
+      "id": "zhihu-ai-evaluations",
+      "title": "知乎 various: AI 写小说真实评价 (multiple Zhihu zhuanlan, 2024-2025)",
+      "url": "https://www.zhihu.com/question/660447254",
+      "type": "community-sentiment",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Author consensus: AI good at outline/lore/duplicate-checking, bad at: emotional shading, '人设崩坏', POV slips, name/place inconsistency, '套路同质化', dated tropes. Only ~10% of AI-assisted submissions get 签约. AI 'predigested-meal' (预制菜) feeling pervasive.",
+      "relevance": "Author community ground truth on what works and what doesn't. Our metaphysical-grounded prose layer must beat these failure modes."
+    },
+    {
+      "id": "xianxia-tier-system-essay",
+      "title": "修仙小说设定构造（3）境界 (Zhihu zhuanlan, ongoing)",
+      "url": "https://zhuanlan.zhihu.com/p/635170006",
+      "type": "craft-essay",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Cultivation 境界 system must bind to worldview + character growth-line + 心魔. 4-5 tiers optimal (e.g. 凡人 9-tier: 炼气-筑基-结丹-元婴-化神-炼虚-合体-大乘-渡劫). Tier inflation + power-creep is the #1 failure of mediocre authors AND of AI generators.",
+      "relevance": "Domain knowledge AI lacks structurally. 境界 progression is non-trivial state machine that requires explicit modeling."
+    },
+    {
+      "id": "deepseek-suanming-tmtpost",
+      "title": "DeepSeek成「算命大师」，AI的尽头是玄学？ (TMT Post, 2025)",
+      "url": "https://www.tmtpost.com/7447436.html",
+      "type": "trend-piece",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "DeepSeek used heavily for 八字/玄学 'fortune-telling'. Reader complaint: 'inputting different birth-data still produces near-identical outputs'—LLM lacks real metaphysical engine, only does plausible-style imitation.",
+      "relevance": "CRITICAL. LLM 算命 is statistical mimicry, not 八字奇门 logic. This is exactly the void our project's 'metaphysical kernel' fills."
+    },
+    {
+      "id": "metaphysics-jianghu-tongbai",
+      "title": "中国一通百通：八字、奇门、太乙、紫薇、梅花、六爻、六壬、河洛 (Zhihu zhuanlan)",
+      "url": "https://zhuanlan.zhihu.com/p/613115287",
+      "type": "domain-reference",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Survey of major CN metaphysical systems and their interconnection (天干地支 / 阴阳五行 base). Most can be encoded as deterministic state machines.",
+      "relevance": "Our 八字奇门 internal kernel can use deterministic CN metaphysics rules — provably sound — as ground truth grounding."
+    },
+    {
+      "id": "snowflake-fiction-github",
+      "title": "hestudy/snowflake-fiction (GitHub)",
+      "url": "https://github.com/hestudy/snowflake-fiction",
+      "type": "oss-project",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Snowflake-method workflow with command tree for 短篇 1-3万字 / 长篇 10-50万字 / 巨著 100万+字. CN-localized adaptation of Randy Ingermanson method.",
+      "relevance": "Outline-discipline workflow. Compatible plug-in for our system."
+    },
+    {
+      "id": "ai-novel-writing-assistant-explosivecoder",
+      "title": "ExplosiveCoderflome/AI-Novel-Writing-Assistant (GitHub)",
+      "url": "https://github.com/ExplosiveCoderflome/AI-Novel-Writing-Assistant",
+      "type": "oss-project",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "AI-Native long-novel system: Agent + worldview + 写法引擎 + RAG + 整本生产工作流. Targets idea→full novel automation.",
+      "relevance": "Most architecturally similar to a serious 'agent platform for novelists' design. Worth code review."
+    },
+    {
+      "id": "ai-落地-苦-36kr",
+      "title": "AI落地的苦，没有人比网文圈更懂 (36Kr, 2025-03)",
+      "url": "https://36kr.com/p/3192720511193222",
+      "type": "industry-analysis",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Verdict from CN web-novel industry insiders: AI tools are commercially live but practically struggle on tone, voice, character logic. Editors can identify AI prose by signature failure modes; flooding crashed quality bar.",
+      "relevance": "Best single CN industry-side reality check on AI novel deployment."
+    }
+  ]
+}

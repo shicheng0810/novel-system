@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Novel System · 案头</title>
+<style>
+  :root{--paper:#f3ede2;--paper2:#ece4d6;--ink:#2a2620;--ink-soft:#857b6d;--line:#dcd0bd;--ember:#b2542f;--gold:#9c7a3c;--mint:#4f7a63;--serif:"Palatino","Book Antiqua","Songti SC","Noto Serif SC",serif}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--serif);line-height:1.8;background-image:radial-gradient(circle at 30% -10%,#f8f3ea,var(--paper))}
+  header{display:flex;align-items:center;gap:14px;padding:11px 22px;border-bottom:1px solid var(--line);background:rgba(243,237,226,.85)}
+  .brand{font-size:17px;letter-spacing:1px;white-space:nowrap}.brand small{color:var(--ink-soft);font-size:12px;margin-left:6px}
+  #wayfinder{flex:1;color:var(--ink-soft);font-style:italic;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:opacity .24s}
+  .tabs{display:flex;gap:4px;font-size:13px}.tabs button{font-family:inherit;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);padding:3px 14px;border-radius:3px;cursor:pointer}
+  .tabs button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  #pulse{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:var(--ink-soft)}
+  .cinder{width:7px;height:7px;border-radius:50%;background:var(--ember);box-shadow:0 0 6px var(--ember)}.cinder.beat{animation:beat .9s ease-out}
+  @keyframes beat{0%{transform:scale(1)}50%{transform:scale(1.9);opacity:.6}100%{transform:scale(1)}}
+  .lamptrack{display:flex;padding:7px 22px;border-bottom:1px solid var(--line);align-items:center;font-size:12px}
+  .lamp{display:flex;align-items:center;gap:6px;padding:2px 13px;color:var(--ink-soft);position:relative}
+  .lamp:not(:last-child)::after{content:"";position:absolute;right:0;width:1px;height:13px;background:var(--line)}
+  .lamp .dot{width:8px;height:8px;border-radius:50%;background:#cfc4b0;transition:all .5s}
+  .lamp.on .dot{background:var(--gold);box-shadow:0 0 9px var(--gold)}.lamp.on{color:var(--ink)}
+  #worldstate{display:flex;align-items:center;gap:16px;padding:6px 22px;border-bottom:1px solid var(--line);background:#f7efe0;font-size:12.5px}
+  #ws-crisis{color:var(--ember);font-weight:bold;white-space:nowrap}#ws-fac{color:var(--ink-soft);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ws-prog{color:var(--gold);white-space:nowrap}
+  #worldstate.flash{animation:wsflash 1.5s ease-out}@keyframes wsflash{0%{background:#f0c49e}100%{background:#f7efe0}}
+  .grid{display:grid;grid-template-columns:1fr 312px;height:calc(100vh - 124px)}
+  .stage{position:relative;overflow:hidden;background:radial-gradient(circle at 50% 40%,#fbf6ec,#ebe2d2)}
+  .rail{border-left:1px solid var(--line);background:var(--paper2);overflow:auto;padding:14px 16px}
+  h3{font-size:12px;letter-spacing:3px;color:var(--ink-soft);font-weight:normal;margin:4px 0 10px}
+  /* 世界画布 */
+  #svg{width:100%;height:100%;display:block}
+  .zone{fill:rgba(255,253,248,.5);stroke:var(--line);stroke-dasharray:4 4}
+  .zonelabel{fill:var(--ink-soft);font-size:13px;text-anchor:middle;letter-spacing:3px;font-family:var(--serif)}
+  .cname{fill:var(--ink);font-size:13px;text-anchor:middle;font-family:var(--serif)}
+  .ctier{fill:var(--ink-soft);font-size:10px;text-anchor:middle;font-family:var(--serif)}
+  .core{animation:breathe 3s ease-in-out infinite}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  .orb.active .core{animation:flash .7s ease-out}@keyframes flash{0%{filter:brightness(2.2)}100%{filter:none}}
+  .spark{stroke-linecap:round;animation:sparkfade 1s ease-out forwards}@keyframes sparkfade{0%{opacity:.95;stroke-width:5}100%{opacity:0;stroke-width:1}}
+  /* 手稿 */
+  #manuscript{position:absolute;inset:0;background:#fffdf8;display:none;grid-template-columns:210px 1fr}
+  #manuscript.on{display:grid}
+  #chlist{overflow:auto;border-right:1px solid var(--line);padding:8px 0;background:#f6efe2}
+  .chitem{font-size:12.5px;padding:5px 14px;cursor:pointer;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chitem:hover{background:#efe6d4;color:var(--ink)}.chitem.sel{background:#e8dcc4;color:var(--ember);border-left:2px solid var(--ember)}
+  #reader{overflow:auto;padding:22px 30px}
+  .chapter{margin:0 auto 24px;max-width:620px;border-bottom:1px dashed var(--line);padding-bottom:16px}
+  .chapter .num{font-size:11px;letter-spacing:2px;color:var(--gold)}.chapter .goal{font-size:19px;margin:3px 0 10px}
+  .chapter .text{font-size:15px;text-indent:2em;white-space:pre-wrap}
+  /* 右栏人物卡 */
+  .pc{background:#fffdf8;border:1px solid var(--line);border-radius:5px;padding:9px 11px;margin-bottom:9px}
+  .pc .top{display:flex;align-items:center;gap:7px;font-size:14px}
+  .pc .eldot{width:11px;height:11px;border-radius:50%;flex:none}
+  .pc .tier{margin-left:auto;font-size:11px;color:var(--gold)}
+  .bar{height:5px;background:#e3d8c4;border-radius:3px;margin:7px 0 4px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--mint),var(--ember));transition:width .8s}
+  .pc .bonds{font-size:11px;color:var(--ink-soft)}
+  .council{border:1px solid var(--ember);border-radius:4px;padding:9px 11px;margin-bottom:9px;background:#fbf2ec}
+  .council .sum{font-size:12.5px;margin-bottom:7px}.council button{font-family:inherit;border:1px solid var(--ink-soft);background:var(--paper);color:var(--ink);padding:2px 12px;margin-right:6px;cursor:pointer;border-radius:2px;font-size:12px}
+  .council button:hover{border-color:var(--ember);color:var(--ember)}
+  .evt{font-size:11.5px;color:var(--ink-soft);padding:1px 0}.evt.notable{color:var(--gold)}.evt.dr{color:var(--ember)}
+  .muted{color:var(--ink-soft);font-size:12px}
+  #deep{position:fixed;left:0;right:0;bottom:0;background:#26221c;color:#c9bca6;font-size:12px;transform:translateY(calc(100% - 24px));transition:transform .3s;z-index:30;font-family:ui-monospace,monospace}
+  #deep.open{transform:translateY(0)}#deephandle{height:24px;line-height:24px;text-align:center;cursor:pointer;letter-spacing:2px;background:#1e1b16;color:#9c8f78}
+  #deepbody{padding:10px 22px}#deepbody span{color:var(--gold)}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Novel System<small>· 案头</small></div>
+  <div id="wayfinder">世界一直在跑 · 章节自然产出</div>
+  <div class="tabs"><button id="tWorld" class="on" onclick="show('world')">世界</button><button id="tMs" onclick="show('ms')">手稿</button><button id="tSet" onclick="openSettings()" title="模型设置">⚙</button><button id="tWorlds" onclick="openWorlds()" title="多世界·一句话开新世界">✦</button></div>
+  <div id="pulse"><span class="cinder" id="cinder"></span><span id="pulsetext">候火</span></div>
+</header>
+<div class="lamptrack" id="lamptrack"></div>
+<div id="worldstate"><span id="ws-crisis">世界初成</span><span id="ws-fac"></span><span id="ws-prog">第 0 章</span></div>
+<div class="grid">
+  <div class="stage">
+    <svg id="svg" viewBox="0 0 900 500" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="manuscript"><div id="chlist"></div><div id="reader"><div class="muted" style="padding:20px">← 选一章阅读（可翻到第 1 章）</div></div></div>
+    <div id="zoomctl"><button onclick="zoomBy(0.8)" title="放大">＋</button><button onclick="zoomBy(1.25)" title="缩小">－</button><button onclick="resetView()" title="复位全景">⊙</button></div>
+  </div>
+  <div class="rail">
+    <h3>人 物 · 实 时</h3><div id="pcs"></div>
+    <h3 style="margin-top:20px">议 事</h3><div id="council"><div class="muted">暂无待裁</div></div>
+    <h3 style="margin-top:20px">伏 笔 · 未 收</h3><div id="foreshadow"><div class="muted">尚无</div></div>
+    <h3 style="margin-top:20px">回 响</h3><div id="echoes"></div>
+  </div>
+</div>
+<div id="deep"><div id="deephandle" onclick="document.getElementById('deep').classList.toggle('open')">▴ 工 程 内 视 ▴</div><div id="deepbody"><span id="deepstat">—</span></div></div>
+<style>
+#tSet{margin-left:4px}
+#setmask{display:none;position:fixed;inset:0;background:rgba(20,16,12,.62);z-index:50;align-items:center;justify-content:center}
+#setbox{background:#1c1813;border:1px solid #3a322a;border-radius:12px;padding:22px;width:min(440px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#setbox h3{margin:0 0 14px;color:#e8dcc8;font-weight:500}
+.setrow{display:flex;flex-direction:column;gap:5px;margin:10px 0;font-size:13px;color:#c8bca8}
+.setrow input,.setrow select{background:#0f0c09;border:1px solid #3a322a;border-radius:7px;padding:8px 10px;color:#e8dcc8;font-size:13px}
+.setbtn{background:#2a241d;border:1px solid #3a322a;color:#d8ccb8;border-radius:7px;padding:8px 16px;cursor:pointer;font-size:13px}
+.setbtn.primary{background:#7a5a2c;border-color:#9a7a3c;color:#fff}
+.fsitem{font-size:12px;padding:5px 0;border-bottom:1px solid #2a2520;line-height:1.4;color:#c0b49c}
+#mindtip{display:none;position:fixed;z-index:60;max-width:320px;background:#1c1813;border:1px solid #5a4a2c;border-radius:8px;padding:10px 13px;font-size:12px;line-height:1.65;color:#e8dcc8;box-shadow:0 10px 28px rgba(0,0,0,.55);pointer-events:none}
+#mindtip b{color:#e8c87a;font-size:13px}
+#voiceline{color:#c9a86a;font-style:italic;margin-top:5px;font-size:12px;line-height:1.5}
+.zonemeta{fill:#9a8f7a;font-size:10px;text-anchor:middle}
+.orb{cursor:pointer}.orb:hover .core{filter:brightness(1.4)}
+.zoneevent{fill:#c0512f;font-size:11px;text-anchor:middle;opacity:.88}
+.zonecirc{filter:drop-shadow(0 0 14px rgba(214,162,58,.13))}
+.halo{transform-box:fill-box;transform-origin:center;animation:breathe 3.6s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+.ambient{fill:#6a5636;font-size:11px;text-anchor:middle;paint-order:stroke;stroke:#fbf6ec;stroke-width:3.5px;opacity:0;animation:amb 4s ease-out forwards;pointer-events:none;font-style:italic}
+@keyframes amb{0%{opacity:0}14%{opacity:1}78%{opacity:.92}100%{opacity:0}}
+#zoomctl{position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;gap:6px;z-index:5}
+#zoomctl button{width:30px;height:30px;border-radius:7px;border:1px solid #cbbfa8;background:rgba(255,255,255,.72);color:#5a4a32;font-size:16px;cursor:pointer;line-height:1;font-family:var(--serif)}
+#zoomctl button:hover{background:#fff}
+#dlgbox{display:none;position:fixed;inset:0;background:rgba(20,16,12,.5);z-index:55;align-items:center;justify-content:center}
+#dlgcard{background:#1c1813;border:1px solid #4a3c28;border-radius:12px;padding:22px;width:min(460px,92vw);box-shadow:0 16px 44px rgba(0,0,0,.5)}
+#dlgtitle{color:#e8c87a;font-size:15px;margin-bottom:14px}
+#dlgbody{max-height:52vh;overflow:auto}
+.dline{color:#e8dcc8;font-size:14px;line-height:1.9;padding:2px 0}
+#worldmask{display:none;position:fixed;inset:0;background:rgba(20,16,12,.62);z-index:55;align-items:center;justify-content:center}
+#worldbox{background:#1c1813;border:1px solid #3a322a;border-radius:12px;padding:22px;width:min(480px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.5);max-height:86vh;overflow:auto}
+#worldbox h3{margin:0 0 10px;color:#e8dcc8;font-weight:500}
+#worldbox textarea{width:100%;box-sizing:border-box;background:#0f0c09;border:1px solid #3a322a;border-radius:7px;padding:8px 10px;color:#e8dcc8;font-size:13px;font-family:var(--serif);resize:vertical}
+.witem{font-size:13px;padding:6px 0;border-bottom:1px solid #2a2520}
+.witem a{color:#e8c87a;text-decoration:none}.witem a:hover{text-decoration:underline}
+</style>
+<div id="setmask" onclick="if(event.target===this)this.style.display='none'"><div id="setbox">
+  <h3>⚙ 模型设置 · 章节文笔</h3>
+  <label class="setrow">推理来源
+    <select id="setProvider">
+      <option value="deepseek">DeepSeek 直连（填 API Key）</option>
+      <option value="hermes">Hermes → DeepSeek（SSH）</option>
+      <option value="mock">Mock（本地零成本·占位文）</option>
+    </select>
+  </label>
+  <label class="setrow">DeepSeek API Key<input id="setKey" type="password" placeholder="sk-…（留空＝不改动已存的）" autocomplete="off"></label>
+  <label class="setrow">模型<input id="setModel" type="text" placeholder="deepseek-chat / deepseek-reasoner"></label>
+  <div id="setStatus" class="muted" style="font-size:12px;margin:8px 0"></div>
+  <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
+    <button onclick="document.getElementById('setmask').style.display='none'" class="setbtn">取消</button>
+    <button onclick="saveSettings()" class="setbtn primary">保存</button>
+  </div>
+  <div class="muted" style="font-size:11px;margin-top:10px;line-height:1.5">保存后长跑下一章自动热切换，无需重启。Key 只存本机 <code>.novel-output/llm-config.json</code>，网页不回传明文。</div>
+</div></div>
+<div id="mindtip"></div>
+<div id="dlgbox" onclick="if(event.target===this)closeDlg()"><div id="dlgcard"><div id="dlgtitle"></div><div id="dlgbody"></div><div style="text-align:right;margin-top:14px"><button class="setbtn" onclick="closeDlg()">掩卷</button></div></div></div>
+<div id="worldmask" onclick="if(event.target===this)this.style.display='none'"><div id="worldbox">
+  <h3>✦ 多世界 · 一句话开新世界</h3>
+  <div class="muted" style="font-size:12px;margin-bottom:8px">内核(引擎+八字+奇门)不变，仅据你的描述生成世界并起跑。</div>
+  <div id="worldlist" class="muted">加载中…</div>
+  <label class="setrow" style="margin-top:14px">世界描述（一句话）<textarea id="wPrompt" rows="2" placeholder="例：赛博朋克东京，黑客与巨企的暗战"></textarea></label>
+  <label class="setrow">英文短名（用作目录）<input id="wName" type="text" placeholder="tokyo" autocomplete="off"></label>
+  <div id="wStatus" class="muted" style="font-size:12px;margin:6px 0"></div>
+  <div style="display:flex;gap:10px;justify-content:flex-end"><button class="setbtn" onclick="document.getElementById('worldmask').style.display='none'">关闭</button><button class="setbtn primary" onclick="createWorld()">开新世界</button></div>
+  <div class="muted" style="font-size:11px;margin-top:10px;line-height:1.5">约 20-40 秒生成配置并起跑；之后在上方列表点开（各世界独立端口、独立画布）。</div>
+</div></div>
+<script>
+const $=id=>document.getElementById(id);
+const ELEM={water:"#4a86c5",fire:"#c8502f",earth:"#a8863f",metal:"#9aa0a8",wood:"#4f8a6a"};
+const FB=["#4a86c5","#c8502f","#7a5b9c","#5a8a6f","#b07a3c","#5b6f88"];
+const PHASES=[["frame","起卦"],["agents","心动"],["branches","分流"],["gate","裁决"],["commit","落定"],["director","推演"],["compose","成文"]];
+$("lamptrack").innerHTML=PHASES.map(([k,l])=>`<div class="lamp" data-k="${k}"><span class="dot"></span>${l}</div>`).join("")+'<div class="muted" style="margin-left:auto" id="tickn">第 0 推演</div>';
+let TIERS={}, tick=0, evtCount=0, posCache={}, nameToId={};
+function esc(s){return (s||"").replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]))}
+function colorOf(c){return ELEM[c.props&&c.props.element]||FB[(parseInt((c.id||"c1").slice(1))-1)%FB.length]}
+function show(v){$("tWorld").classList.toggle("on",v==="world");$("tMs").classList.toggle("on",v==="ms");$("manuscript").classList.toggle("on",v==="ms");$("svg").style.display=v==="ms"?"none":"block";if(v==="ms")loadChList()}
+async function openSettings(){try{const s=await(await fetch("/api/settings")).json();$("setProvider").value=s.provider||"mock";$("setModel").value=(s.model&&s.model!=="—")?s.model:"";$("setKey").value="";$("setStatus").textContent=`当前：${s.provider} · ${s.model} · ${s.hasKey?"已存 Key":"无 Key"}`;$("setmask").style.display="flex"}catch(e){alert("读取设置失败")}}
+async function saveSettings(){const body={provider:$("setProvider").value,model:$("setModel").value.trim()||undefined,deepseekKey:$("setKey").value.trim()||undefined};try{const r=await(await fetch("/api/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})).json();if(r.ok){$("setStatus").textContent=`已保存：${r.status.provider} · ${r.status.model} · ${r.status.hasKey?"已存 Key":"无 Key"}（下一章生效）`;setTimeout(()=>$("setmask").style.display="none",1300)}else $("setStatus").textContent="保存失败："+(r.error||"未知")}catch(e){$("setStatus").textContent="保存失败："+e}}
+
+// 地点自动环形布局(任何内容包都适用; 不再写死某 genre 的地点 ID)
+function layoutLocs(locs){const N=locs.length||1;const cx=700,cy=520,R=N<=1?0:Math.min(400,150+N*34);const m={};locs.forEach((l,i)=>{const ang=(i/N)*6.2832-1.5708;m[l.id]=N<=1?[cx,cy]:[cx+Math.round(Math.cos(ang)*R),cy+Math.round(Math.sin(ang)*R)]});return m}
+function renderWorld(snap){
+  const locs=Object.values(snap.locations||{});
+  const LOCPOS=layoutLocs(locs);
+  const chars=Object.values(snap.characters||{}).filter(c=>c.present);
+  const byLoc={}; chars.forEach(c=>{(byLoc[c.locationId]=byLoc[c.locationId]||[]).push(c)});
+  const pos={}; nameToId={};
+  const Rof=n=>n>1?52+Math.min(n,9)*12:0; // 同地人越多, 环越大(防名字/境界重叠)
+  locs.forEach(l=>{const lp=LOCPOS[l.id]||[820,540];const a=byLoc[l.id]||[];const R=Rof(a.length);
+    a.forEach((c,j)=>{const ang=(j/a.length)*6.2832-1.5708;pos[c.id]={x:R?lp[0]+Math.cos(ang)*R:lp[0],y:R?lp[1]+Math.sin(ang)*R:lp[1]};nameToId[c.name]=c.id})});
+  posCache=pos;
+  const crisis=(snap.props&&snap.props.crisis)?String(snap.props.crisis).split(" ｜ ")[0]:"";
+  let busy="",bn=-1; for(const lid in byLoc){if(byLoc[lid].length>bn){bn=byLoc[lid].length;busy=lid}}
+  let s="";
+  locs.forEach(l=>{const lp=LOCPOS[l.id]||[820,540];const yld=(l.props&&l.props.yield!=null)?l.props.yield:0.3;const cnt=(byLoc[l.id]||[]).length;const cr=Math.max(82+yld*40,Rof(cnt)+56);
+    s+=`<circle cx="${lp[0]}" cy="${lp[1]}" r="${cr}" fill="rgba(214,162,58,${0.035+yld*0.085})" stroke="rgba(190,156,94,${0.2+yld*0.5})" stroke-width="1.6" class="zonecirc"/>`;
+    s+=`<circle cx="${lp[0]}" cy="${lp[1]}" r="${cr-7}" fill="none" stroke="rgba(190,156,94,0.1)" stroke-width="1"/>`;
+    s+=`<text x="${lp[0]}" y="${lp[1]-cr+24}" class="zonelabel">${esc(l.name)}</text>`;
+    s+=`<text x="${lp[0]}" y="${lp[1]-cr+42}" class="zonemeta">灵气 ${yld} · ${cnt}修</text>`;
+    if(l.id===busy&&crisis)s+=`<text x="${lp[0]}" y="${lp[1]+cr-12}" class="zoneevent">⚡ ${esc(crisis.slice(0,18))}</text>`;});
+  for(const c of chars){const a=pos[c.id];if(!a)continue;for(const[k,v]of Object.entries(c.props||{})){if(!k.startsWith("bond:")||!v)continue;const o=k.slice(5),b=pos[o];if(!b||c.id>o)continue;s+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${v>0?"#5a8a6f":"#c0512f"}" stroke-width="${Math.min(4,Math.abs(v)*0.5+0.8)}" opacity="${Math.min(.6,Math.abs(v)*0.1+0.16)}"/>`}}
+  for(const c of chars){const p=pos[c.id];if(!p)continue;const col=colorOf(c),st=c.narrativeStress||0,ring=15+st*11;
+    s+=`<g class="orb" data-id="${c.id}"><circle cx="${p.x}" cy="${p.y}" r="${ring}" fill="none" stroke="${col}" stroke-width="1.6" opacity="${0.18+st*0.55}" class="halo"/><circle class="core" cx="${p.x}" cy="${p.y}" r="13" fill="${col}" style="transform-origin:${p.x}px ${p.y}px"/><text x="${p.x}" y="${p.y+30}" class="cname">${esc(c.name)}</text><text x="${p.x}" y="${p.y+43}" class="ctier">${esc(TIERS[c.progressionTier]||"")}</text></g>`}
+  let wl=document.getElementById("worldlayer");
+  if(!wl){$("svg").innerHTML='<g id="worldlayer"></g><g id="amblayer"></g>';wl=document.getElementById("worldlayer")}
+  wl.innerHTML=s;
+}
+function renderPCs(snap){
+  const chars=Object.values(snap.characters||{}).filter(c=>c.present);
+  $("pcs").innerHTML=chars.map(c=>{const col=colorOf(c);const st=Math.round((c.narrativeStress||0)*100);
+    const bonds=Object.entries(c.props||{}).filter(([k,v])=>k.startsWith("bond:")&&v).map(([k,v])=>`${v>0?"善":"争"}${(chars.find(x=>x.id===k.slice(5))||{}).name||k.slice(5)}`).join(" · ");
+    return `<div class="pc"><div class="top"><span class="eldot" style="background:${col}"></span><b>${esc(c.name)}</b><span class="tier">${esc(TIERS[c.progressionTier]||"")}</span></div><div class="bar"><i style="width:${st}%"></i></div><div class="bonds">张力 ${st}% ${bonds?" · "+esc(bonds):""}</div></div>`}).join("")||'<div class="muted">…</div>';
+}
+function flashLine(sum){const m=(sum||"").match(/(.+?)与(.+?)[道论交结]/);if(!m)return;const a=posCache[nameToId[m[1].slice(-2)]||nameToId[m[1]]],b=posCache[nameToId[m[2].slice(0,2)]||nameToId[m[2]]];
+  if(!a||!b)return;const ns="http://www.w3.org/2000/svg";const ln=document.createElementNS(ns,"line");ln.setAttribute("x1",a.x);ln.setAttribute("y1",a.y);ln.setAttribute("x2",b.x);ln.setAttribute("y2",b.y);ln.setAttribute("stroke","#d8a23a");ln.setAttribute("class","spark");$("svg").appendChild(ln);setTimeout(()=>ln.remove(),1000)}
+function lightLamp(k){const el=document.querySelector(`.lamp[data-k="${k}"]`);if(!el)return;el.classList.add("on");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("on"),650)}
+function pulseOrb(id){const g=document.querySelector(`.orb[data-id="${id}"]`);if(g){g.classList.add("active");setTimeout(()=>g.classList.remove("active"),700)}}
+function setWay(t){const w=$("wayfinder");w.style.opacity=0;setTimeout(()=>{w.textContent=t;w.style.opacity=1},150)}
+
+const es=new EventSource("/api/events");
+es.onmessage=m=>{const e=JSON.parse(m.data);evtCount++;if(e.tick!=null)tick=e.tick;
+  lightLamp(e.subsystem);const c=$("cinder");c.classList.remove("beat");void c.offsetWidth;c.classList.add("beat");
+  $("tickn").textContent="第 "+tick+" 推演";$("pulsetext").textContent="第 "+tick+" 推演";
+  $("deepstat").innerHTML=`tick=<span>${tick}</span> · 事件=<span>${evtCount}</span> · 角色=<span>${Object.keys((window._snap||{characters:{}}).characters).length}</span>`;
+  const d=document.createElement("div");d.className="evt"+(e.severity==="notable"?" notable":"")+(e.severity==="decision-required"?" dr":"");
+  d.innerHTML=`t${e.tick} <b>${esc(e.verb||e.kind)}</b>`+(e.summary&&e.summary!==e.kind?` ${esc(e.summary)}`:"");$("echoes").prepend(d);while($("echoes").childElementCount>40)$("echoes").lastChild.remove();
+  if(e.kind==="AgentThought"&&e.summary){}/* pulse handled via commit */
+  if(e.kind==="StageCommitted"){flashLine(e.summary);}
+  if(e.kind==="StoryEventTriggered"){const w=$("worldstate");w.classList.remove("flash");void w.offsetWidth;w.classList.add("flash");setWay("⚡ 大事降临 · "+esc(e.summary||e.verb||""));}
+  if(e.kind==="DecisionRequired"){setWay("★ 一桩待裁 · 移目右栏「议事」");refreshCouncil()}
+  else if(e.subsystem==="compose"){setWay("行文落墨 · 一章将成");if(e.kind==="ChapterInscribed"){setWay("新章已落");refreshChapters()}}
+  else if(tick>0)setWay(`世界推演中 · 第 ${tick} 拍`);
+};
+$("pulse").onclick=()=>$("deep").classList.toggle("open");
+
+let lastN=0;
+async function tickState(){try{const s=await(await fetch("/api/snapshot")).json();if(!s)return;window._snap=s;renderWorld(s);renderPCs(s);
+  const cr=(s.props&&s.props.crisis)||"";const fr=(s.props&&s.props.factionRelations)||{};
+  const fac=Object.entries(fr).flatMap(([a,m])=>Object.entries(m).filter(([b])=>a<b&&m[b]).map(([b,v])=>`${a}${v>0?"⚯":"⚔"}${b}`)).slice(0,4).join("　");
+  $("ws-crisis").textContent=cr?"⚡ "+cr.split(" ｜ ")[0]:"诸派相安";$("ws-fac").textContent=fac;
+}catch(e){}}
+let curCh="";
+async function refreshChapters(){try{const chs=await(await fetch("/api/chapters")).json();$("ws-prog").textContent="第 "+chs.length+" 章";if($("manuscript").classList.contains("on")&&chs.length!==lastN){lastN=chs.length;renderChList(chs)}}catch(e){}}
+async function loadChList(){const chs=await(await fetch("/api/chapters")).json();lastN=chs.length;$("ws-prog").textContent="第 "+chs.length+" 章";renderChList(chs);if(chs.length&&!curCh)readCh(chs[chs.length-1].id)}
+function renderChList(chs){$("chlist").innerHTML=chs.map((c,i)=>`<div class="chitem ${c.id===curCh?"sel":""}" data-id="${c.id}" onclick="readCh('${c.id}')">第${i+1}章 ${esc(c.goal)}</div>`).join("")||'<div class="muted" style="padding:10px">尚无章节</div>'}
+async function readCh(id){curCh=id;document.querySelectorAll(".chitem").forEach(x=>x.classList.toggle("sel",x.dataset.id===id));const c=await(await fetch("/api/chapter?id="+encodeURIComponent(id))).json();$("reader").innerHTML=c?`<div class="chapter"><div class="goal">${esc(c.goal)}</div><div class="text">${esc(c.text)}</div></div>`:'<div class="muted">读取失败</div>'}
+async function refreshCouncil(){const ds=await(await fetch("/api/decisions")).json();$("council").innerHTML=ds.length?ds.map(d=>`<div class="council"><div class="sum">⌜ ${esc(d.summary||"一桩待裁")} ⌟</div>${d.hint?`<div class="qm" style="font-size:11px;margin:3px 0;color:${d.omen==="凶"?"#c0512f":d.omen==="吉"?"#3f7a5a":"#8a7f6d"}">☷ ${esc(d.hint)}</div>`:""}<button onclick="rule('${d.decisionId}','accept')">依准</button><button onclick="rule('${d.decisionId}','reject')">另议</button></div>`).join(""):'<div class="muted">暂无待裁</div>'}
+async function rule(id,v){await fetch("/api/verdict",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({decisionId:id,verdict:v})});setTimeout(refreshCouncil,1400)}
+async function refreshForeshadows(){try{const fs=await(await fetch("/api/foreshadows")).json();const open=fs.filter(f=>!f.paid);$("foreshadow").innerHTML=open.length?open.map(f=>`<div class="fsitem">⟡ ${esc(f.desc)}<span class="muted">　第${f.plantedCh}埋·第${f.dueCh}收</span></div>`).join(""):'<div class="muted">暂无未收伏笔</div>'}catch(e){}}
+let MINDS={};
+function nameOf(id){const s=window._snap;return (s&&s.characters&&s.characters[id]&&s.characters[id].name)||id}
+async function refreshMinds(){try{MINDS=(await(await fetch("/api/minds")).json()).thoughts||{}}catch(e){}}
+let VB={x:50,y:120,w:1300,h:960};
+function applyVB(){$("svg").setAttribute("viewBox",`${VB.x.toFixed(1)} ${VB.y.toFixed(1)} ${VB.w.toFixed(1)} ${VB.h.toFixed(1)}`)}
+function s2w(cx,cy){const svg=$("svg"),pt=svg.createSVGPoint();pt.x=cx;pt.y=cy;const m=svg.getScreenCTM();return m?pt.matrixTransform(m.inverse()):{x:cx,y:cy}}
+function zoomBy(f,cx,cy){const r=$("svg").getBoundingClientRect();const w=s2w(cx==null?r.left+r.width/2:cx,cy==null?r.top+r.height/2:cy);const nw=Math.max(360,Math.min(2400,VB.w*f)),k=nw/VB.w;VB.x=w.x-(w.x-VB.x)*k;VB.y=w.y-(w.y-VB.y)*k;VB.w=nw;VB.h*=k;applyVB()}
+function resetView(){VB={x:50,y:120,w:1300,h:960};applyVB()}
+function setupCanvas(){const svg=$("svg");applyVB();svg.style.cursor="grab";let drag=false,last=null;
+  svg.addEventListener("pointerdown",e=>{if(e.target.closest&&e.target.closest(".orb"))return;drag=true;last={x:e.clientX,y:e.clientY};svg.style.cursor="grabbing";try{svg.setPointerCapture(e.pointerId)}catch(_){}});
+  svg.addEventListener("pointermove",e=>{const tip=$("mindtip");const g=(!drag&&e.target.closest)?e.target.closest(".orb"):null;
+    if(g){const id=g.getAttribute("data-id");
+      if(id!==_hoverId){_hoverId=id;tip.innerHTML=`<b>${esc(nameOf(id))}　所思</b><br>${esc(MINDS[id]||"凝神不语…")}<div id="voiceline">○ 心声流转…</div>`;clearInterval(_voiceTimer);clearTimeout(_voiceDelay);_voiceDelay=setTimeout(()=>{if(_hoverId!==id)return;fetchVoice(id);_voiceTimer=setInterval(()=>{if(_hoverId===id)fetchVoice(id);else clearInterval(_voiceTimer)},9000)},650)}
+      tip.style.display="block";let x=e.clientX+16;if(x+346>innerWidth)x=e.clientX-346;tip.style.left=x+"px";tip.style.top=(e.clientY+16)+"px"}
+    else if(!drag){tip.style.display="none";if(_hoverId){_hoverId=null;clearInterval(_voiceTimer);clearTimeout(_voiceDelay)}}
+    if(drag&&last){const a=s2w(last.x,last.y),b=s2w(e.clientX,e.clientY);VB.x+=a.x-b.x;VB.y+=a.y-b.y;last={x:e.clientX,y:e.clientY};applyVB()}});
+  const end=()=>{drag=false;last=null;svg.style.cursor="grab"};
+  svg.addEventListener("pointerup",end);svg.addEventListener("pointercancel",end);
+  svg.addEventListener("pointerleave",()=>{end();$("mindtip").style.display="none";_hoverId=null;clearInterval(_voiceTimer);clearTimeout(_voiceDelay)});
+  svg.addEventListener("wheel",e=>{e.preventDefault();zoomBy(e.deltaY>0?1.1:0.91,e.clientX,e.clientY)},{passive:false});
+  svg.addEventListener("click",e=>{const g=e.target.closest&&e.target.closest(".orb");if(!g){_selA=null;return}const id=g.getAttribute("data-id");if(!_selA){_selA=id;const tip=$("mindtip");tip.innerHTML=`已择「<b>${esc(nameOf(id))}</b>」· 再点一人，偷听二人此刻对话`;tip.style.display="block";tip.style.left=(e.clientX+16)+"px";tip.style.top=(e.clientY+16)+"px"}else if(_selA===id){_selA=null;$("mindtip").style.display="none"}else{eavesdrop(_selA,id);_selA=null}});}
+let _selA=null,_dlgTimer=null,_dlgKey="",_dlgAcc="",_hoverId=null,_voiceTimer=null,_voiceDelay=null;
+async function fetchVoice(id){try{const d=await(await fetch("/api/mind?id="+encodeURIComponent(id))).json();if(_hoverId!==id)return;const el=document.getElementById("voiceline");if(el&&d.voice)el.textContent="“"+d.voice+"”"}catch(e){}}
+async function dlgTurn(a,b){if(_dlgKey!==a+"|"+b)return;try{const tail=_dlgAcc.split("\n").slice(-6).join("\n");const d=await(await fetch(`/api/dialogue?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}&prev=${encodeURIComponent(tail)}`)).json();if(_dlgKey!==a+"|"+b)return;if(d.error){if(!_dlgAcc)$("dlgbody").innerHTML='<div class="muted">听不真切：'+esc(d.error)+'</div>';return}if(!_dlgAcc){$("dlgtitle").innerHTML=`偷听 · ${esc(d.a)} 与 ${esc(d.b)}（${esc(d.rel)}）　<span style="color:#8a7a55;font-size:12px">● 持续聆听中</span>`;$("dlgbody").innerHTML=""}const body=$("dlgbody");esc(d.text).split("\n").filter(x=>x.trim()).forEach(l=>{const div=document.createElement("div");div.className="dline";div.textContent=l;body.appendChild(div)});_dlgAcc+=(_dlgAcc?"\n":"")+d.text;body.scrollTop=body.scrollHeight}catch(e){}}
+async function eavesdrop(a,b){$("dlgtitle").textContent=`偷听 · ${nameOf(a)} 与 ${nameOf(b)}`;$("dlgbody").innerHTML='<div class="muted">凝神细听……（真 LLM 即兴，约数秒；之后每隔十余秒续涌）</div>';$("dlgbox").style.display="flex";_dlgKey=a+"|"+b;_dlgAcc="";if(_dlgTimer){clearInterval(_dlgTimer);_dlgTimer=null}await dlgTurn(a,b);_dlgTimer=setInterval(()=>{if($("dlgbox").style.display==="none"||_dlgKey!==a+"|"+b){clearInterval(_dlgTimer);_dlgTimer=null;return}dlgTurn(a,b)},13000)}
+function closeDlg(){$("dlgbox").style.display="none";_dlgKey="";if(_dlgTimer){clearInterval(_dlgTimer);_dlgTimer=null}}
+async function openWorlds(){$("worldmask").style.display="flex";await loadWorldList()}
+async function loadWorldList(){try{const ws=await(await fetch("/api/worlds")).json();$("worldlist").innerHTML=ws.length?ws.map(w=>`<div class="witem"><a href="${esc(w.url||('http://127.0.0.1:'+w.port))}" target="_blank">${esc(w.displayName)}</a> <span class="muted">· ${w.chapters||0}章 · 端口${w.port}</span></div>`).join(""):'<div class="muted">还没有自建世界（下面写一句开第一个）</div>'}catch(e){$("worldlist").innerHTML='<div class="muted">加载失败</div>'}}
+async function createWorld(){const prompt=$("wPrompt").value.trim(),name=$("wName").value.trim();if(!prompt){$("wStatus").textContent="请先写一句世界描述";return}$("wStatus").textContent="◇ 生成世界中…（LLM 约 20-40 秒，请稍候）";try{const r=await(await fetch("/api/worlds/create",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt,name})})).json();if(r.ok){$("wStatus").innerHTML=`✅ 「${esc(r.displayName)}」已开 → <a href="${esc(r.url)}" target="_blank" style="color:#e8c87a">${esc(r.url)}</a>（首章约 2-3 分钟后出现）`;$("wPrompt").value="";$("wName").value="";loadWorldList()}else $("wStatus").textContent="失败："+(r.error||"未知")}catch(e){$("wStatus").textContent="失败："+e}}
+let _amb=0;
+function ambientThought(){const aml=document.getElementById("amblayer");if(!aml||$("svg").style.display==="none")return;const ids=Object.keys(MINDS).filter(id=>posCache[id]);if(!ids.length)return;const id=ids[_amb++%ids.length];const p=posCache[id];const raw=MINDS[id]||"";const seg=raw.split("。").find(x=>x.includes("所求"))||raw.split("。")[1]||raw.split("。")[0]||"";const m=seg.replace(/.*所求——/,"").slice(0,16);if(!m)return;const ns="http://www.w3.org/2000/svg";const t=document.createElementNS(ns,"text");t.setAttribute("x",p.x);t.setAttribute("y",p.y-24);t.setAttribute("class","ambient");t.textContent="“"+m+"…”";aml.appendChild(t);setTimeout(()=>t.remove(),4000)}
+(async()=>{try{TIERS=(await(await fetch("/api/packmeta")).json()).tiers||{}}catch(e){}tickState();refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();setupCanvas();setInterval(tickState,1600);setInterval(()=>{refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds()},5000);setInterval(ambientThought,3200)})();
+</script>
+</body>
+</html>

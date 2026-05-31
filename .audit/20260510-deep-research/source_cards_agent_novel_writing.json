@@ -1,0 +1,507 @@
+{
+  "schema_version": "1.0",
+  "compiled_at": "2026-05-10",
+  "topic": "AI-driven, multi-step, continuous, agentic novel writing (2025-2026)",
+  "sources": [
+    {
+      "id": "S01",
+      "title": "RecurrentGPT: Interactive Generation of (Arbitrarily) Long Text",
+      "url": "https://arxiv.org/abs/2305.13304",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Simulates LSTM-style recurrence in natural language: short-term memory (10-20 sentences) plus long-term memory (paragraph summaries on disk + semantic retrieval) drives paragraph-by-paragraph generation with explicit per-step plan; treats prose generation as a step function with persistent state.",
+      "relevance": "Foundational architecture for any 'continuously running creative agent' — confirms language-as-state pattern works for long-form fiction. Directly applicable to canon-state design.",
+      "reliability": "high"
+    },
+    {
+      "id": "S02",
+      "title": "DOC: Improving Long Story Coherence With Detailed Outline Control",
+      "url": "https://arxiv.org/abs/2212.10077",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Two-stage system: a 'detailed outliner' produces a hierarchical, fine-grained plan; a 'detailed controller' constrains generation to follow that outline — yields +22.5% plot coherence, +28.2% outline relevance, +20.7% interestingness vs Re3 baseline; humans rated DOC much more controllable in interactive mode.",
+      "relevance": "Demonstrates that hierarchical, controllable outlines are the SOTA-correct alternative to direct generation. Strong precedent for 'anchors + lens + branch promotion' interaction.",
+      "reliability": "high"
+    },
+    {
+      "id": "S03",
+      "title": "Re3: Generating Longer Stories With Recursive Reprompting and Revision",
+      "url": "https://arxiv.org/abs/2210.06774",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Plan-Draft-Rewrite-Edit loop using a base LM and rerankers; +14% coherence and +20% premise-relevance over direct generation for 2k-word stories. Establishes the four-phase pipeline still inherited by 2025 multi-agent systems.",
+      "relevance": "Direct ancestor of every 'multi-agent novel writer' on GitHub. Useful as a baseline architecture to beat.",
+      "reliability": "high"
+    },
+    {
+      "id": "S04",
+      "title": "Dramatron / Co-Writing Screenplays and Theatre Scripts with Language Models",
+      "url": "https://arxiv.org/abs/2209.14958",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Hierarchical prompt-chaining (Chinchilla 70B): log line -> title/characters -> plot -> location descriptions -> dialogue. CHI'23 evaluation with 15 industry pros: 84% found it useful, 77% reported true collaboration. Open-sourced colab + repo.",
+      "relevance": "Earliest credible 'serious creative agent' from a major lab; the hierarchical decomposition is canonical. Limited to ~screenplay-length output.",
+      "reliability": "high"
+    },
+    {
+      "id": "S05",
+      "title": "PlotMachines: Outline-Conditioned Generation with Dynamic Plot State Tracking",
+      "url": "https://arxiv.org/abs/2004.14967",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "EMNLP'20: introduces dynamic plot-state tracking conditioned on outline phrases; pre-LLM era but established that explicit state is needed because GPT-2/Grover alone produce incoherent narratives.",
+      "relevance": "Historical baseline; informs why pure long-context generation is insufficient even today.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S06",
+      "title": "STORIUM: Dataset and Evaluation Platform for Machine-in-the-Loop Story Generation",
+      "url": "https://arxiv.org/abs/2010.01717",
+      "type": "academic_paper_with_dataset",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "6,000 collaborative stories (~125M tokens) with character goals/attributes annotated; live evaluation platform where authors query the model and edit suggestions, with edit-distance metrics correlating with quality.",
+      "relevance": "The only public dataset that captures multi-author, persistent-character collaboration semantics — the closest existing analogue to author + creative-agent collaboration.",
+      "reliability": "high"
+    },
+    {
+      "id": "S07",
+      "title": "TaleBrush: Sketching Stories with Generative Pretrained Language Models",
+      "url": "https://dl.acm.org/doi/abs/10.1145/3491102.3501819",
+      "type": "academic_paper_HCI",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "CHI'22: line-sketch UI (drag a curve = protagonist fortune over time) controls a GPT-based story generator. Users iteratively sketch and read; control vs novelty trade-off measured.",
+      "relevance": "Strongest existing prior art for 'author intervenes via lens, not prose' — non-typed control surface for narrative shape.",
+      "reliability": "high"
+    },
+    {
+      "id": "S08",
+      "title": "Generative Agents: Interactive Simulacra of Human Behavior (Park et al, Stanford/Google 2023)",
+      "url": "https://arxiv.org/abs/2304.03442",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "25 LLM agents in Smallville with observation/planning/reflection memory loop produce believable autonomous behavior; one seed (Valentine's Day party) propagates through the social graph over two simulated days. Open-source 'reverie' framework.",
+      "relevance": "Definitive prior art for 'always-running world simulator around the protagonist's contact graph' — directly applicable. Memory architecture (raw stream + reflections + retrieval) is canonical.",
+      "reliability": "high"
+    },
+    {
+      "id": "S09",
+      "title": "Project Sid: Many-Agent Simulations Toward AI Civilization (Altera, 2024)",
+      "url": "https://arxiv.org/abs/2411.00114",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "10-1000+ agents in Minecraft with PIANO architecture (parallel information aggregation, multiple concurrent stateless modules sharing an Agent State); emergent specialization, rule-making, religion (Pastafarianism), and cultural memes. $9M seed.",
+      "relevance": "Demonstrates scale: 1000+ persistent agents with concurrent cognition+action is feasible. Useful upper bound on what 'persistent contact graph around protagonist' could achieve.",
+      "reliability": "high"
+    },
+    {
+      "id": "S10",
+      "title": "Agents' Room: Narrative Generation through Multi-step Collaboration (DeepMind, ICLR 2025)",
+      "url": "https://arxiv.org/abs/2410.02603",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Specialized planning agents + writing agents (one per narrative section: exposition/rising/climax/falling/resolution); produces stories ~2x longer than end-to-end baselines. Introduces 'Tell Me A Story' dataset.",
+      "relevance": "DeepMind's official endorsement of multi-agent specialization for fiction; closest peer-reviewed precedent for the proposed architecture.",
+      "reliability": "high"
+    },
+    {
+      "id": "S11",
+      "title": "StoryWriter: A Multi-Agent Framework for Long Story Generation (CIKM 2025)",
+      "url": "https://arxiv.org/abs/2506.16445",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Three-agent pipeline: outline agent (event-graph with character/event-event relations), planning agent (chapter-level event scheduling), writing agent (dynamic history compression). Generated 6,000 long stories (avg 8k words) and trained StoryWriterLLAMA / StoryWriterGLM via SFT.",
+      "relevance": "Open-source, reproducible multi-agent baseline that matches several requirements (event graph, chapter planner). Strong starting point if rolling-your-own.",
+      "reliability": "high"
+    },
+    {
+      "id": "S12",
+      "title": "StoryBox: Collaborative Multi-Agent Simulation for Hybrid Bottom-Up Long-Form Story Generation (AAAI 2026)",
+      "url": "https://arxiv.org/abs/2510.11618",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Combines top-down storyteller agent with bottom-up multi-agent sandbox (World/Region/Zone/Area/Object 5-level hierarchy); produces 12k-word stories that beat all baselines on coherence, creativity, character development. Reference site: storyboxproject.github.io.",
+      "relevance": "Closest published analogue to 'always-running world sim that drafts chapters as canon stages settle' — the hybrid simulation+narration approach is exactly what this project envisions.",
+      "reliability": "high"
+    },
+    {
+      "id": "S13",
+      "title": "Long Story Generation via Knowledge Graph and Literary Theory (arXiv 2025)",
+      "url": "https://arxiv.org/abs/2508.03137",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Multi-agent generator augmented with: (a) memory storage to prevent theme drift, (b) literary-theory-derived 'story theme obstacle' framework, (c) incremental knowledge graph for similarity computation, (d) writer-reader dialogue loop for revision. Beats prior outline-based methods.",
+      "relevance": "Closest precedent for using a structured prior (here: narratology) on top of KG. The architectural slot for narratology generalizes cleanly to Bazi/Qimen as the prior.",
+      "reliability": "high"
+    },
+    {
+      "id": "S14",
+      "title": "BaZi-Based Character Simulation Benchmark (arXiv 2510.23337, 2025)",
+      "url": "https://arxiv.org/abs/2510.23337",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "First QA dataset for BaZi-based persona reasoning across wealth/health/kinship/career/relationships. Symbolic-LLM hybrid (BaZi rule analysis -> reasoning -> scenario interpretation) achieves 30.3-62.6% accuracy lift over DeepSeek-v3 / GPT-5-mini. Wrong BaZi data drops accuracy 20-45% — proving it's load-bearing, not flavor.",
+      "relevance": "Direct evidence that Bazi-as-prior measurably improves character simulation. Validates the 'first-class probabilistic prior, not flavor text' design choice.",
+      "reliability": "high"
+    },
+    {
+      "id": "S15",
+      "title": "Bazi MCP Server for LLM agents",
+      "url": "https://skywork.ai/skypage/en/bazi-ai-engineer-code/1981206600771096576",
+      "type": "industry_tool",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Deterministic Bazi calculator exposed via MCP, handling DST and True Solar Time; ensures the LLM never hallucinates the chart, only interprets it. Designed for lifestyle apps, cultural platforms, and games.",
+      "relevance": "Production-ready calculation layer; can be reused as the deterministic side of the BaZi/Qimen prior. Avoids reinventing the chart engine.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S16",
+      "title": "WebNovelBench: Placing LLM Novelists on the Web Novel Distribution",
+      "url": "https://arxiv.org/abs/2505.14818",
+      "type": "academic_paper_with_benchmark",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "4,000+ Chinese web novels; eight narrative-quality dimensions; LLM-as-Judge plus PCA aggregation. Benchmarks 24 SOTA LLMs and ranks them against human-written masterpieces, popular web novels, and slop.",
+      "relevance": "Only Chinese-web-novel-aware benchmark. Critical for evaluating xianxia output objectively.",
+      "reliability": "high"
+    },
+    {
+      "id": "S17",
+      "title": "Lost in Stories: Consistency Bugs in Long Story Generation by LLMs (2026)",
+      "url": "https://arxiv.org/abs/2603.05890",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "ConStory-Bench: 2,000 prompts, 4 task types, 5 error categories with 19 subtypes. Findings: consistency errors are most common in factual/temporal dimensions, cluster around the middle of narratives, occur in high-entropy segments, and co-occur. Releases ConStory-Checker for automated detection.",
+      "relevance": "Empirical motivation for structured canon + verification gates. Tells us where errors cluster (mid-story, high-entropy) so the canon-gate UX can prioritize those zones.",
+      "reliability": "high"
+    },
+    {
+      "id": "S18",
+      "title": "BooookScore: A Systematic Exploration of Book-Length Summarization (ICLR 2024)",
+      "url": "https://arxiv.org/abs/2310.00785",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Compares hierarchical merging vs incremental updating for >100k-token book summaries. Hierarchical merging gives more coherent summaries but loses detail; larger chunks improve incremental updates.",
+      "relevance": "Directly informs the design of the persistent canon/memory book layer for long-running creative agents.",
+      "reliability": "high"
+    },
+    {
+      "id": "S19",
+      "title": "NexusSum: Hierarchical LLM Agents for Long-Form Narrative Summarization (ACL 2025)",
+      "url": "https://arxiv.org/abs/2505.24575",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Multi-agent hierarchical chunking pipeline; up to +30% BERTScore over prior SOTA on book-length narrative summarization with scalable length control.",
+      "relevance": "State-of-the-art recipe for the 'compress canon into agent-readable form' subroutine.",
+      "reliability": "high"
+    },
+    {
+      "id": "S20",
+      "title": "Weaver: Foundation Models for Creative Writing (arXiv 2401.17268, 2024)",
+      "url": "https://arxiv.org/abs/2401.17268",
+      "type": "academic_paper_with_models",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Mini/Base/Pro/Ultra (1.8B-34B) family pre-trained on a writing-focused corpus and aligned to professional writers; Chinese:English = 4:1 in training data; Weaver Ultra beats GPT-4 and GLM-4 on writing style/creativity by their internal benchmark.",
+      "relevance": "Most credible Chinese-aware creative-writing foundation model; serious option for the prose-generation backbone.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S21",
+      "title": "Sudowrite Story Engine 3.0 (commercial)",
+      "url": "https://sudowrite.com/",
+      "type": "commercial_product",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Braindump -> Genre/Style/Characters -> Outline -> Beats -> Draft. Generates 3,000-5,000+ word chapters from beats. Per current 2025-2026 reviews: 'fundamentally a scene-level tool you stitch into a book'; not a continuous pipeline.",
+      "relevance": "Most mature commercial fiction tool. Confirms the gap: even SOTA commercial product is on-demand scene-by-scene, not continuous.",
+      "reliability": "high"
+    },
+    {
+      "id": "S22",
+      "title": "Novelcrafter (commercial; Codex + Plan + Matrix)",
+      "url": "https://www.novelcrafter.com/features",
+      "type": "commercial_product",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Codex (typed entries with aliases) attaches to scene-beat completions; matrix view sorts scenes by codex entry; Extract tool turns chat outputs into Codex/scene-summary entries. Drag-drop acts/chapters/scenes. Bring-your-own-LLM.",
+      "relevance": "Best 'world-bible aware' commercial workflow. The Codex pattern is reusable, but it's still author-typed and on-demand.",
+      "reliability": "high"
+    },
+    {
+      "id": "S23",
+      "title": "NovelAI (commercial)",
+      "url": "https://novelai.net/",
+      "type": "commercial_product",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Llama 3 Erato 70B + Lorebook (typed memory); subscription $10-25/mo; positioned for free-form prose, anime imagery, and unfiltered content. Still turn-by-turn assistant, no autonomous loop.",
+      "relevance": "Strongest 'unfiltered' option for cultivation/xianxia content; weakest on narrative structure.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S24",
+      "title": "Wavemaker (open source, free)",
+      "url": "https://wavemaker.co.uk/",
+      "type": "open_source_tool",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Free, cross-platform PWA for novel planning (snowflake method, storyboard cards, etc). Open-source v2-v4. Not AI-first.",
+      "relevance": "Reference for high-quality non-AI planning UX; useful for the planning/visualization side of the stack.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S25",
+      "title": "Plot Bunni (open source)",
+      "url": "https://plotbunni.com/",
+      "type": "open_source_tool",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Open-source novel-writing tool with AI brainstorming + drafting; works in browser on desktop/mobile.",
+      "relevance": "Lower-friction OSS alternative; not multi-agent.",
+      "reliability": "low"
+    },
+    {
+      "id": "S26",
+      "title": "Squibler (commercial)",
+      "url": "https://www.squibler.io/",
+      "type": "commercial_product",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Templates + Smart Writer + 2025 'Book Proposal' phase (genre/tone/POV/key points before drafting). Generally noted as repetitive vs Sudowrite for fiction.",
+      "relevance": "Comparison point; not state-of-the-art for fiction.",
+      "reliability": "low"
+    },
+    {
+      "id": "S27",
+      "title": "SillyTavern (open source roleplay frontend)",
+      "url": "https://docs.sillytavern.app/",
+      "type": "open_source_tool",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Character cards (.png+JSON), Lorebook, Auto-Continue (empty user message forces continuation), bring-your-own-backend. Best-in-class character-card ecosystem.",
+      "relevance": "Closest community-tested precedent for 'persistent character + lore' chat; limited as novel writer because output is dialog-flavored.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S28",
+      "title": "AutoNovel by Nous Research (open source)",
+      "url": "https://github.com/NousResearch/autonovel",
+      "type": "open_source_pipeline",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Inspired by Karpathy's autoresearch loop. Modify-evaluate-keep/discard with explicit propagation debts in state.json (lore<->outline<->chapter); LLM Judge + mechanical regex anti-slop checks. First novel produced: 'The Second Son of the House of Bells' (19 chapters, 79,456 words).",
+      "relevance": "The single most architecturally relevant open-source autonomous novel pipeline available in 2026. Anti-slop checks + propagation-debt model are reusable. English-centric.",
+      "reliability": "high"
+    },
+    {
+      "id": "S29",
+      "title": "AI_NovelGenerator (YILING0013, GitHub, Chinese)",
+      "url": "https://github.com/YILING0013/AI_NovelGenerator",
+      "type": "open_source_pipeline",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Chinese-first multi-chapter generator with explicit foreshadowing tracking (伏笔), character-arc state, semantic retrieval for long-range consistency, and contradiction-detection proofreading. Configurable LLM backend.",
+      "relevance": "Best-in-class Chinese-aware open-source novel pipeline. Treats 伏笔 as a first-class entity — directly relevant to xianxia where seeded foreshadowing is genre-critical.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S30",
+      "title": "InkOS (open source) and AuthorClaw (open source)",
+      "url": "https://github.com/Narcooo/inkos",
+      "type": "open_source_pipeline",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "InkOS: local web workbench, AI-detection, style analysis, human review gates. AuthorClaw: 'security-hardened' end-to-end fiction pipeline targeting KDP-ready manuscripts.",
+      "relevance": "Both inherit from AutoNovel-style pipelines. InkOS's 'review gate' aligns with the canon-gate UX; AuthorClaw's commercial framing is less relevant.",
+      "reliability": "low"
+    },
+    {
+      "id": "S31",
+      "title": "AI Cultivation World Simulator (Steam + GitHub)",
+      "url": "https://store.steampowered.com/app/4443180/",
+      "type": "commercial_game_open_source",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Open-world LLM-driven xianxia sim. Each NPC has its own LLM-backed personality, memory, goals; cultivation rules (spiritual roots, realms, techniques, lifespan, elixirs, spirit stones) are codified as constraints. BYOK (DeepSeek/Ollama/OpenAI compat).",
+      "relevance": "Closest existing implementation of 'LLM agents + cultivation rules as a coherent world model' — useful reference even though it's a game, not a writing tool.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S32",
+      "title": "Cultivation World Simulator (4thfever / AI-Cultivation, GitHub)",
+      "url": "https://github.com/4thfever/cultivation-world-simulator",
+      "type": "open_source_pipeline",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Open-source agentic-workflow xianxia world simulator, dynamic emergent world, configurable.",
+      "relevance": "Codebase that already encodes xianxia-specific entities (sect, lifespan, techniques) — reusable as a starter for the world-state side.",
+      "reliability": "low"
+    },
+    {
+      "id": "S33",
+      "title": "AutoGPT / BabyAGI / Auto-GPT critiques",
+      "url": "https://www.bairesdev.com/blog/the-rise-of-autonomous-agents-autogpt-agentgpt-and-babyagi/",
+      "type": "industry_analysis",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Recursive task loops 'distract' on tangents (the 'shoelace' anecdote); confused by their own loops; 'autonomy' is shallow next-token prediction in a wrapper. Fiction-specific creative writing experiments existed but produced incoherent novel-length output.",
+      "relevance": "Cautionary baseline; argues why naive AutoGPT-style loops fail for fiction without strong canon/state and review gates.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S34",
+      "title": "Character.AI: PipSqueak 2 (PSQ2) + Lorebook (April 2026)",
+      "url": "https://productleadersdayindia.org/news/2026/apr/character-ai-pipsqueak-2-memory-lorebook-infrastructure.html",
+      "type": "industry_news",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Two-layer memory: short-term context + RAG/embedding long-term store; Pinned Memories + Memory Box; PSQ2 rolled out April 2026 to c.ai+, broader May 2026. Still session-biased, prone to drift.",
+      "relevance": "Confirms 'two-layer memory' is now industry-standard, but mainstream consumer apps still under-invest in true canon. We need to do better than this for novel-grade output.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S35",
+      "title": "Gemini 3.1 Ultra (2M context) and Claude Sonnet 4.5 (1M beta)",
+      "url": "https://www.abhs.in/blog/gemini-3-1-ultra-2m-context-window-multimodal-benchmark-developer-2026",
+      "type": "industry_benchmark",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Gemini 3.1 Ultra ships 2M-token context (April 2026); Claude Sonnet 4.5 has a 1M beta via context-1m-2025-08-07 header. Both rated as best-in-class for coherent recall at 1M tokens, though structured retrieval still beats pure long-context for novel-length.",
+      "relevance": "Foundation: enough context now exists to keep an entire novel + extensive canon in-frame. This makes the proposed architecture practically feasible.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S36",
+      "title": "Learning to Reason for Long-Form Story Generation (arXiv 2503.22828, 2025)",
+      "url": "https://arxiv.org/abs/2503.22828",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Adapts RL-with-reasoning to long-form story generation despite the absence of verifiable rewards / labeled completions; first serious attempt to bring R1-style reasoning to fiction.",
+      "relevance": "Relevant to 'agent that pauses for high-risk branches' — gives a recipe for an LLM that reasons explicitly about choices.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S37",
+      "title": "Can LLMs Generate Good Stories? Insights and Challenges from a Narrative Planning Perspective (arXiv 2506.10161)",
+      "url": "https://arxiv.org/abs/2506.10161",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Benchmark using Answer-Set Programming for causal-soundness/character-intentionality/dramatic-conflict. Finding: GPT-4-tier models are causally sound at small scales but fail at planning with intentional characters and dramatic conflict; argues symbolic narrative planning still has a role.",
+      "relevance": "Empirical justification for keeping symbolic / structured planning (incl. Bazi/Qimen) alongside LLM generation. A pure-LLM pipeline cannot deliver the cultivation-novel beat structure.",
+      "reliability": "high"
+    },
+    {
+      "id": "S38",
+      "title": "SCORE: Story Coherence and Retrieval Enhancement for AI Narratives (arXiv 2503.23512)",
+      "url": "https://arxiv.org/abs/2503.23512",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Incremental knowledge-graph construction for persistent story memory; multi-LLM-backend compatible; explainable industrial-scale narrative pipeline.",
+      "relevance": "KG-as-canon design. Strong fit for xianxia where lineage/sect/realm relations are graph-structured.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S39",
+      "title": "Guiding Generative Storytelling with Knowledge Graphs (arXiv 2505.24803)",
+      "url": "https://arxiv.org/abs/2505.24803",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Editable KGs coupled with LLM generation; user-driven updates; Graph-RAG argued superior to vector RAG for long fiction continuity.",
+      "relevance": "Justification for KG backbone over pure vector RAG — directly applicable to canon design.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S40",
+      "title": "Yuewen Group / WriteWise / DeepSeek for Chinese web novels (industry)",
+      "url": "https://blog.csdn.net/yao1500/article/details/150617841",
+      "type": "industry_analysis",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Yuewen has its own web-fiction-tuned LLM. WriteWise (Himalaya) for full-process authoring. DeepSeek widely used to draft 10,000-character chapters in ~1 hour for 起点 short-form satisfying novels (爽文). 38.7% of contracted Qidian works in 2025 are fantasy/xianxia.",
+      "relevance": "The Chinese-market reality: AI-drafted xianxia is already a commercial activity. Most authors use it for 'first draft fast', not for continuous autonomy.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S41",
+      "title": "Building a 'Human-in-the-Loop' Approval Gate for Autonomous Agents",
+      "url": "https://machinelearningmastery.com/building-a-human-in-the-loop-approval-gate-for-autonomous-agents/",
+      "type": "industry_tutorial",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Approval gates as 'predefined moments' where a human validates before continuing; non-blocking parallel-feedback patterns; UX rule: don't dump raw JSON, summarize.",
+      "relevance": "Direct UX guidance for the 'pauses for author decisions on high-risk branches' design.",
+      "reliability": "low"
+    },
+    {
+      "id": "S42",
+      "title": "From Pen to Prompt: How Creative Writers Integrate AI (CHI Creativity 2025)",
+      "url": "https://arxiv.org/abs/2411.03137",
+      "type": "academic_paper_qualitative",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Interviewed 18 creative writers; they make deliberate decisions about *when* to invoke AI based on craft values (authenticity, voice). They reject 'AI does it all' workflows.",
+      "relevance": "Author psychology: even for power users, 'always-running creative agent' must respect intentional intervention. Validates the 'anchors/lens, not prose' design.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S43",
+      "title": "PersonaGym: Evaluating Persona Agents and LLMs (Findings of EMNLP 2025)",
+      "url": "https://aclanthology.org/2025.findings-emnlp.368.pdf",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Benchmark for persistent persona consistency in LLMs across multi-turn settings; LLMs exhibit measurable persona drift over long interactions.",
+      "relevance": "Quantifies the 'persona drift' problem that any always-running NPC/agent will hit. Argues for explicit persona/Bazi anchoring.",
+      "reliability": "high"
+    },
+    {
+      "id": "S44",
+      "title": "CollabStory: Multi-LLM Collaborative Story Generation and Authorship Analysis (NAACL 2025)",
+      "url": "https://pike.psu.edu/publications/naacl25-collabstory.pdf",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Up to 5 LLM agents pass a story segment-by-segment; analyses authorship attribution across segments; finds strict turn-passing hurts coherence vs shared-canon designs.",
+      "relevance": "Confirms that naive 'crowd-of-authors' degrades coherence; you need a shared canon, not just relay.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S45",
+      "title": "Multi-Agent Based Character Simulation for Story Writing (In2Writing 2025)",
+      "url": "https://aclanthology.org/2025.in2writing-1.9.pdf",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Director Agent + Character Agents respond chronologically along a scene outline. Targets 1k-2k token scene generation. Models a 'writers' room'.",
+      "relevance": "Lightweight, modular precedent for scene-level role-play that could plug into a continuous pipeline.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S46",
+      "title": "LongStory: Coherent, Complete and Length Controlled Long Story Generation (PAKDD 2024)",
+      "url": "https://arxiv.org/abs/2311.15208",
+      "type": "academic_paper",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Adds long/short-term context weight calibrator + structural-position discourse tokens; outperforms PlotMachines on coherence/completeness/relevance up to 10k tokens.",
+      "relevance": "Plug-in idea: explicit position tokens for structural state could be reused in a xianxia 'realm-stage' position embedding.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S47",
+      "title": "StoryDiffusion (NeurIPS 2024) and StoryWeaver (AAAI 2025)",
+      "url": "https://github.com/HVision-NKU/StoryDiffusion",
+      "type": "academic_papers_visual",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Consistent self-attention across long image sequences for character-consistent multi-panel/video storytelling.",
+      "relevance": "Adjacent — for cover art / illustration consistency. Not directly relevant to text canon but useful for ancillary product.",
+      "reliability": "medium"
+    },
+    {
+      "id": "S48",
+      "title": "Awesome-Story-Generation (curated GitHub list)",
+      "url": "https://github.com/yingpengma/Awesome-Story-Generation",
+      "type": "literature_index",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Most up-to-date public index of LLM-era story generation papers; useful as a watchlist.",
+      "relevance": "Single best entry point to track ongoing literature. Recommended for future review cycles.",
+      "reliability": "high"
+    },
+    {
+      "id": "S49",
+      "title": "A Survey on LLMs for Story Generation (Findings of EMNLP 2025)",
+      "url": "https://aclanthology.org/2025.findings-emnlp.750/",
+      "type": "academic_survey",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "Splits the field into (i) independent LLM generation and (ii) author-assistance / collaboration. The 'always-running creative agent' sits *between* the two and is under-explored.",
+      "relevance": "Definitive 2025 academic taxonomy. Lets us position the proposed system precisely as a hybrid that the survey identifies as a gap.",
+      "reliability": "high"
+    },
+    {
+      "id": "S50",
+      "title": "Narrative Theory-Driven LLM Methods for Automatic Story Generation and Understanding: A Survey (arXiv 2602.15851, 2026)",
+      "url": "https://arxiv.org/abs/2602.15851",
+      "type": "academic_survey",
+      "retrieved_at": "2026-05-10",
+      "key_claim": "2026 survey arguing narrative theory (Aristotelian, Freytag, Propp, etc.) is increasingly applicable to LLM extraction/classification/generation without large annotated datasets.",
+      "relevance": "Generalizes the 'theory-as-prior' design choice. Bazi/Qimen fits as a non-Western variant of narrative theory in the same architectural slot.",
+      "reliability": "medium"
+    }
+  ]
+}

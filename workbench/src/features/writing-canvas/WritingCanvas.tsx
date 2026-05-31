@@ -47,7 +47,7 @@ export function WritingCanvas() {
           className="canvas-editor"
           value={draftText}
           onChange={(e) => setDraftText(e.target.value)}
-          placeholder="续写区。输入 / 弹 inline 菜单。"
+          placeholder="续写区 · 行首输入 / 唤起菜单（推一步 · 搜记忆 · 保存段落）"
         />
       )}
     </main>

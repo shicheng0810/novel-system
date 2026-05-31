@@ -2,11 +2,24 @@ node_modules/
 coverage/
 dist/
 .DS_Store
+.env
+.env.*
+!.env.example
 .git-corrupt-backup-*/
 .claude/settings.local.json
 
 # Runtime artifacts (checkpoints, context cache, live-eval outputs)
 .novel-system/
+.novel-output/
+.playwright-mcp/
+memory/*.sqlite*
+* 2.*
+lamp-track-*.png
+
+# Local planning scratch files; public docs live in README/USAGE/docs/.
+findings.md
+progress.md
+task_plan.md
 
 # Zip dumps (root design dumps + any nested zips) — keep on disk, not in repo
 *.zip

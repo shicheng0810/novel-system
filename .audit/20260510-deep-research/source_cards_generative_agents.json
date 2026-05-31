@@ -1,0 +1,348 @@
+{
+  "retrieved_at": "2026-05-09",
+  "research_topic": "Generative agent architectures (2023-2026) for always-on personal novel simulation",
+  "source_cards": [
+    {
+      "id": "park-2023-genagents",
+      "title": "Generative Agents: Interactive Simulacra of Human Behavior",
+      "url": "https://arxiv.org/abs/2304.03442",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "authors": "Joon Sung Park, Joseph C. O'Brien, Carrie J. Cai, Meredith Ringel Morris, Percy Liang, Michael S. Bernstein",
+      "venue": "UIST '23",
+      "key_claim": "Memory stream + reflection + planning architecture produces believable human behavior in 25-agent Smallville sandbox over 2 sim-days; ablations show all three components are necessary for believability.",
+      "relevance": "Foundational reference architecture. Defines memory_stream, recency/importance/relevance retrieval, hierarchical planning, and reflection-trees that became the de-facto pattern."
+    },
+    {
+      "id": "park-2023-acm-fulltext",
+      "title": "Generative Agents: Interactive Simulacra of Human Behavior (ACM Full Text)",
+      "url": "https://dl.acm.org/doi/fullHtml/10.1145/3586183.3606763",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Agents wake, plan, converse, reflect; 25 agents lived in Smallville for 2 sim-days; Valentine party emerged as multi-day social-coordination evaluation.",
+      "relevance": "Source-of-truth canonical formulation. Limits surfaced: hallucination, memory-retrieval failures, formal-LLM tone bleed, fragile importance scoring outside everyday domains."
+    },
+    {
+      "id": "park-2023-github",
+      "title": "joonspk-research/generative_agents",
+      "url": "https://github.com/joonspk-research/generative_agents",
+      "type": "open-source-code",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Official Python implementation of Smallville, Apache 2.0 licensed.",
+      "relevance": "Reference implementation. Pyhton + PyGame, GPT-3.5/4 backed. Useful for prompts, retrieval scoring, reflection tree code."
+    },
+    {
+      "id": "park-2024-1000people",
+      "title": "Generative Agent Simulations of 1,000 People",
+      "url": "https://arxiv.org/abs/2411.10109",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "authors": "Joon Sung Park, Carolyn Q. Zou, Aaron Shaw, Benjamin Mako Hill, Michael S. Bernstein, Percy Liang, et al.",
+      "key_claim": "Agents grounded in 2-hour interview transcripts replicate held-out GSS responses at 86% of human test-retest reliability vs. 74% for demographic-only baseline.",
+      "relevance": "Park's own follow-up. Pivots from 'simulated town' to 'simulated individual': interview-grounded agent. Implies our world should ground each character via deep persona doc, not bullet-list traits."
+    },
+    {
+      "id": "stanford-genagents-repo",
+      "title": "StanfordHCI/genagents (1000-people repo)",
+      "url": "https://github.com/joonspk-research/genagents",
+      "type": "open-source-code",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Public agent bank with restricted-access individualized responses for academic users.",
+      "relevance": "Pattern for persona-anchored agents; useful prompt templates."
+    },
+    {
+      "id": "voyager-2023",
+      "title": "Voyager: An Open-Ended Embodied Agent with Large Language Models",
+      "url": "https://arxiv.org/abs/2305.16291",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "authors": "Guanzhi Wang et al. (NVIDIA, Caltech, UT Austin, Stanford)",
+      "key_claim": "Auto-curriculum + skill library (executable code) + iterative self-verification yields 3.3x more unique items, 15.3x faster tech-tree progress vs. prior SOTA in Minecraft.",
+      "relevance": "Skill-library is the procedural-memory analogue we want for characters: cooking, swordsmanship, ledger-keeping become reusable callable functions. Iterative-prompt loop is a model for 'agent retries action when feedback shows failure'."
+    },
+    {
+      "id": "voyager-website",
+      "title": "Voyager Project Page",
+      "url": "https://voyager.minedojo.org/",
+      "type": "project-page",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Lifelong learning agent with growing JS skill library, GPT-4 prompted black-box.",
+      "relevance": "Demonstrates that without fine-tuning, prompt + code-as-skill scales further than monolithic prompts."
+    },
+    {
+      "id": "altera-projectsid-2024",
+      "title": "Project Sid: Many-agent simulations toward AI civilization",
+      "url": "https://arxiv.org/abs/2411.00114",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "authors": "Altera AI (Robert G. Yang et al.)",
+      "key_claim": "PIANO architecture runs 50-1000+ agents in Minecraft. Emergent specialization, constitution amendment, religion spread (Pastafarianism), cultural-meme transmission across 500-agent run.",
+      "relevance": "Existence proof that >25-agent coherent civilization is achievable in 2024; PIANO splits cognition into ~10 parallel modules vs. Park's serial pipeline."
+    },
+    {
+      "id": "altera-projectsid-github",
+      "title": "altera-al/project-sid",
+      "url": "https://github.com/altera-al/project-sid",
+      "type": "open-source-code",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Tech report + code for PIANO architecture (~10 modules: action, planning, social-awareness, action-awareness, speak, etc.).",
+      "relevance": "Reference for parallel-module agent design with central-decision module that aggregates parallel deliberations."
+    },
+    {
+      "id": "mittech-projectsid-2024",
+      "title": "A Minecraft town of AI characters made friends, invented jobs, and spread religion (MIT Technology Review)",
+      "url": "https://www.technologyreview.com/2024/11/27/1107377/a-minecraft-town-of-ai-characters-made-friends-invented-jobs-and-spread-religion/",
+      "type": "press",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Independent reporting on Project Sid emergent behaviors at 500-agent scale; cultural-meme spread documented.",
+      "relevance": "Validates academic claims, including that scale alone unlocks new emergence."
+    },
+    {
+      "id": "agentsociety-2025",
+      "title": "AgentSociety: Large-Scale Simulation of LLM-Driven Generative Agents",
+      "url": "https://arxiv.org/abs/2502.08691",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "authors": "Tsinghua FIB Lab",
+      "key_claim": "MQTT-based distributed engine sustains >10,000 agents and 5M agent-environment interactions on cluster; >10^6 agent-steps/hour.",
+      "relevance": "Engineering reference for distributed agent simulation; uses MQTT message bus, cognitive substrate (needs/emotions/motivation). Open source on GitHub."
+    },
+    {
+      "id": "agentsociety-github",
+      "title": "tsinghua-fib-lab/AgentSociety",
+      "url": "https://github.com/tsinghua-fib-lab/AgentSociety",
+      "type": "open-source-code",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Distributed simulation runtime open-sourced.",
+      "relevance": "Heaviest production-grade agent-society code base in 2025."
+    },
+    {
+      "id": "memgpt-2023",
+      "title": "MemGPT: Towards LLMs as Operating Systems",
+      "url": "https://arxiv.org/abs/2310.08560",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "authors": "Charles Packer et al. (UC Berkeley)",
+      "key_claim": "Hierarchical OS-like memory management: main context + scratch + recall + archival; tools to swap pages in/out via function calls.",
+      "relevance": "OS-style memory tiering. Best-known production-ish pattern for indefinite conversational agents. Now Letta."
+    },
+    {
+      "id": "amem-2025",
+      "title": "A-Mem: Agentic Memory for LLM Agents (NeurIPS 2025)",
+      "url": "https://arxiv.org/abs/2502.12110",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "authors": "Wujiang Xu, Zujie Liang, Kai Mei, Hang Gao, Juntao Tan, Yongfeng Zhang",
+      "key_claim": "Zettelkasten-inspired notes with auto-linking and dynamic re-organization; outperforms vector-only baselines on six foundation models.",
+      "relevance": "More structured than memory_stream: notes have keywords, tags, links forming a knowledge graph that grows over time."
+    },
+    {
+      "id": "amem-github",
+      "title": "agiresearch/A-mem",
+      "url": "https://github.com/agiresearch/a-mem",
+      "type": "open-source-code",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Reference implementation for A-Mem.",
+      "relevance": "Direct adoption candidate for character-memory."
+    },
+    {
+      "id": "mem0-2025",
+      "title": "Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory",
+      "url": "https://arxiv.org/abs/2504.19413",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Hybrid vector+graph+kv store; +26% LLM-as-judge over OpenAI memory, -91% p95 latency, -90% token cost. Graph variant +2pp accuracy at +1.15s p95.",
+      "relevance": "Production-grade memory stack with concrete cost/latency numbers; library used by 100k+ devs."
+    },
+    {
+      "id": "mem0-github",
+      "title": "mem0ai/mem0",
+      "url": "https://github.com/mem0ai/mem0",
+      "type": "open-source-code",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Universal memory layer; Kuzu embedded graph + vector DB.",
+      "relevance": "Drop-in for character memory; Kuzu means no separate DB server."
+    },
+    {
+      "id": "mem0-blog-2026",
+      "title": "State of AI Agent Memory 2026 (Mem0)",
+      "url": "https://mem0.ai/blog/state-of-ai-agent-memory-2026",
+      "type": "industry-report",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Graph memory moved from experimental to production in 2025; recommends hybrid vector+graph for relationship-heavy domains.",
+      "relevance": "Justifies graph-memory for our character-relationship-heavy simulation."
+    },
+    {
+      "id": "memory-survey-2025",
+      "title": "Memory in the Age of AI Agents (survey, Dec 2025)",
+      "url": "https://arxiv.org/abs/2512.13564",
+      "type": "academic-survey",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Decomposes agent memory into episodic (events), semantic (de-contextualized facts), procedural (reusable skills); domain-specific weightings: game agents need episodic+procedural; assistants need semantic.",
+      "relevance": "Framework for what memory types our character agents need: episodic (their day) + semantic (world lore) + procedural (their skills/habits)."
+    },
+    {
+      "id": "reflexion-2023",
+      "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+      "url": "https://arxiv.org/abs/2303.11366",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "authors": "Noah Shinn et al.",
+      "key_claim": "Actor + Evaluator + Self-Reflection trio; verbal RL stored as text in episodic buffer improves task success across coding, decision, reasoning benchmarks.",
+      "relevance": "Reflection loop blueprint. Caveat: same model as actor and judge creates conflict-of-interest."
+    },
+    {
+      "id": "selfreflect-2024",
+      "title": "Self-Reflection in LLM Agents: Effects on Problem-Solving Performance",
+      "url": "https://arxiv.org/abs/2405.06682",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Reflection helps when grounded in external feedback (citations, code execution, search) but degenerates into 'overthinking' when ungrounded; reflection raises first-answer correctness more than self-correction.",
+      "relevance": "Tells us when reflection helps vs. hurts: ground every reflection in external memory or world-state delta, not free-form rumination."
+    },
+    {
+      "id": "reflection-langchain",
+      "title": "Reflection Agents (LangChain Blog)",
+      "url": "https://blog.langchain.com/reflection-agents/",
+      "type": "blog",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "ReAct, Reflexion, Self-Refine, ToT, CRITIC are stratified by external-feedback dependency; CRITIC + tools is most reliable for production.",
+      "relevance": "Practical taxonomy of reflection patterns + LangGraph implementations."
+    },
+    {
+      "id": "qsaf-2024",
+      "title": "QSAF: A Mitigation Framework for Cognitive Degradation in Agentic AI",
+      "url": "https://arxiv.org/pdf/2507.15330",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Defines 'cognitive degradation' as progressive breakdown of reasoning, memory retrieval, plan coherence due to token overload, planner recursion, memory starvation, context drift; 28% of ReAct paths show latent plan decay leading to goal abandonment.",
+      "relevance": "Empirical evidence that long-running agents drift; gives explicit failure modes to monitor (context-drift, planner-recursion). Argues for a watchdog process."
+    },
+    {
+      "id": "metagpt-comparison-2026",
+      "title": "CrewAI vs LangGraph vs AutoGen vs OpenAgents (2026)",
+      "url": "https://openagents.org/blog/posts/2026-02-23-open-source-ai-agent-frameworks-compared",
+      "type": "industry-comparison",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "LangGraph won enterprise share by 2026 due to graph state, audit trails, persistent checkpoints; CrewAI is fastest to ship for role-based crews; AutoGen is conversational; MetaGPT specialized to SDLC.",
+      "relevance": "Picks: LangGraph for orchestration backbone, CrewAI when narrative needs role-team metaphor, AutoGen if free-form character chat is dominant."
+    },
+    {
+      "id": "langgraph-persistence-docs",
+      "title": "LangGraph Persistence (LangChain Docs)",
+      "url": "https://docs.langchain.com/oss/python/langgraph/persistence",
+      "type": "docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "PostgresSaver checkpointer required in production for long-running graphs; survives crashes; supports interrupt/resume; pending-writes preserved per super-step.",
+      "relevance": "Critical primitive for 'tick forever' world: checkpoint each tick to Postgres so process restarts don't lose state."
+    },
+    {
+      "id": "openai-swarm-2024",
+      "title": "OpenAI Swarm (now Agents SDK)",
+      "url": "https://github.com/openai/swarm",
+      "type": "open-source-code",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Stateless handoff-based multi-agent primitive; superseded by OpenAI Agents SDK in 2025 for production.",
+      "relevance": "Lightweight pattern but stateless; not appropriate alone for 'always on' world. Useful for transient sub-agents within ticks."
+    },
+    {
+      "id": "ai-town-a16z",
+      "title": "a16z-infra/ai-town",
+      "url": "https://github.com/a16z-infra/ai-town",
+      "type": "open-source-code",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "MIT-licensed deployable starter kit for AI town; TypeScript + Convex backend; supports any OpenAI-compatible LLM and llama3+mxbai-embed-large by default.",
+      "relevance": "Closest open scaffold to what we want. TS stack matches our codebase. Convex provides the persistent simulation engine, transactions, scheduled jobs (i.e., ticks)."
+    },
+    {
+      "id": "ai-town-architecture",
+      "title": "ai-town/ARCHITECTURE.md",
+      "url": "https://github.com/a16z-infra/ai-town/blob/main/ARCHITECTURE.md",
+      "type": "docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Convex shared global state, transactions, simulation engine designed for multi-player; characters configurable in characters.ts.",
+      "relevance": "Concrete reference for tick loop, agent state machine, embedding-based memory recall."
+    },
+    {
+      "id": "sillytavern-worldinfo",
+      "title": "SillyTavern World Info docs",
+      "url": "https://docs.sillytavern.app/usage/core-concepts/worldinfo/",
+      "type": "docs",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Lorebook = keyword-triggered prompt-injection database; bound to character, persona, or chat; can carry behavioral directives, not just lore.",
+      "relevance": "Battle-tested 'world info' pattern from RP community for keeping context lean while injecting only-needed lore. Useful pattern even if we don't adopt SillyTavern proper."
+    },
+    {
+      "id": "sillytavern-memorybooks",
+      "title": "SillyTavern-MemoryBooks",
+      "url": "https://github.com/aikohanasaki/SillyTavern-MemoryBooks",
+      "type": "open-source-code",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Auto-summarizes chats into structured lorebook entries.",
+      "relevance": "Pattern for generating reflection notes that become injectable world-info."
+    },
+    {
+      "id": "agentarium",
+      "title": "Thytu/Agentarium",
+      "url": "https://github.com/Thytu/Agentarium",
+      "type": "open-source-code",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Open-source framework for AI-agent simulations and emergent environments.",
+      "relevance": "Smaller alternative to AgentSociety; lighter stack."
+    },
+    {
+      "id": "constella-2024",
+      "title": "Constella: Supporting Storywriters' Interconnected Character Creation through LLM-based Multi-Agents",
+      "url": "https://arxiv.org/html/2507.05820v1",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Multi-agent system for parallel character development; writer-defined personas converse and surface inter-character tensions.",
+      "relevance": "Closest published academic system to our use case (story-writing aided by agent personas)."
+    },
+    {
+      "id": "novelai-multichar",
+      "title": "NovelAI V4/V4.5 Multi-Character Workflow (2026)",
+      "url": "https://aiinsightsnews.net/novelai-assign-multiple-characters/",
+      "type": "industry-guide",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Trait isolation per character via separate conditioning streams to prevent token competition.",
+      "relevance": "Production technique for multi-character coherence."
+    },
+    {
+      "id": "vaccine-hesitancy-2025",
+      "title": "Can A Society of Generative Agents Simulate Human Behavior and Inform Public Health Policy?",
+      "url": "https://arxiv.org/html/2503.09639v2",
+      "type": "academic-paper",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Generative-agent society used for vaccine-hesitancy simulation; fragile when worldview diverges from training distribution.",
+      "relevance": "Empirical case-study confirming Park's importance-scoring caveat: outside everyday life, the heuristics break."
+    },
+    {
+      "id": "validation-survey-2025",
+      "title": "Validation is the central challenge for generative social simulation",
+      "url": "https://link.springer.com/article/10.1007/s10462-025-11412-6",
+      "type": "academic-survey",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Critical review of LLM-based ABMs concludes that validation, not capability, is the bottleneck for trustworthy multi-day simulations.",
+      "relevance": "Directly supports our concern about evaluating long-running coherence. Recommends triangulation: micro-behavior fidelity + macro-pattern reproduction + author-judgment."
+    },
+    {
+      "id": "haiku45-pricing",
+      "title": "Anthropic Claude Haiku 4.5 pricing",
+      "url": "https://intuitionlabs.ai/articles/llm-api-pricing-comparison-grok-gemini-openai-claude",
+      "type": "industry-report",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "Haiku 4.5 at $1.00/$5.00 per MTok; GPT-4.1 mini at $0.40/$1.60; Batch API gives 50% discount on Anthropic and OpenAI.",
+      "relevance": "Concrete 2026 unit economics for cheap-tier always-on agents. ~10x cheaper than Park 2023 GPT-4 prices."
+    },
+    {
+      "id": "intuitionlabs-pricing",
+      "title": "LLM API Pricing Comparison 2025 (Intuition Labs)",
+      "url": "https://intuitionlabs.ai/articles/llm-api-pricing-comparison-2025",
+      "type": "industry-report",
+      "retrieved_at": "2026-05-09",
+      "key_claim": "LLM API prices dropped roughly 10x in two years; GPT-4 class went from $30/MTok input to $2-3/MTok.",
+      "relevance": "Validates that cost-feasibility for always-on sims is dramatically better in 2026 vs. 2023."
+    }
+  ]
+}

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "../../lib/api";
 import { useEventStore } from "../../stores/useEventStore";
 import { useSessionStore } from "../../stores/useSessionStore";
+import { useUIStore } from "../../stores/useUIStore";
 
 type ChapterListItem = Awaited<ReturnType<typeof api.chaptersList>>[number];
 type Chapter = NonNullable<Awaited<ReturnType<typeof api.chaptersGet>>>;
@@ -13,11 +14,21 @@ export function ChapterView() {
   const inscribeEvent = useEventStore((s) =>
     (s.bySubsystem.compose ?? []).find((e) => e.phase === "inscribe" && e.status === "succeeded"),
   );
+  // P1-E · Per-chapter scroll position persists via useUIStore.
+  const scrollPositions = useUIStore((s) => s.chapterScrollPositions);
+  const saveScroll = useUIStore((s) => s.saveChapterScroll);
 
   const [list, setList] = useState<ChapterListItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(false);
+  // P2-A · Error state + retry counter (retryNonce flips to re-trigger effect).
+  const [chapterError, setChapterError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
+  // P1-E · Ref to the scrollable container so we can save/restore scrollTop.
+  const containerRef = useRef<HTMLDivElement>(null);
+  // P1-E · Track previous selectedId so we save scroll for the OUTGOING chapter.
+  const prevSelectedRef = useRef<string | undefined>(undefined);
 
   const refresh = useCallback(async () => {
     const rows = await api.chaptersList(worldId, lineId, 20);
@@ -36,15 +47,37 @@ export function ChapterView() {
   }, [inscribeEvent?.id, refresh]);
 
   useEffect(() => {
+    // P1-E · Save scroll for the OUTGOING chapter before switching.
+    const prev = prevSelectedRef.current;
+    if (prev && containerRef.current) {
+      saveScroll(prev, containerRef.current.scrollTop);
+    }
+    prevSelectedRef.current = selectedId;
+
     if (!selectedId) {
       setChapter(null);
+      setChapterError(null);
       return;
     }
     setLoading(true);
+    setChapterError(null);
     api.chaptersGet(selectedId)
-      .then((c) => setChapter(c))
+      .then((c) => {
+        setChapter(c);
+        // P1-E · Restore scroll after the new chapter has rendered (next frame).
+        const target = scrollPositions[selectedId] ?? 0;
+        requestAnimationFrame(() => {
+          if (containerRef.current) containerRef.current.scrollTop = target;
+        });
+      })
+      // P2-A · Surface the error instead of failing silently.
+      .catch((err: unknown) => {
+        setChapter(null);
+        setChapterError(err instanceof Error ? err.message : String(err));
+      })
       .finally(() => setLoading(false));
-  }, [selectedId]);
+    // retryNonce intentional dependency so 重试 button re-fires this effect.
+  }, [selectedId, retryNonce, saveScroll, scrollPositions]);
 
   if (list.length === 0) {
     return (
@@ -55,7 +88,7 @@ export function ChapterView() {
   }
 
   return (
-    <div className="chapter-view">
+    <div className="chapter-view" ref={containerRef}>
       <div className="chapter-view__bar">
         <label>
           章节：
@@ -74,7 +107,21 @@ export function ChapterView() {
 
       {loading && <div className="chapter-view__loading">载入中…</div>}
 
-      {!loading && chapter && (
+      {!loading && chapterError && (
+        <div className="chapter-view__error">
+          <div className="chapter-view__error-title">章节载入失败</div>
+          <div className="chapter-view__error-detail">{chapterError}</div>
+          <button
+            type="button"
+            className="ghost chapter-view__retry"
+            onClick={() => setRetryNonce((n) => n + 1)}
+          >
+            ↻ 重试
+          </button>
+        </div>
+      )}
+
+      {!loading && !chapterError && chapter && (
         <article className="chapter-view__body">
           <header>
             <h2>{chapter.lens.chapterGoal ?? "章节"}</h2>

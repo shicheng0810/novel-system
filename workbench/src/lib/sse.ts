@@ -27,7 +27,7 @@ export type SseOptions = {
 };
 
 function buildUrl(baseUrl: string, filter: SseFilter | undefined): string {
-  const url = new URL(`${baseUrl}/api/events`);
+  const url = new URL(`${baseUrl}/api/events`, window.location.origin);
   if (filter) {
     if (filter.worldId) url.searchParams.set("worldId", filter.worldId);
     if (filter.runId) url.searchParams.set("runId", filter.runId);

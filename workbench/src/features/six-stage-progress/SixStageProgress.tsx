@@ -18,20 +18,42 @@ export function SixStageProgress() {
   const composeEvents = useEventStore((s) => s.bySubsystem.compose ?? []);
 
   const { activePhase, perPhase } = useMemo(() => derive(composeEvents), [composeEvents]);
+  const activeSummary = activePhase ? perPhase.get(activePhase)?.summary : undefined;
+  const anyActivity = perPhase.size > 0;
 
   return (
-    <ol className="six-stage-progress">
-      {PHASES.map((p) => {
-        const ph = perPhase.get(p.id);
-        const state: Status = ph?.state ?? (activePhase && phaseIndex(p.id) < phaseIndex(activePhase) ? "done" : "idle");
-        return (
-          <li key={p.id} className={`stage-dot stage-dot--${state}`} title={ph?.summary ?? p.label}>
-            <span className="stage-dot__pip" />
-            <span className="stage-dot__label">{p.label}</span>
-          </li>
-        );
-      })}
-    </ol>
+    <div className={`lamp-track${anyActivity ? " lamp-track--lit" : ""}`}>
+      <ol className="six-stage-progress">
+        {PHASES.map((p, idx) => {
+          const ph = perPhase.get(p.id);
+          const state: Status = ph?.state ?? (activePhase && phaseIndex(p.id) < phaseIndex(activePhase) ? "done" : "idle");
+          const prevState: Status | undefined = idx > 0
+            ? (perPhase.get(PHASES[idx - 1].id)?.state ?? (activePhase && phaseIndex(PHASES[idx - 1].id) < phaseIndex(activePhase) ? "done" : "idle"))
+            : undefined;
+          const wickClass = prevState ? ` stage-dot--from-${prevState}` : "";
+          return (
+            <li
+              key={p.id}
+              className={`stage-dot stage-dot--${state}${wickClass}`}
+              title={ph?.summary ?? p.label}
+            >
+              <span className="stage-dot__pip" aria-hidden />
+              <span className="stage-dot__label">{p.label}</span>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="lamp-track__whisper" aria-live="polite">
+        {activeSummary ? (
+          <>
+            <span className="lamp-track__cinder" aria-hidden />
+            <span className="lamp-track__phrase">{activeSummary}</span>
+          </>
+        ) : (
+          <span className="lamp-track__phrase lamp-track__phrase--dim">静观 · 等候燃香</span>
+        )}
+      </div>
+    </div>
   );
 }
 
