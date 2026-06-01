@@ -27,6 +27,7 @@ export interface WorldConfig {
   storyEvents: Array<{ name: string; summary: string; gatherAt?: string; crisis: string; stressDelta?: number; factionShifts?: Array<{ a: string; b: string; delta: number }> }>;
   arcs: string[]; // 长篇情境弧线
   composePrompt: string; // 作者文风提示词
+  titleStyle?: string; // 章节标题风格(缺省给通用反"假"提示)
   spawnNames: string[]; // 动态登场人名池
   reviverNames: string[]; // 东山再起人名池
   moodWords?: [string, string, string, string]; // 心境四档(焚/动/省/澄), 缺省给通用
@@ -254,6 +255,7 @@ export function makePack(cfg: WorldConfig) {
     },
     composeProfile: {
       systemPrompt: cfg.composePrompt,
+      titleStyle: cfg.titleStyle ?? "简洁、贴合本世界题材、有画面感的标题，可带悬念；避免文言对仗回目与堆砌并列短语，自然为先",
       toneTags: [cfg.displayName],
       sanitizer: { rules: [], stockImagery: [] },
       glossary: {},

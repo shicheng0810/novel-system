@@ -128,6 +128,11 @@ export function markInputProcessed(db: DB, id: string, ts: number): void {
   db.prepare(`UPDATE input_queue SET status='processed', processed_at=? WHERE id=?`).run(ts, id);
 }
 
+// 待处理输入计数(longrun 据此快速采纳作者裁决, 不必等下一章)
+export function countPendingInputs(db: DB, worldId: string, type: string): number {
+  return (db.prepare(`SELECT COUNT(*) n FROM input_queue WHERE world_id=? AND status='pending' AND type=?`).get(worldId, type) as { n: number }).n;
+}
+
 // ── chapters(compose 产物) ──
 export interface ChapterRow {
   id: string;

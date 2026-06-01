@@ -14,6 +14,8 @@ export interface LLMConfig {
   deepseekKey?: string;
   deepseekBaseUrl?: string;
   model?: string;
+  temperature?: number; // 创作温度(网页可调; 缺省 1.5)
+  thinking?: boolean; // v4 深度思考 reasoning_effort=high(缺省开)
 }
 
 export function readLLMConfig(): LLMConfig {
@@ -56,7 +58,7 @@ export function readHermesOpts(model?: string): HermesOpts | null {
 
 export function makeLLM(cfg: LLMConfig = readLLMConfig()): LLMProvider {
   if (cfg.provider === "deepseek" && cfg.deepseekKey) {
-    return new FallbackLLM(new DeepSeekLLM({ key: cfg.deepseekKey, model: cfg.model ?? "deepseek-chat", baseUrl: cfg.deepseekBaseUrl }), new MockLLM());
+    return new FallbackLLM(new DeepSeekLLM({ key: cfg.deepseekKey, model: cfg.model ?? "deepseek-chat", baseUrl: cfg.deepseekBaseUrl, temperature: cfg.temperature ?? 1.5, thinking: cfg.thinking ?? true, reasoningEffort: "high" }), new MockLLM());
   }
   if (cfg.provider === "hermes") {
     const opts = readHermesOpts(cfg.model);
@@ -66,12 +68,12 @@ export function makeLLM(cfg: LLMConfig = readLLMConfig()): LLMProvider {
 }
 
 // 网页只读状态(永不回传 key 明文, 只报是否已设)
-export function llmStatus(cfg: LLMConfig = readLLMConfig()): { provider: string; model: string; hasKey: boolean } {
+export function llmStatus(cfg: LLMConfig = readLLMConfig()): { provider: string; model: string; hasKey: boolean; temperature: number; thinking: boolean } {
   const model = cfg.model ?? (cfg.provider === "hermes" ? "deepseek-v4-pro" : cfg.provider === "deepseek" ? "deepseek-chat" : "—");
-  return { provider: cfg.provider, model, hasKey: !!cfg.deepseekKey };
+  return { provider: cfg.provider, model, hasKey: !!cfg.deepseekKey, temperature: cfg.temperature ?? 1.5, thinking: cfg.thinking ?? true };
 }
 
-// 配置指纹: 变了则 longrun 热切换 provider(避免每章重读全文件做对象比较)
+// 配置指纹: 变了则 longrun 热切换 provider(温度/thinking 变也要热切换 → 纳入指纹)
 export function configSignature(cfg: LLMConfig = readLLMConfig()): string {
-  return `${cfg.provider}|${cfg.model ?? ""}|${(cfg.deepseekKey ?? "").length}`;
+  return `${cfg.provider}|${cfg.model ?? ""}|${(cfg.deepseekKey ?? "").length}|${cfg.temperature ?? ""}|${cfg.thinking ?? ""}`;
 }

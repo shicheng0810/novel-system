@@ -466,6 +466,7 @@ export const xianxiaBaziPack: ContentPack = {
   },
   composeProfile: {
     systemPrompt: "你是一位修仙小说作者，文风古雅凝练，以世界推演的事件为素材写出连贯章节。",
+    titleStyle: "工整凝练的章回标题，可用一组对仗（两个短语）；只取一组，切忌堆砌三四个并列短语，不生造对仗、不用冷僻字凑工整，宁可平实也要自然",
     toneTags: ["古雅", "凝练"],
     sanitizer: { rules: [{ id: "simile", pattern: "犹如|仿佛", reason: "AI 味比喻" }], stockImagery: ["血色残阳", "翻涌的杀意"] },
     glossary: { "境界": "修为层次", "起卦": "以奇门起一局" },

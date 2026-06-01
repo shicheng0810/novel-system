@@ -5,7 +5,7 @@
 //   · 控战力崩坏: 36 级阶梯 + 慢进 + 仅卷末批准突破
 //   · 可断点续写(文件 DB + 每章落盘) → 适合 hermes/nohup 长跑
 // 环境: NOVEL_TARGET=1000  NOVEL_MINLEN=3000  NOVEL_SECTIONS=4  NOVEL_LIVE_LLM=hermes
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync, unlinkSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { openDb } from "../core/services/db";
@@ -30,6 +30,23 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", ".novel-output"
 const CH_DIR = join(ROOT, "chapters");
 mkdirSync(CH_DIR, { recursive: true });
 
+// 单写者锁: 同一世界目录只许一个 longrun 写。防多进程赛跑串台(历史教训: 失败重开堆叠僵尸写者→同一章号被写两遍→标题/正文互相覆盖)。
+const LOCK = join(ROOT, "longrun.lock");
+if (existsSync(LOCK)) {
+  const oldPid = Number(readFileSync(LOCK, "utf8").trim());
+  let alive = false;
+  try { process.kill(oldPid, 0); alive = oldPid > 0; } catch { alive = false; } // kill(pid,0) 不发信号, 仅探活
+  if (alive) {
+    console.error(`[longrun] 世界「${process.env["NOVEL_SAGA_DIR"] ?? "saga"}」已有写者 PID ${oldPid} 在跑，本进程退出以免赛跑串台。`);
+    process.exit(0);
+  }
+}
+writeFileSync(LOCK, String(process.pid), "utf8");
+const releaseLock = (): void => { try { if (existsSync(LOCK) && Number(readFileSync(LOCK, "utf8").trim()) === process.pid) unlinkSync(LOCK); } catch { /* ignore */ } };
+process.on("exit", releaseLock);
+process.on("SIGINT", () => { releaseLock(); process.exit(0); });
+process.on("SIGTERM", () => { releaseLock(); process.exit(0); });
+
 // 叙事·伏笔账(setup→payoff 跨章结构, 文件持久化, resume 安全)
 interface Foreshadow { id: string; desc: string; plantedCh: number; dueCh: number; paid: boolean }
 const FS_FILE = join(ROOT, "foreshadows.json");
@@ -45,6 +62,18 @@ function writeFs(list: Foreshadow[]): void {
 }
 const db = openDb(join(ROOT, "world.db"));
 const worldId = "saga";
+
+// 单写者锁: 防主循环 step 与"快速裁决"step 并发(JS 单线程, 仅 await 处可能交错)
+let _busy = false;
+async function guardedStep(): Promise<void> {
+  while (_busy) await new Promise((r) => setTimeout(r, 30));
+  _busy = true;
+  try {
+    await step(db, worldId, PACK, sim);
+  } finally {
+    _busy = false;
+  }
+}
 
 // 情境随章/卷推进(破开篇循环); 循环时升级世界。优先用内容包提供的场景弧线(换 genre 即换场景)
 const ARCS: string[] = PACK.arcs ?? [
@@ -84,20 +113,25 @@ function roster(snap: WorldSnapshot): string {
 
 async function rollSummary(prev: string, recentGoals: string[]): Promise<string> {
   const p = `${sys}\n长篇连载【前情纲要】(保住人物关系/势力/未了伏笔/当前境界/已发生的大事)：\n${prev}\n新增：${recentGoals.join("；")}\n压缩重写为不超过200字的新纲要，只留对后续连贯最关键的线索，只输出纲要。`;
-  return (await llm.complete(p)).replace(/\s+/g, " ").slice(0, 320);
+  return (await llm.complete(p, { thinking: false, temperature: 0.6 })).replace(/\s+/g, " ").slice(0, 320);
 }
 
 async function writeChapter(n: number, vol: number, scene: string, crisis: string, bible: string, ros: string, recent: string[], prevHook: string, weave: string): Promise<{ goal: string; text: string; hook: string }> {
   const forbid = recent.slice(-6).join("、") || "无";
   const outline = await llm.complete(
-    `${sys}\n【连载第${n}章·第${vol}卷】\n【当前情境】${scene}\n【当前世界大事】${crisis || "暂无"}\n【前情纲要】${bible}\n【在场(含亲疏)】${ros}\n【上章末钩子】${prevHook || "（开篇）"}\n【最近章节标题——严禁雷同、严禁重演开篇灵根试炼】${forbid}${weave ? `\n【本章叙事任务·须落实】${weave}` : ""}\n列出本章 ${SECTIONS} 个情节节拍(每个≤20字)：首拍由上章钩子直接引发；每拍须是前一拍的直接后果(因果相承"因→果→再生变"，不得并列罗列)；在"当前情境"内生新事件/冲突/转折；末拍留引向下章的悬念。只列 ${SECTIONS} 行节拍。`
+    `${sys}\n【连载第${n}章·第${vol}卷】\n【当前情境】${scene}\n【当前世界大事】${crisis || "暂无"}\n【前情纲要】${bible}\n【在场(含亲疏)】${ros}\n【上章末钩子】${prevHook || "（开篇）"}\n【最近章节标题——严禁雷同、严禁重演开篇灵根试炼】${forbid}${weave ? `\n【本章叙事任务·须落实】${weave}` : ""}\n列出本章 ${SECTIONS} 个情节节拍(每个≤20字)：首拍由上章钩子直接引发；每拍须是前一拍的直接后果(因果相承"因→果→再生变"，不得并列罗列)；在"当前情境"内生新事件/冲突/转折；末拍留引向下章的悬念。只列 ${SECTIONS} 行节拍。`,
+    { temperature: 0.9 },
   );
-  const beats = outline.split("\n").map((s) => s.replace(/^[\d.、)\s]+/, "").trim()).filter(Boolean).slice(0, SECTIONS);
+  const beats = outline.split("\n").map((s) => s.replace(/^[\d.、)\-—•·*\s]+/, "").replace(/^节拍[零〇一二三四五六七八九十\d]+[：:、.\s]*/, "").trim()).filter(Boolean).slice(0, SECTIONS);
   while (beats.length < SECTIONS) beats.push("情节推进");
 
-  const goal = (await llm.complete(`${sys}\n据以下节拍拟回目标题(≤14字，不得与「${forbid}」雷同)，只回标题本身：\n${beats.join("；")}`))
+  const titleStyle = PACK.composeProfile?.titleStyle ?? "简洁自然、有画面感的标题，避免堆砌并列短语与生硬对仗";
+  const goal = (await llm.complete(`${sys}\n为本章起一个标题。要求：紧扣本章核心转折，自然、有画面感、含一点悬念；≤12字；${titleStyle}。不含"第X章"字样，不得与「${forbid}」雷同。只回标题本身：\n${beats.join("；")}`, { thinking: false, temperature: 1.0 }))
     .replace(/\s+/g, " ")
-    .replace(/[《》「」#\n]/g, "")
+    .replace(/[《》「」#*_~`\n]/g, "") // 去书名号/markdown 强调符
+    .replace(/^[\s\-—•·*]+/, "") // 去前导项目符/破折号
+    .replace(/^第[零〇一二三四五六七八九十百千两\d]+[章回][:：\s]*/, "") // 去掉混进的"第X章"
+    .replace(/^节拍[零〇一二三四五六七八九十\d]+[：:、.\s]*/, "") // 去掉混进的"节拍一："
     .slice(0, 20);
 
   const perSec = Math.ceil((MINLEN / SECTIONS) * 1.2);
@@ -106,9 +140,13 @@ async function writeChapter(n: number, vol: number, scene: string, crisis: strin
   for (let i = 0; i < beats.length; i++) {
     const last = i === beats.length - 1;
     const sec = await llm.complete(
-      `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发(承接因果、不重复前文)，各角色言行须暗合【在场】标注的命格性情(如劫财之性见宝难安、正官之性守正持重、伤官之性桀骜逆锋、正印之性仁厚持重)，要有场景、对白、动作、心理，约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文。`
+      `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`,
+      { thinking: false, topP: 0.95, frequencyPenalty: 0.4, presencePenalty: 0.3 }, // 创作最优: 非思考全可控 + 惩罚减黏腻重复
     );
-    text += (text ? "\n\n" : "") + sec.trim();
+    const clean = sec.trim()
+      .replace(/^(#{1,6}\s*)?第[零〇一二三四五六七八九十百千两\d]+[章回][^\n]*\n+/, "") // 去掉混进正文的章标题行
+      .replace(/^#{1,6}\s+[^\n]*\n+/, ""); // 去掉任何残留 markdown 标题行
+    text += (text ? "\n\n" : "") + clean;
     prev = sec;
   }
   return { goal, text, hook: beats[beats.length - 1] ?? "" };
@@ -130,6 +168,10 @@ async function main(): Promise<void> {
   let revivals: Array<{ faction: string; at: number }> = [];
 
   console.log(`长篇连载 v2：目标 ${TARGET} 章 · 每章≥${MINLEN}字(${SECTIONS}段) · 从第 ${n + 1} 章续写（LLM=${llm.id}）`);
+  // 快速裁决: 作者在网页裁决后, 每 ~15s 检一次, 有待裁就用 sim 快走一步即时落定(不必等当前章写完)
+  setInterval(() => {
+    if (!_busy && store.countPendingInputs(db, worldId, "author-verdict") > 0) void guardedStep();
+  }, 15000);
   while (n < TARGET) {
     n++;
     const vol = Math.floor((n - 1) / VOL) + 1;
@@ -140,15 +182,24 @@ async function main(): Promise<void> {
       const present = sp0 ? Object.values(sp0.snapshot.characters).filter((c) => c.present).length : 99;
       if (present < 18) store.enqueueInput(db, `spawn-${n}`, worldId, "spawn-character", { character: PACK.spawnCharacter("长篇", n / 10) }, Date.now());
     }
-    for (let t = 0; t < 3; t++) await step(db, worldId, PACK, sim);
+    for (let t = 0; t < 3; t++) await guardedStep();
 
-    // 仅卷末批准突破(慢进、防战力崩坏)
-    if (n % VOL === 0) {
+    // 议事·奇门定夺: 作者若宽限期(~3章)内未裁, 由奇门吉凶自动落定(吉/平→依准, 凶→另议); 作者可在窗口内 /api/verdict 抢先裁
+    {
       const sp = store.loadSnapshot(db, worldId);
       const pend = sp && Array.isArray(sp.snapshot.props["pendingDecisions"]) ? (sp.snapshot.props["pendingDecisions"] as Array<{ decisionId: string; omen?: string }>) : [];
-      // 无人值守: 奇门示警(凶)则另议、否则依准 —— 让占卜真正左右突破成败
-      for (const p of pend) store.enqueueInput(db, `auto-${p.decisionId}`, worldId, "author-verdict", { decisionId: p.decisionId, verdict: p.omen === "凶" ? "reject" : "accept" }, Date.now());
-      if (pend.length) await step(db, worldId, PACK, sim);
+      const curTick = sp?.snapshot.tick ?? 0;
+      const GRACE_TICKS = 3 * 3; // 宽限约 3 章(给作者插手窗口)
+      let auto = false;
+      for (const p of pend) {
+        const m = p.decisionId.match(/t(\d+)$/);
+        const age = curTick - (m ? Number(m[1]) : curTick);
+        if (age >= GRACE_TICKS) {
+          store.enqueueInput(db, `auto-${p.decisionId}`, worldId, "author-verdict", { decisionId: p.decisionId, verdict: p.omen === "凶" ? "reject" : "accept" }, Date.now());
+          auto = true;
+        }
+      }
+      if (auto) await guardedStep();
     }
 
     const snap = store.loadSnapshot(db, worldId);

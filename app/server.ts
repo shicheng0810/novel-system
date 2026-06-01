@@ -128,7 +128,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const stress = c.narrativeStress > 0.7 ? "心绪如焚" : c.narrativeStress > 0.4 ? "心潮起伏" : "心境澄澈";
     const prompt = `修仙世界·窥角色心声。「${c.name}」（${natalLabel(c)}），此刻在${locName}，${stress}。世道：${crisis || "暂无大事"}。天机：${qm}。\n以第一人称写${c.name}此刻一闪而过的心声，仅 1 句、不超过 22 字，须合其命格性情与处境，文风古雅，不得出现"命格/八字/奇门"等术语。只输出这一句。`;
     llm
-      .complete(prompt)
+      .complete(prompt, { thinking: false, temperature: 1.3, frequencyPenalty: 0.3, presencePenalty: 0.2 })
       .then((v) => json(res, { id, voice: v.replace(/\s+/g, " ").replace(/^["「“]+|["」”]+$/g, "").slice(0, 30) }))
       .catch((e: unknown) => json(res, { error: String(e).slice(0, 80) }));
     return;
@@ -149,7 +149,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       ? `${base}\n前文：\n${prev}\n承接前文、续写二人接下来你来我往的 2~3 句(须反映各自命格性情与关系，并暗合此刻天机/世道；若关系或时局有变，话锋随之变，不得复读前文)。每句「名：……」，只输出新增对话。`
       : `${base}\n写二人此刻对话的开篇，3~4 句，须各合命格性情与关系(交善则温、道争则锋)，文风古雅。每句「名：……」，只输出对话。`;
     llm
-      .complete(prompt)
+      .complete(prompt, { thinking: false, temperature: 1.3, frequencyPenalty: 0.3, presencePenalty: 0.2 })
       .then((text) => json(res, { a: A.name, b: B.name, rel, text: text.trim() }))
       .catch((e: unknown) => json(res, { error: String(e).slice(0, 120) }));
     return;
@@ -214,6 +214,9 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           provider: (p.provider as LLMConfig["provider"]) ?? cur.provider,
           model: p.model ?? cur.model,
           deepseekKey: p.deepseekKey && p.deepseekKey.length > 0 ? p.deepseekKey : cur.deepseekKey, // 空则保留原 key
+          deepseekBaseUrl: cur.deepseekBaseUrl,
+          temperature: typeof p.temperature === "number" ? p.temperature : cur.temperature,
+          thinking: typeof p.thinking === "boolean" ? p.thinking : cur.thinking,
         };
         writeLLMConfig(next);
         json(res, { ok: true, status: llmStatus(next) });

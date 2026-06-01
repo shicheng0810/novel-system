@@ -95,6 +95,7 @@ export interface ComposeProfile {
   toneTags: string[];
   sanitizer: AntiSlopFilter;
   glossary: Record<string, string>; // 术语→人话(喂前端 tooltip)
+  titleStyle?: string;           // 章节标题风格提示(genre 自定; 引擎只转述, 不写死"回目/对仗")
 }
 
 // ── NL-storylet(作者用自然语言定义触发, 不写 DSL) ──

@@ -68,6 +68,7 @@ export const scifiStationPack: ContentPack = {
   },
   composeProfile: {
     systemPrompt: "你是一位硬科幻作者，冷峻克制，以舰内事件为素材写连贯章节。",
+    titleStyle: "冷峻简洁的标题，短句或名词短语，克制不渲染；不用文言对仗，不堆砌并列短语",
     toneTags: ["冷峻", "克制"],
     sanitizer: { rules: [], stockImagery: [] },
     glossary: {},

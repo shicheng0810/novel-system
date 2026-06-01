@@ -4,9 +4,16 @@
 import { execFileSync } from "node:child_process";
 import { hashStr } from "../util/rng";
 
+export interface CompleteOpts {
+  temperature?: number;
+  thinking?: boolean; // per-call 覆盖(思考模式利于谋篇, 但 DeepSeek 在思考下忽略下列采样参数)
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+}
 export interface LLMProvider {
   readonly id: string;
-  complete(prompt: string): Promise<string>;
+  complete(prompt: string, opts?: CompleteOpts): Promise<string>;
 }
 
 export class MockLLM implements LLMProvider {
@@ -58,6 +65,9 @@ export interface DeepSeekOpts {
   key: string;
   model?: string;
   baseUrl?: string;
+  temperature?: number; // 默认创作温度(per-call opts 可覆盖)
+  thinking?: boolean; // v4 深度思考(reasoning_effort=high/max)
+  reasoningEffort?: "high" | "max";
 }
 
 // DeepSeek 官方 API 直连(无需 VPS/SSH; 用户在网页填 key 即用)。失败抛错由 FallbackLLM 兜底。
@@ -66,12 +76,29 @@ export class DeepSeekLLM implements LLMProvider {
   constructor(private opts: DeepSeekOpts) {
     this.id = `deepseek:${opts.model ?? "deepseek-chat"}`;
   }
-  async complete(prompt: string): Promise<string> {
+  async complete(prompt: string, opts?: CompleteOpts): Promise<string> {
     const base = this.opts.baseUrl ?? "https://api.deepseek.com";
+    const useThinking = opts?.thinking ?? this.opts.thinking ?? false;
+    const body: Record<string, unknown> = {
+      model: this.opts.model ?? "deepseek-chat",
+      messages: [{ role: "user", content: prompt }],
+      stream: false,
+    };
+    if (useThinking) {
+      // 思考模式: 利于谋篇/推理; DeepSeek 在此模式忽略 temperature/top_p/penalty。响应只取 content(丢 reasoning_content)
+      body["reasoning_effort"] = this.opts.reasoningEffort ?? "high";
+      body["thinking"] = { type: "enabled" };
+    } else {
+      // 非思考: 创作采样全可控(DeepSeek 官方创作建议 temperature 1.5 + 惩罚减重复)
+      body["temperature"] = opts?.temperature ?? this.opts.temperature ?? 1.0;
+      if (opts?.topP !== undefined) body["top_p"] = opts.topP;
+      if (opts?.frequencyPenalty !== undefined) body["frequency_penalty"] = opts.frequencyPenalty;
+      if (opts?.presencePenalty !== undefined) body["presence_penalty"] = opts.presencePenalty;
+    }
     const res = await fetch(`${base}/chat/completions`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${this.opts.key}` },
-      body: JSON.stringify({ model: this.opts.model ?? "deepseek-chat", messages: [{ role: "user", content: prompt }], stream: false }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`deepseek ${res.status}: ${(await res.text()).slice(0, 120)}`);
     const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
@@ -85,13 +112,13 @@ export class FallbackLLM implements LLMProvider {
   constructor(private primary: LLMProvider, private fallback: LLMProvider) {
     this.id = `${primary.id}|fallback:${fallback.id}`;
   }
-  async complete(prompt: string): Promise<string> {
+  async complete(prompt: string, opts?: CompleteOpts): Promise<string> {
     try {
-      const out = await this.primary.complete(prompt);
+      const out = await this.primary.complete(prompt, opts);
       if (out && out.length > 0) return out;
-      return await this.fallback.complete(prompt);
+      return await this.fallback.complete(prompt, opts);
     } catch {
-      return await this.fallback.complete(prompt);
+      return await this.fallback.complete(prompt, opts);
     }
   }
 }

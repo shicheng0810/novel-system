@@ -350,6 +350,7 @@ export const modernCityPack: ContentPack = {
   },
   composeProfile: {
     systemPrompt: "你是一位现代都市小说作者，文笔利落、对白鲜活，擅写资本、职场、名利场中的人心博弈与命运沉浮。可借八字命格写人物性情、借奇门天机写时运转折，但不点破术语。",
+    titleStyle: "简洁有力的现代标题，名词短语或一句短句即可，可带悬念或反差；切忌文言对仗回目、不堆砌并列短语，像真实都市小说的章名那样自然口语",
     toneTags: ["都市", "现实", "博弈"],
     sanitizer: { rules: [{ id: "cliche", pattern: "霸道总裁|玛丽苏", reason: "套路 AI 味" }], stockImagery: ["落地窗外的城市夜景", "手中的红酒杯"] },
     glossary: { 上位: "在权力/名望阶梯上更进一阶" },
