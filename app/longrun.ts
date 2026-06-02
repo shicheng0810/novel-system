@@ -15,6 +15,8 @@ import * as store from "../core/services/store";
 import { step } from "../core/runtime/world-actor";
 import { PACK, natalLabel, goalLabel, plateLabel } from "./pack-select";
 import { loadGenome, loadLedger, buildGuidance, evolveOnce, loadGlobal } from "./evolve";
+import { loadConstraints, constraintsBlock, proposeConstraintMutation } from "./constraints";
+import { canonStep, canonBlock, loadCanon, saveCanon } from "./canon";
 import type { WorldSnapshot } from "../core/domain/world";
 
 const TARGET = Number(process.env["NOVEL_TARGET"] ?? 1000);
@@ -52,6 +54,8 @@ process.on("SIGTERM", () => { releaseLock(); process.exit(0); });
 const EVOLVE = process.env["NOVEL_EVOLVE"] !== "0";
 let evoGenome = loadGenome(ROOT);
 let evoGuidance = buildGuidance(loadLedger(ROOT), evoGenome, loadGlobal(ROOT).avoid);
+let conBlock = constraintsBlock(loadConstraints(ROOT).active); // 规则层: 世界铁律(定义概念空间), 每章注入
+let canonInject = canonBlock(loadCanon(ROOT)); // 一致性: 已确立设定 + 待修正矛盾, 每章注入
 
 // 叙事·伏笔账(setup→payoff 跨章结构, 文件持久化, resume 安全)
 interface Foreshadow { id: string; desc: string; plantedCh: number; dueCh: number; paid: boolean }
@@ -146,7 +150,7 @@ async function writeChapter(n: number, vol: number, scene: string, crisis: strin
   for (let i = 0; i < beats.length; i++) {
     const last = i === beats.length - 1;
     const sec = await llm.complete(
-      `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`,
+      `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`,
       { thinking: false, temperature: evoGenome.gen.temperature, topP: evoGenome.gen.topP, frequencyPenalty: evoGenome.gen.frequencyPenalty, presencePenalty: evoGenome.gen.presencePenalty }, // 进化基因控制采样
     );
     const clean = sec.trim()
@@ -271,6 +275,7 @@ async function main(): Promise<void> {
         console.log(`  ⟡ 埋伏笔: ${hook}（第${f.dueCh}章回收）`);
       }
     }
+    conBlock = constraintsBlock(loadConstraints(ROOT).active); // 拾取议事已批准的铁律变更(规则层概念空间)
     const ch = await writeChapter(n, vol, scene, crisis, bibleEcho, ros, recent, prevHook, weave);
 
     writeFileSync(join(CH_DIR, `ch-${String(n).padStart(4, "0")}.md`), `# 第${n}章　${ch.goal}\n\n${ch.text}\n`, "utf8");
@@ -278,6 +283,18 @@ async function main(): Promise<void> {
     recent.push(`第${n}章「${ch.goal}」`);
     prevHook = ch.hook;
 
+    if (n % 8 === 0) { // 一致性: 更新设定档 canon + 校验矛盾, 喂生成(修正)与适应度(canonStep 先于 evolveOnce)
+      try {
+        const rcc = store.readChapters(db, worldId).filter((c) => c.id.startsWith("saga-ch-")).slice(-8).map((c) => ({ goal: c.goal, text: c.text }));
+        const cs = await canonStep(llm, sys, ROOT, rcc, n);
+        // 可验证子目标②: 伏笔回收率(据伏笔账本, 到期未收=扣分)
+        const fsAll = readFs(); const due = fsAll.filter((f) => f.dueCh <= n);
+        const fsRate = due.length ? +((due.filter((f) => f.paid).length / due.length) * 10).toFixed(1) : 10;
+        const cc = loadCanon(ROOT); cc.lastForeshadow = fsRate; saveCanon(ROOT, cc);
+        canonInject = canonBlock(cc);
+        console.log(`  📜 canon ${Object.keys(cs.canon.characters).length}人·一致性${cs.score}/10·伏笔回收${fsRate}/10${cs.contradictions.length ? " ⚠" + cs.contradictions[0]!.slice(0, 32) : ""}`);
+      } catch (e) { console.log("  📜 canon 跳过:", String(e).slice(0, 60)); }
+    }
     if (n % 8 === 0) {
       bible = await rollSummary(bible, recent.slice(-8));
       if (EVOLVE) {
@@ -287,6 +304,20 @@ async function main(): Promise<void> {
           evoGenome = evo.genome; evoGuidance = evo.guidance; // 下一卷据此生成
           console.log(`  🧬 ${evo.report}`);
         } catch (e) { console.log("  🧬 进化跳过:", String(e).slice(0, 80)); }
+      }
+      // 规则层进化: 每 24 章, 若无待裁且距上次铁律变更≥16章, 提议一条【变革性】铁律变异 → 进议事由作者裁决
+      if (n % 24 === 0) {
+        try {
+          const con0 = loadConstraints(ROOT);
+          if (!con0.pending && n - con0.lastChangeCh >= 16) {
+            const fits = loadLedger(ROOT).scores.slice(-3).map((s) => s.fitness);
+            const stagnating = fits.length >= 3 && Math.max(...fits) - Math.min(...fits) < 0.6; // 适应度停滞=该换空间(Wiggins uninspiration)
+            if (stagnating || n - con0.lastChangeCh >= 48) { // 停滞触发, 或每48章强制一次防僵化
+              const mut = await proposeConstraintMutation(llm, sys, ROOT, recent.slice(-6).join("；"), vol);
+              if (mut) console.log(`  ⚖ 铁律提案(${mut.kind}${stagnating ? "·因停滞" : ""}): ${mut.after ?? mut.target} ——待议事裁决`);
+            }
+          }
+        } catch (e) { console.log("  ⚖ 铁律提案跳过:", String(e).slice(0, 80)); }
       }
       const s = store.loadSnapshot(db, worldId);
       if (s) {

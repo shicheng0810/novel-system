@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { LLMProvider } from "../core/services/llm";
+import { loadCanon } from "./canon";
 
 export interface Genome {
   gen: { temperature: number; topP: number; frequencyPenalty: number; presencePenalty: number };
@@ -18,7 +19,7 @@ export interface Genome {
 }
 export interface Rubric { freshness: number; pacing: number; dialogue: number; hook: number; coherence: number; character: number }
 export interface Ledger {
-  avoid: Array<{ p: string; age: number }>;
+  avoid: Array<{ p: string; age: number; hits?: number }>; // hits=跨卷再现次数(ExpeL 式投票, 高频=真通用套话)
   amplify: string[];
   directives: string[];
   scores: Array<{ vol: number; gen: number; fitness: number; llm: number; obj: number; cell: string; len: number; slm: number; rep: number; dlg: number; ttr: number; avoidHits: number } & Rubric>;
@@ -110,7 +111,8 @@ function styleDirective(t: { tone: string; rhythm: string }): string {
 // ── 注入下一卷的进化指引(全局记忆 + 可选 novelty 风格探索) ──
 export function buildGuidance(l: Ledger, g?: Genome, globalAvoid: string[] = []): string {
   const parts: string[] = [];
-  const avoid = [...new Set([...l.avoid.slice(-20).map((a) => a.p), ...globalAvoid])].slice(0, 30); // 本地优先(近20) + 全局通用补足, 去重
+  const localTop = [...l.avoid].sort((a, b) => (b.hits ?? 1) - (a.hits ?? 1)).slice(0, 20).map((a) => a.p); // 高频(ExpeL投票)优先
+  const avoid = [...new Set([...localTop, ...globalAvoid])].slice(0, 30); // 本地高频 + 全局通用补足, 去重
   if (avoid.length) parts.push(`【避免·已被用滥的表达，换新说法勿复用】${avoid.join("、")}`);
   if (l.amplify.length) parts.push(`【发扬·已验证有效的写法】${l.amplify.slice(-6).join("；")}`);
   if (l.directives.length) parts.push(`【本卷重点修正】${l.directives.slice(0, 4).join("；")}`);
@@ -212,7 +214,8 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
   const lens = ledger.scores.map((s) => s.len).filter((n) => n > 0);
   const avgLen = lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : 0;
   const antiProxy = (avgLen > 0 && m.len > avgLen * 1.6) || m.repetition > 0.15; // 长度暴涨/重复飙升=疑似刷分
-  let fitness = +(0.7 * llmFit + 0.3 * objFit).toFixed(2);
+  const consFit = (() => { const cn = loadCanon(dir); const a = typeof cn.lastConsistency === "number" ? cn.lastConsistency : 8; const b = typeof cn.lastForeshadow === "number" ? cn.lastForeshadow : 8; return +((a + b) / 2).toFixed(1); })(); // 可验证子目标: 一致性 + 伏笔回收的均值(canonStep/longrun 先算)
+  let fitness = +(0.6 * llmFit + 0.25 * objFit + 0.15 * consFit).toFixed(2);
   if (antiProxy) fitness = +(fitness * 0.8).toFixed(2);
 
   const rhythm = rhythmBin(m.sentLenMean, ledger.scores.map((s) => s.slm).filter((n): n is number => typeof n === "number" && n > 0));
@@ -225,9 +228,9 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
 
   // 账本：避雷增长+衰老；发扬/修正滚动；评分入时间线
   for (const a of ledger.avoid) a.age += 1;
-  const have = new Set(ledger.avoid.map((a) => a.p));
-  for (const p of c.overused) if (!have.has(p)) ledger.avoid.push({ p, age: 0 });
-  ledger.avoid = ledger.avoid.filter((a) => a.age < 6).slice(-40);
+  const aidx = new Map(ledger.avoid.map((a, i) => [a.p, i]));
+  for (const p of c.overused) { const i = aidx.get(p); if (i !== undefined) { ledger.avoid[i]!.age = 0; ledger.avoid[i]!.hits = (ledger.avoid[i]!.hits ?? 1) + 1; } else ledger.avoid.push({ p, age: 0, hits: 1 }); } // 再现=upvote+复活
+  ledger.avoid = ledger.avoid.filter((a) => a.age < 6 + Math.min(8, ((a.hits ?? 1) - 1) * 2)).slice(-50); // 高频套话保留更久
   ledger.amplify = [...ledger.amplify, ...c.wins].slice(-12);
   ledger.directives = c.fixes;
   ledger.scores.push({ vol, gen: cur.generation, fitness, llm: llmFit, obj: objFit, cell: key, len: m.len, slm: +m.sentLenMean.toFixed(1), rep: +m.repetition.toFixed(3), dlg: +m.dialogueRatio.toFixed(3), ttr: +m.ttr.toFixed(3), avoidHits: m.avoidHits, ...c.rubric });
@@ -242,7 +245,7 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
   const tstr = next.targetStyle ? ` · 探索→${next.targetStyle.tone}×${next.targetStyle.rhythm}` : "";
   return {
     genome: next, ledger, guidance: buildGuidance(ledger, next, loadGlobal(dir).avoid),
-    report: `适应度${fitness}(LLM${llmFit}+客观${objFit}${antiProxy ? "·打折" : ""}) · ${placed} · 存档${archive.length}/${TONES.length * RHYTHMS.length}格${tstr} · 下卷 temp${next.gen.temperature}/freq${next.gen.frequencyPenalty}/prior${next.engine.priorWeight} · 避雷${ledger.avoid.length}`,
+    report: `适应度${fitness}(LLM${llmFit}+客观${objFit}+一致${consFit}${antiProxy ? "·打折" : ""}) · ${placed} · 存档${archive.length}/${TONES.length * RHYTHMS.length}格${tstr} · 下卷 temp${next.gen.temperature}/freq${next.gen.frequencyPenalty}/prior${next.engine.priorWeight} · 避雷${ledger.avoid.length}`,
   };
 }
 

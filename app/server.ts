@@ -13,6 +13,8 @@ import { step } from "../core/runtime/world-actor";
 import { PACK, describeMind, natalLabel, plateLabel } from "./pack-select";
 import { generateWorldConfig } from "./world-gen";
 import { loadGenome, loadLedger, loadArchive, loadGlobal } from "./evolve";
+import { loadConstraints, applyConstraintVerdict } from "./constraints";
+import { loadCanon } from "./canon";
 
 const PORT = Number(process.env["PORT"] ?? 8990);
 const here = dirname(fileURLToPath(import.meta.url));
@@ -168,10 +170,28 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     try {
       const dir = join(here, "..", ".novel-output", SAGA);
       const l = loadLedger(dir);
-      return json(res, { genome: loadGenome(dir), archive: loadArchive(dir), scores: l.scores, avoid: l.avoid.map((a) => a.p), amplify: l.amplify, directives: l.directives, global: loadGlobal(dir) });
+      const cn = loadCanon(dir);
+      return json(res, { genome: loadGenome(dir), archive: loadArchive(dir), scores: l.scores, avoid: l.avoid.map((a) => a.p), amplify: l.amplify, directives: l.directives, global: loadGlobal(dir), canon: { characters: cn.characters, world: cn.world, consistency: cn.lastConsistency, foreshadow: cn.lastForeshadow, contradictions: cn.lastContradictions } });
     } catch {
       return json(res, { genome: null, archive: [], scores: [] });
     }
+  }
+  if (url === "/api/constraint") { // 规则层: 查世界铁律+待裁提案 / 裁决铁律变异(双层进化的议事闸门)
+    const dir = join(here, "..", ".novel-output", SAGA);
+    if (req.method === "POST") {
+      let body = "";
+      req.on("data", (d: Buffer) => (body += d.toString()));
+      req.on("end", () => {
+        try {
+          const p = JSON.parse(body || "{}") as { verdict?: string };
+          const c = applyConstraintVerdict(dir, p.verdict === "approve" ? "approve" : "reject", chapterCount(SAGA));
+          json(res, { ok: true, active: c.active, pending: c.pending ?? null, generation: c.generation });
+        } catch (e: unknown) { res.statusCode = 400; json(res, { error: String(e) }); }
+      });
+      return;
+    }
+    const c = loadConstraints(dir);
+    return json(res, { active: c.active, pending: c.pending ?? null, generation: c.generation, history: c.history.slice(-5) });
   }
   if (url === "/api/pause") { // 暂停/继续该世界(写者 longrun 轮询此文件)
     const dir = join(here, "..", ".novel-output", SAGA);
