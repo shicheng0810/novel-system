@@ -14,6 +14,7 @@ import { makeLLM, configSignature } from "./llm-factory";
 import * as store from "../core/services/store";
 import { step } from "../core/runtime/world-actor";
 import { PACK, natalLabel, goalLabel, plateLabel } from "./pack-select";
+import { loadGenome, loadLedger, buildGuidance, evolveOnce, loadGlobal } from "./evolve";
 import type { WorldSnapshot } from "../core/domain/world";
 
 const TARGET = Number(process.env["NOVEL_TARGET"] ?? 1000);
@@ -46,6 +47,11 @@ const releaseLock = (): void => { try { if (existsSync(LOCK) && Number(readFileS
 process.on("exit", releaseLock);
 process.on("SIGINT", () => { releaseLock(); process.exit(0); });
 process.on("SIGTERM", () => { releaseLock(); process.exit(0); });
+
+// 自进化: 默认开(设 NOVEL_EVOLVE=0 关)。基因(生成参数+引擎 priorWeight)与进化记忆(避雷/发扬/指引)落盘在世界目录。
+const EVOLVE = process.env["NOVEL_EVOLVE"] !== "0";
+let evoGenome = loadGenome(ROOT);
+let evoGuidance = buildGuidance(loadLedger(ROOT), evoGenome, loadGlobal(ROOT).avoid);
 
 // 叙事·伏笔账(setup→payoff 跨章结构, 文件持久化, resume 安全)
 interface Foreshadow { id: string; desc: string; plantedCh: number; dueCh: number; paid: boolean }
@@ -140,8 +146,8 @@ async function writeChapter(n: number, vol: number, scene: string, crisis: strin
   for (let i = 0; i < beats.length; i++) {
     const last = i === beats.length - 1;
     const sec = await llm.complete(
-      `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`,
-      { thinking: false, topP: 0.95, frequencyPenalty: 0.4, presencePenalty: 0.3 }, // 创作最优: 非思考全可控 + 惩罚减黏腻重复
+      `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`,
+      { thinking: false, temperature: evoGenome.gen.temperature, topP: evoGenome.gen.topP, frequencyPenalty: evoGenome.gen.frequencyPenalty, presencePenalty: evoGenome.gen.presencePenalty }, // 进化基因控制采样
     );
     const clean = sec.trim()
       .replace(/^(#{1,6}\s*)?第[零〇一二三四五六七八九十百千两\d]+[章回][^\n]*\n+/, "") // 去掉混进正文的章标题行
@@ -166,6 +172,8 @@ async function main(): Promise<void> {
   let prevHook = "";
   let evCursor = 0;
   let revivals: Array<{ faction: string; at: number }> = [];
+  let _wasPaused = false;
+  const PAUSE = join(ROOT, "paused"); // 网页暂停开关(存在=暂停)
 
   console.log(`长篇连载 v2：目标 ${TARGET} 章 · 每章≥${MINLEN}字(${SECTIONS}段) · 从第 ${n + 1} 章续写（LLM=${llm.id}）`);
   // 快速裁决: 作者在网页裁决后, 每 ~15s 检一次, 有待裁就用 sim 快走一步即时落定(不必等当前章写完)
@@ -173,6 +181,12 @@ async function main(): Promise<void> {
     if (!_busy && store.countPendingInputs(db, worldId, "author-verdict") > 0) void guardedStep();
   }, 15000);
   while (n < TARGET) {
+    if (existsSync(PAUSE)) { // 暂停: 原地等待, 不推进世界/不写章
+      if (!_wasPaused) { console.log("⏸ 世界已暂停（网页点继续或删 paused 文件恢复）"); _wasPaused = true; }
+      await new Promise((r) => setTimeout(r, 3000));
+      continue;
+    }
+    if (_wasPaused) { console.log("▶ 世界已继续"); _wasPaused = false; }
     n++;
     const vol = Math.floor((n - 1) / VOL) + 1;
     const scene = sceneFor(n);
@@ -266,9 +280,18 @@ async function main(): Promise<void> {
 
     if (n % 8 === 0) {
       bible = await rollSummary(bible, recent.slice(-8));
+      if (EVOLVE) {
+        try {
+          const rc = store.readChapters(db, worldId).filter((c) => c.id.startsWith("saga-ch-")).slice(-8).map((c) => ({ goal: c.goal, text: c.text }));
+          const evo = await evolveOnce(llm, sys, ROOT, vol, rc);
+          evoGenome = evo.genome; evoGuidance = evo.guidance; // 下一卷据此生成
+          console.log(`  🧬 ${evo.report}`);
+        } catch (e) { console.log("  🧬 进化跳过:", String(e).slice(0, 80)); }
+      }
       const s = store.loadSnapshot(db, worldId);
       if (s) {
         s.snapshot.props["bible"] = bible;
+        s.snapshot.props["tuning"] = { priorWeight: evoGenome.engine.priorWeight }; // 引擎读: 先验引导强度
         store.saveSnapshot(db, worldId, s.snapshot, s.lastSeq, Date.now());
       }
     }

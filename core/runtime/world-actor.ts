@@ -167,10 +167,13 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
     evs.push({ kind: "MemoryRecorded", entryId: `mem-${ch.id}-t${tick}`, characterId: ch.id, memoryKind: "reflection", body: turn.reflection, importance: 0.3 });
   }
 
-  // branches: 打分 → argmax(确定性, id 平手)
-  const scored: ScoredCandidate[] = candidates.map((c) =>
-    frame && pack.priorSystem ? pack.priorSystem.scoreCandidate(c, frame) : uniformScore(c)
-  );
+  // branches: 打分 → argmax(确定性, id 平手)。tuning.priorWeight(通用数值, 默认1=现状)放大/抑制先验引导强度, 供外部自调谐。
+  const tuneRaw = snapshot.props["tuning"];
+  const pw = tuneRaw && typeof tuneRaw === "object" && typeof (tuneRaw as { priorWeight?: unknown }).priorWeight === "number" ? (tuneRaw as { priorWeight: number }).priorWeight : 1;
+  const scored: ScoredCandidate[] = candidates.map((c) => {
+    const s = frame && pack.priorSystem ? pack.priorSystem.scoreCandidate(c, frame) : uniformScore(c);
+    return pw === 1 ? s : { ...s, weight: Math.max(0, Math.min(1, s.weight + (pw - 1) * s.breakdown.influence)) };
+  });
   scored.sort((a, b) => b.weight - a.weight || a.candidate.id.localeCompare(b.candidate.id));
   const chosen: ScoredCandidate | null = scored.length > 0 ? scored[0]! : null;
   evs.push({

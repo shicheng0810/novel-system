@@ -2,7 +2,7 @@
 // 后台 daemon 跑常驻世界 → SSE 事件流; 网页可看世界运行/读章节/对决策裁决。
 // 非三层皮完整设计(那是迭代 UI 工作), 但功能闭环: 看得到世界在跑 + 作者裁决真影响正史。
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync, unlinkSync, renameSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -12,6 +12,7 @@ import * as store from "../core/services/store";
 import { step } from "../core/runtime/world-actor";
 import { PACK, describeMind, natalLabel, plateLabel } from "./pack-select";
 import { generateWorldConfig } from "./world-gen";
+import { loadGenome, loadLedger, loadArchive, loadGlobal } from "./evolve";
 
 const PORT = Number(process.env["PORT"] ?? 8990);
 const here = dirname(fileURLToPath(import.meta.url));
@@ -162,6 +163,38 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     } catch {
       return json(res, []);
     }
+  }
+  if (url === "/api/evolution") {
+    try {
+      const dir = join(here, "..", ".novel-output", SAGA);
+      const l = loadLedger(dir);
+      return json(res, { genome: loadGenome(dir), archive: loadArchive(dir), scores: l.scores, avoid: l.avoid.map((a) => a.p), amplify: l.amplify, directives: l.directives, global: loadGlobal(dir) });
+    } catch {
+      return json(res, { genome: null, archive: [], scores: [] });
+    }
+  }
+  if (url === "/api/pause") { // 暂停/继续该世界(写者 longrun 轮询此文件)
+    const dir = join(here, "..", ".novel-output", SAGA);
+    const pf = join(dir, "paused");
+    if (req.method === "POST") { try { if (existsSync(pf)) unlinkSync(pf); else writeFileSync(pf, String(Date.now()), "utf8"); } catch { /* ignore */ } }
+    let alive = false; try { const lf = join(dir, "longrun.lock"); if (existsSync(lf)) { const pid = Number(readFileSync(lf, "utf8").trim()); process.kill(pid, 0); alive = pid > 0; } } catch { alive = false; }
+    return json(res, { paused: existsSync(pf), alive });
+  }
+  if (url === "/api/kill" && req.method === "POST") { // 终止该世界写者(读锁文件 PID, SIGKILL)。已写章节保留, server 不停可继续看。
+    const lf = join(here, "..", ".novel-output", SAGA, "longrun.lock");
+    let killed = false, pid = 0;
+    try { if (existsSync(lf)) { pid = Number(readFileSync(lf, "utf8").trim()); if (pid > 0) { process.kill(pid, "SIGKILL"); killed = true; } } } catch { killed = false; }
+    return json(res, { killed, pid });
+  }
+  if (url === "/api/delete" && req.method === "POST") { // 彻底删除本世界: 杀写者 + 归档数据目录(可逆) + 移出注册表, 之后 server 自停。
+    const dir = join(here, "..", ".novel-output", SAGA);
+    let killed = false, pid = 0, archived = "";
+    try { const lf = join(dir, "longrun.lock"); if (existsSync(lf)) { pid = Number(readFileSync(lf, "utf8").trim()); if (pid > 0) { process.kill(pid, "SIGKILL"); killed = true; } } } catch { /* ignore */ }
+    try { if (existsSync(dir)) { archived = `${dir}-killed-${Date.now()}`; renameSync(dir, archived); } } catch { /* ignore */ }
+    try { writeFileSync(REG, JSON.stringify(readReg().filter((w: { name?: string }) => w.name !== SAGA), null, 2), "utf8"); } catch { /* ignore */ }
+    json(res, { deleted: true, killed, pid, archived: archived.split("/").pop() ?? "" });
+    setTimeout(() => process.exit(0), 800); // 数据已移走, 本 server 无法再服务该世界
+    return;
   }
   if (url === "/api/worlds") return json(res, readReg().map((w) => ({ ...w, chapters: chapterCount(w.name) })));
   if (url === "/api/worlds/create" && req.method === "POST") {
