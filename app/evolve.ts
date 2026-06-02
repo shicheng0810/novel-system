@@ -74,8 +74,10 @@ export function promoteToGlobal(worldDir: string): void {
   const root = join(worldDir, "..");
   let dirs: string[];
   try { dirs = readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory() && isLiveWorldDir(e.name)).map((e) => e.name); } catch { return; }
+  const prev = loadGlobal(worldDir); // 单调: 既有全局最优基因/避雷不被"无格世界"清空(清世界后重开仍继承)
   const counts = new Map<string, number>(); const from: string[] = [];
-  let bestFit = -1; let bestGenome: Genome | null = null;
+  for (const p of prev.avoid) counts.set(p, 1);
+  let bestFit = prev.bestFitness ?? -1; let bestGenome: Genome | null = prev.genome;
   for (const d of dirs) {
     const D = join(root, d);
     try {
