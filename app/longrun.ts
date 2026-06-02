@@ -280,6 +280,9 @@ async function main(): Promise<void> {
 
     writeFileSync(join(CH_DIR, `ch-${String(n).padStart(4, "0")}.md`), `# 第${n}章　${ch.goal}\n\n${ch.text}\n`, "utf8");
     store.saveChapter(db, { id: `saga-ch-${n}`, worldId, goal: ch.goal, text: ch.text, status: "inscribed", createdAt: Date.now() });
+    try { // 发 compose 事件 → SSE 点亮「成文」灯 + 触发网页"新章已落"+刷新(长跑此前不发, 故成文灯不亮)
+      store.appendEvent(db, { id: `compose:ch${n}:ChapterInscribed`, worldId, lineId: "main", tick: n * 3, kind: "ChapterInscribed", subsystem: "compose", severity: "notable", verb: "成文", subject: ch.goal, summary: `第${n}章《${ch.goal}》落成`, payload: { kind: "ChapterInscribed", chapterId: `saga-ch-${n}`, sceneIds: [] }, ts: Date.now() });
+    } catch { /* 灯轨非关键, 失败不影响写章 */ }
     recent.push(`第${n}章「${ch.goal}」`);
     prevHook = ch.hook;
 
