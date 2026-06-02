@@ -215,8 +215,11 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
   const objFit = objectiveScore(m);
   const lens = ledger.scores.map((s) => s.len).filter((n) => n > 0);
   const avgLen = lens.length ? lens.reduce((a, b) => a + b, 0) / lens.length : 0;
-  const antiProxy = (avgLen > 0 && m.len > avgLen * 1.6) || m.repetition > 0.15; // 长度暴涨/重复飙升=疑似刷分
-  const consFit = (() => { const cn = loadCanon(dir); const a = typeof cn.lastConsistency === "number" ? cn.lastConsistency : 8; const b = typeof cn.lastForeshadow === "number" ? cn.lastForeshadow : 8; return +((a + b) / 2).toFixed(1); })(); // 可验证子目标: 一致性 + 伏笔回收的均值(canonStep/longrun 先算)
+  const cn = loadCanon(dir);
+  const castSize = Object.keys(cn.characters ?? {}).length;
+  const repThreshold = 0.15 + Math.min(0.12, castSize * 0.006); // 群像豁免: 人物越多, 实体/人名复现越正常, 重复阈值随之放宽(4人≈0.17, 14人≈0.23, 上限0.27)
+  const antiProxy = (avgLen > 0 && m.len > avgLen * 1.6) || m.repetition > repThreshold; // 长度暴涨/重复飙升=疑似刷分
+  const consFit = (() => { const a = typeof cn.lastConsistency === "number" ? cn.lastConsistency : 8; const b = typeof cn.lastForeshadow === "number" ? cn.lastForeshadow : 8; return +((a + b) / 2).toFixed(1); })(); // 可验证子目标: 一致性 + 伏笔回收均值(canonStep/longrun 先算)
   let fitness = +(0.6 * llmFit + 0.25 * objFit + 0.15 * consFit).toFixed(2);
   if (antiProxy) fitness = +(fitness * 0.8).toFixed(2);
 
