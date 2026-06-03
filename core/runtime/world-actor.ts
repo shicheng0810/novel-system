@@ -36,6 +36,35 @@ const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
 const numOf = (c: CharacterState, k: string): number => (typeof c.props[k] === "number" ? (c.props[k] as number) : 0);
 const facOf = (c: CharacterState): string => (typeof c.props["faction"] === "string" ? (c.props["faction"] as string) : "");
 
+// ── M1 符号心跳: 持续 drive 账本(零 LLM, 全员每 tick)。core 中立: drive 是通用标量, 渲染成"执/渴/怨..."由 pack/app 做。
+const driveOf = (c: CharacterState, k: string): number => {
+  const d = c.props["drives"];
+  return d && typeof d === "object" && typeof (d as Record<string, unknown>)[k] === "number" ? ((d as Record<string, number>)[k] ?? 0) : 0;
+};
+const setDrive = (c: CharacterState, k: string, v: number): void => {
+  const d = (c.props["drives"] && typeof c.props["drives"] === "object" ? c.props["drives"] : {}) as Record<string, number>;
+  d[k] = +Math.max(0, Math.min(1, v)).toFixed(3);
+  c.props["drives"] = d;
+};
+// 通用内态键(generic; pack/app 映射到 flavored 词): ambition 执 / want 渴 / grudge 怨 / attachment 慕 / vengeance 仇 / distress 焚 / calm 静
+function dominantDrive(c: CharacterState): string {
+  const cands: Array<[string, number]> = [["ambition", driveOf(c, "ambition")], ["want", driveOf(c, "want")]];
+  let topBond = 0;
+  for (const [k, v] of Object.entries(c.props)) if (k.startsWith("bond:") && typeof v === "number" && Math.abs(v) > Math.abs(topBond)) topBond = v;
+  if (topBond !== 0) cands.push([topBond < 0 ? "grudge" : "attachment", Math.min(1, Math.abs(topBond) / 4)]);
+  if (typeof c.props["avenge"] === "string") cands.push(["vengeance", 0.9]);
+  if (c.narrativeStress > 0.7) cands.push(["distress", c.narrativeStress]);
+  cands.sort((a, b) => b[1] - a[1]);
+  return cands[0] && cands[0][1] > 0.3 ? cands[0][0] : "calm";
+}
+// appraisal(OCC/GAMYGDALA + 矮人要塞 divider): 事件→情绪增量, 经 caution(持重)钝化, EMA 写回 narrativeStress(同一事件不同命格→不同强度)
+function appraise(c: CharacterState, delta: number): void {
+  const caut = c.traits["caution"] ?? 0;
+  const divider = 1 + caut * 0.8; // 持重越高越钝感
+  const eff = delta / divider;
+  c.narrativeStress = +Math.max(0, Math.min(1, c.narrativeStress + eff)).toFixed(3);
+}
+
 // ── T5: app 层进化出的「模拟机制」(经影子模拟闸准入)以通用数据形式挂在 props.simRules; 引擎只按通用 metric/effect 解释, 零 genre 语义。
 function simRuleMetric(metric: string, snapshot: WorldSnapshot): number {
   const present = Object.values(snapshot.characters).filter((c) => c.present);
@@ -320,10 +349,18 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
       if (gain < y * 0.85 && c.id !== top.id && facOf(c) && facOf(c) === facOf(top)) c.props[`bond:${top.id}`] = numOf(c, `bond:${top.id}`) - scarcity * conflictRate * 0.4;
     }
   }
+  // M1 符号心跳: 全员每 tick 更新持续 drive(零 LLM); 非焦点心境改为受未满足 drive 牵引的 EMA → 不再"冻结"(根治个体内心短板)
   for (const c of presentAll) {
-    if (plan.focus.includes(c.id)) continue; // 焦点者已由 agent 循环主理
+    const init = c.traits["initiative"] ?? 0, caut = c.traits["caution"] ?? 0;
+    const vol = Math.max(0.3, 1 - caut * 0.4); // 持重(caution)→ 波动收敛、情绪更稳
+    const res = numOf(c, "resource"), actCount = numOf(c, "actCount");
+    setDrive(c, "want", driveOf(c, "want") + (res < 4 ? 0.05 : -0.04) * vol); // 穷则渴↑、富则降
+    setDrive(c, "ambition", driveOf(c, "ambition") + (0.02 * (1 + init) - 0.02 + (actCount >= 4 ? 0.03 : 0)) * vol); // 进取者执念↑、临突破更炽
+    c.props["innerDrive"] = dominantDrive(c); // 通用内态键(执/渴/怨... 由 pack/app 渲染)
+    if (plan.focus.includes(c.id)) continue; // 焦点者心境由 agent/commit 主理
+    const target = Math.min(1, 0.22 + 0.45 * driveOf(c, "want") + 0.33 * driveOf(c, "ambition")); // 心境基线由未满足的 drive 拉高
+    c.narrativeStress = +(c.narrativeStress + (target - c.narrativeStress) * 0.15 * vol).toFixed(3); // EMA 朝 target 滑(有惯性/余韵), 替代单调回落=解冻
     const sig = c.id.charCodeAt(c.id.length - 1);
-    c.narrativeStress = c.narrativeStress > 0.3 ? Math.max(0.3, c.narrativeStress - 0.03) : Math.min(0.3, c.narrativeStress + 0.015); // 久不登场→心境渐归平静
     if ((tick + sig) % 6 === 0 && locKeys.length > 1) {
       const dest = locKeys[(sig + Math.floor(tick / 6)) % locKeys.length]!; // 确定性游走, 错开 → 散布全图
       if (dest !== c.locationId) c.locationId = dest;
@@ -341,7 +378,7 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
         : present2.filter((c) => (story.involve as string[]).includes(c.id) || (story.involve as string[]).includes(String(c.props["faction"] ?? "")));
     for (const c of targets) {
       if (story.gatherAt && snapshot.locations[story.gatherAt]) c.locationId = story.gatherAt;
-      if (story.stressDelta) c.narrativeStress = Math.max(0, Math.min(1, c.narrativeStress + story.stressDelta * conflictRate)); // conflictRate 放大/收敛张力增益
+      if (story.stressDelta) appraise(c, story.stressDelta * conflictRate); // appraisal: 经 caution 钝化 → 同一大事不同命格受触不同
     }
     if (story.crisis !== undefined) snapshot.props["crisis"] = story.crisis;
     if (story.factionShifts) {
@@ -404,10 +441,10 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
     if (story.omen === "吉") {
       for (const c of targets) {
         c.props["actCount"] = numProp(c, "actCount") + 1;
-        c.narrativeStress = Math.max(0, c.narrativeStress - 0.1);
+        appraise(c, -0.25); // 吉事舒缓(同经 appraisal 钝化)
       }
     } else if (story.omen === "凶") {
-      for (const c of targets) c.narrativeStress = 1;
+      for (const c of targets) appraise(c, 0.7); // 凶事重创, 但持重者受触轻(appraisal divider)
       const a = targets[0];
       const b = targets[1];
       if (a && b) {

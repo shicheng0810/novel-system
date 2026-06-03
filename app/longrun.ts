@@ -18,6 +18,7 @@ import { loadGenome, loadLedger, buildGuidance, evolveOnce, loadGlobal } from ".
 import { computeSimFitness, saveSimFitness, loadSimFitness } from "./sim-fitness";
 import { dramaControl, loadDrama, saveDrama } from "./drama";
 import { evolveSimRules, loadSimRules } from "./sim-rules";
+import { personaBlock, recallShared, INNER_CN } from "./persona";
 import { loadConstraints, constraintsBlock, proposeConstraintMutation } from "./constraints";
 import { canonStep, canonBlock, loadCanon, saveCanon } from "./canon";
 import type { WorldSnapshot } from "../core/domain/world";
@@ -120,7 +121,8 @@ function roster(snap: WorldSnapshot): string {
       const fac = typeof c.props["faction"] === "string" ? `·${c.props["faction"]}` : "";
       const loc = snap.locations[c.locationId ?? ""]?.name;
       const gl = goalLabel(c);
-      return `${c.name}(${natalLabel(c)}·${tierName(c.progressionTier)}${gl ? "·" + gl : ""}${fac}${loc ? "@" + loc : ""}${bonds ? "，" + bonds : ""})`;
+      const inner = INNER_CN[String(c.props["innerDrive"] ?? "")] ?? "";
+      return `${c.name}(${natalLabel(c)}·${tierName(c.progressionTier)}${gl ? "·" + gl : ""}${inner ? "·" + inner : ""}${fac}${loc ? "@" + loc : ""}${bonds ? "，" + bonds : ""})`;
     })
     .join("、");
 }
@@ -282,7 +284,11 @@ async function main(): Promise<void> {
     // 认知②: 召回在场角色的显著情景记忆 → 章节作前情回响(callback)
     const present = new Set(Object.values(snap.snapshot.characters).filter((c) => c.present).map((c) => c.id));
     const echoes = store.readSalientMemories(db, worldId, 0.6, 6).filter((m) => present.has(m.characterId)).map((m) => m.body);
-    const bibleEcho = echoes.length ? `${bible}\n【角色近事回响】${echoes.slice(0, 4).join("；")}` : bible;
+    const baseEcho = echoes.length ? `${bible}\n【角色近事回响】${echoes.slice(0, 4).join("；")}` : bible;
+    // M2 终身记忆: 每角色 persona digest(canon属性+M1心境+恩怨账+执念) + 宿缘旧账, 注入前情 → 角色带一生与恩怨出场(零新 LLM)
+    const persona = personaBlock(snap.snapshot, loadCanon(ROOT));
+    const shared = recallShared(store.readSalientMemories(db, worldId, 0.6, 40), snap.snapshot);
+    const bibleEcho = [baseEcho, persona, shared.length ? "【宿缘·同框者旧账(可点到)】" + shared.slice(0, 3).join("；") : ""].filter(Boolean).join("\n");
     // 叙事·伏笔账: 到期回收 / 每 6 章埋设(开放伏笔 < 3 时), 形成 setup→payoff 跨章结构
     const fsList = readFs();
     let weave = "";
