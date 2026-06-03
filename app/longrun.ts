@@ -251,7 +251,7 @@ async function main(): Promise<void> {
     // 议事·奇门定夺: 作者若宽限期(~3章)内未裁, 由奇门吉凶自动落定(吉/平→依准, 凶→另议); 作者可在窗口内 /api/verdict 抢先裁
     {
       const sp = store.loadSnapshot(db, worldId);
-      const pend = sp && Array.isArray(sp.snapshot.props["pendingDecisions"]) ? (sp.snapshot.props["pendingDecisions"] as Array<{ decisionId: string; omen?: string }>) : [];
+      const pend = sp && Array.isArray(sp.snapshot.props["pendingDecisions"]) ? (sp.snapshot.props["pendingDecisions"] as Array<{ decisionId: string; valence?: number }>) : [];
       const curTick = sp?.snapshot.tick ?? 0;
       const GRACE_TICKS = 3 * 3; // 宽限约 3 章(给作者插手窗口)
       let auto = false;
@@ -259,7 +259,7 @@ async function main(): Promise<void> {
         const m = p.decisionId.match(/t(\d+)$/);
         const age = curTick - (m ? Number(m[1]) : curTick);
         if (age >= GRACE_TICKS) {
-          store.enqueueInput(db, `auto-${p.decisionId}`, worldId, "author-verdict", { decisionId: p.decisionId, verdict: p.omen === "凶" ? "reject" : "accept" }, Date.now());
+          store.enqueueInput(db, `auto-${p.decisionId}`, worldId, "author-verdict", { decisionId: p.decisionId, verdict: (p.valence ?? 0) < -0.2 ? "reject" : "accept" }, Date.now());
           auto = true;
         }
       }

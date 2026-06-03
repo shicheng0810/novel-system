@@ -13,8 +13,8 @@ for (let i = 0; i < 4; i++) store.enqueueInput(db, `sp-${i}`, wid, "spawn-charac
 for (let t = 0; t < 60; t++) {
   if (t % 25 === 24) {
     const sp = store.loadSnapshot(db, wid);
-    const pend = sp && Array.isArray(sp.snapshot.props["pendingDecisions"]) ? (sp.snapshot.props["pendingDecisions"] as Array<{ decisionId: string; omen?: string }>) : [];
-    for (const p of pend) store.enqueueInput(db, `auto-${p.decisionId}`, wid, "author-verdict", { decisionId: p.decisionId, verdict: p.omen === "凶" ? "reject" : "accept" }, 1);
+    const pend = sp && Array.isArray(sp.snapshot.props["pendingDecisions"]) ? (sp.snapshot.props["pendingDecisions"] as Array<{ decisionId: string; valence?: number }>) : [];
+    for (const p of pend) store.enqueueInput(db, `auto-${p.decisionId}`, wid, "author-verdict", { decisionId: p.decisionId, verdict: (p.valence ?? 0) < -0.2 ? "reject" : "accept" }, 1);
   }
   await runTicks(db, wid, pack, new MockLLM(), 1);
 }

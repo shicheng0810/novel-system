@@ -104,7 +104,7 @@ function simRuleStoryEvent(snapshot: WorldSnapshot, tick: number): StoryEvent | 
       stressDelta: typeof ev["stressDelta"] === "number" ? Math.max(-0.4, Math.min(0.4, ev["stressDelta"] as number)) : undefined,
       crisis: typeof ev["crisis"] === "string" ? (ev["crisis"] as string) : undefined,
       factionShifts: shifts,
-      omen: ev["omen"] === "吉" || ev["omen"] === "凶" ? (ev["omen"] as "吉" | "凶") : "平",
+      outcome: { valence: typeof ev["valence"] === "number" ? Math.max(-1, Math.min(1, ev["valence"] as number)) : 0 },
     };
   }
   return null;
@@ -159,8 +159,8 @@ interface PendingDecision {
   charId: string;
   deltas: StateDelta[];
   summary: string;
-  hint?: string; // 奇门给作者的吉凶建议
-  omen?: string; // 吉/平/凶 → 无人值守时据此自动裁决
+  hint?: string; // pack 给作者的倾向建议文案
+  valence?: number; // 吉凶倾向(-1..1) → 无人值守时据其符号自动裁决
 }
 
 export interface StepResult {
@@ -310,8 +310,8 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
       gateVerdict = "ask-author";
       const decisionId = `dec-${runId}`;
       const deltas = (chosen.candidate.payload["deltas"] as StateDelta[] | undefined) ?? [];
-      const div = pack.divine?.(tick); // 奇门为这桩突破起局, 给作者吉凶建议
-      pending.push({ decisionId, candidateId: chosen.candidate.id, charId: chosen.candidate.characterId, deltas, summary: chosen.candidate.summary, hint: div?.hint, omen: div?.omen });
+      const div = pack.divine?.(tick); // pack 为这桩突破给作者倾向建议(genre 措辞在 hint, 引擎只用 valence)
+      pending.push({ decisionId, candidateId: chosen.candidate.id, charId: chosen.candidate.characterId, deltas, summary: chosen.candidate.summary, hint: div?.hint, valence: div?.valence });
       evs.push({ kind: "DecisionRequired", decisionId, branchId: chosen.candidate.id, options: ["accept", "reject"], summary: chosen.candidate.summary, hint: div?.hint ?? "" });
       committed = scored.find((s) => s.candidate.characterId === chosen.candidate.characterId && s.candidate.kind === "observe") ?? null;
     }
@@ -424,24 +424,25 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
       }
       snapshot.props["factionRelations"] = fr;
     }
-    // 奇门吉凶决定大事结果: 吉→机缘进展(阅历+1, 张力舒缓); 凶→危殆折损(张力顶满, 首二人反目, 首人道途受挫)
+    // 大事倾向(中立 valence, pack 翻译自其占卜)决定结果: 好兆(>0.2)→机缘进展(阅历+1, 张力舒缓); 凶兆(<-0.2)→危殆折损(折损/反目); 中性→释怀
+    const valence = typeof story.outcome?.valence === "number" ? story.outcome.valence : 0;
     const numProp = (c: CharacterState, k: string): number => (typeof c.props[k] === "number" ? (c.props[k] as number) : 0);
-    // 复仇了断: 大事临头, 怀仇者借奇门吉凶了结恩怨(吉→雪恨, 凶→配角同归/主角受挫, 平→释怀); 了结即清仇念, 不无限挂着
+    // 复仇了断: 大事临头, 怀仇者据倾向了结恩怨(好→雪恨, 凶→配角同归/主角受挫, 中→释怀); 了结即清仇念, 不无限挂着
     for (const c of present2) {
       const av = typeof c.props["avenge"] === "string" ? (c.props["avenge"] as string) : "";
       if (!av) continue;
       let outcome: string;
-      if (story.omen === "吉") {
+      if (valence > 0.2) {
         outcome = "雪恨功成";
         c.narrativeStress = Math.max(0, c.narrativeStress - 0.3);
         c.props["actCount"] = numProp(c, "actCount") + 1;
-      } else if (story.omen === "凶") {
+      } else if (valence < -0.2) {
         if (c.id.startsWith("s")) {
           outcome = "同归于尽";
           c.present = false;
         } else {
           outcome = "复仇受挫";
-          appraise(c, 0.6); // 顶满改大正增量(经 caution divider): 不再绝对 =1 抹掉前面 appraise, 命格钝化对所有路径一致生效
+          appraise(c, 0.6); // 顶满改大正增量(经 caution divider): 命格钝化对所有路径一致生效
         }
       } else {
         outcome = "恩怨释怀";
@@ -450,12 +451,12 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
       delete c.props["avenge"];
       evs.push({ kind: "VengeanceResolved", characterId: c.id, avenged: av, outcome });
     }
-    if (story.omen === "吉") {
+    if (valence > 0.2) {
       for (const c of targets) {
         c.props["actCount"] = numProp(c, "actCount") + 1;
-        appraise(c, -0.25); // 吉事舒缓(同经 appraisal 钝化)
+        appraise(c, -0.25); // 好兆舒缓(同经 appraisal 钝化)
       }
-    } else if (story.omen === "凶") {
+    } else if (valence < -0.2) {
       for (const c of targets) appraise(c, 0.7); // 凶事重创, 但持重者受触轻(appraisal divider)
       const a = targets[0];
       const b = targets[1];

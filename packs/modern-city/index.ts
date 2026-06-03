@@ -10,10 +10,10 @@ import { natalOf, dayMasterElem, generates, controls, ELEM_CN } from "../xianxia
 import { qimenForecast, plateLabel } from "../xianxia-bazi/qimen";
 
 // 奇门给"抉择"出吉凶建议(逻辑同 xianxia, 奇门本体 qimenForecast 一字不改)
-function divine(tick: number): { hint: string; omen: "吉" | "平" | "凶" } {
+function divine(tick: number): { hint: string; valence: number } {
   const qm = qimenForecast(tick);
   const adv = qm.omen === "吉" ? "奇门示喜：此局宜进、放手一搏" : qm.omen === "凶" ? "奇门示警：此局宜避、强求恐败" : "奇门示平：此局虚实难料，宜慎勿躁";
-  return { hint: `${adv}（${qm.line}）`, omen: qm.omen };
+  return { hint: `${adv}（${qm.line}）`, valence: qm.omen === "吉" ? 0.6 : qm.omen === "凶" ? -0.6 : 0 };
 }
 
 function num(v: unknown, d: number): number {
@@ -84,7 +84,7 @@ const LOC_IDS = Object.keys(LOCATIONS);
 const FACTIONS = ["云图科技", "鼎晖资本", "星岚传媒", "自由职业", "灰产圈", "学院派"];
 
 // ── 系统级大事(都市版; 吉凶仍由【奇门】qimenForecast 推演, 不变) ──
-const STORY_EVENTS: Array<Omit<StoryEvent, "id" | "omen">> = [
+const STORY_EVENTS: Array<Omit<StoryEvent, "id" | "outcome">> = [
   { name: "资本寒冬", summary: "资本骤然收紧，各家裁员收缩、人人自危", gatherAt: "loc-tower", crisis: "资本寒冬，现金为王，去留见人心", stressDelta: 0.28, factionShifts: [{ a: "鼎晖资本", b: "云图科技", delta: -2 }] },
   { name: "并购传闻", summary: "云图科技拟收购星岚传媒，暗流汹涌、各方博弈", gatherAt: "loc-club", crisis: "并购传闻四起，站队即站命", stressDelta: 0.24, factionShifts: [{ a: "云图科技", b: "星岚传媒", delta: -3 }, { a: "云图科技", b: "鼎晖资本", delta: 1 }] },
   { name: "绯闻爆料", summary: "一桩顶流绯闻被狗仔爆出，舆论哗然、公关连夜灭火", gatherAt: "loc-bar", crisis: "绯闻爆料引爆热搜，名声反噬", stressDelta: 0.22, factionShifts: [{ a: "星岚传媒", b: "灰产圈", delta: -2 }] },
@@ -97,7 +97,7 @@ function nextStoryEvent(_snapshot: WorldSnapshot, tick: number): StoryEvent | nu
   const ev = STORY_EVENTS[(Math.floor(tick / 20) - 1) % STORY_EVENTS.length]!;
   const qm = qimenForecast(tick); // ← 奇门遁甲推演大事吉凶, 与修仙包一字不差
   const outcome = qm.omen === "吉" ? "此局得天时、乘势者上，机缘暗藏" : qm.omen === "凶" ? "此局犯大凶，恐有反目折戟、满盘皆输" : "此局虚实难料，胜负在人谋";
-  return { id: `story-${tick}`, involve: "all", ...ev, summary: `${ev.summary}。${qm.line}`, crisis: `${ev.crisis}（${qm.line}；${outcome}）`, stressDelta: Math.min(0.5, (ev.stressDelta ?? 0.2) * qm.mult), omen: qm.omen };
+  return { id: `story-${tick}`, involve: "all", ...ev, summary: `${ev.summary}。${qm.line}`, crisis: `${ev.crisis}（${qm.line}；${outcome}）`, stressDelta: Math.min(0.5, (ev.stressDelta ?? 0.2) * qm.mult), outcome: { valence: qm.omen === "吉" ? 0.6 : qm.omen === "凶" ? -0.6 : 0 } };
 }
 
 // ── 动态登场 / 东山再起 ──

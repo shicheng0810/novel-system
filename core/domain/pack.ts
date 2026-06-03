@@ -122,7 +122,9 @@ export interface StoryEvent {
   stressDelta?: number;
   crisis?: string; // 设为当前世界危机(喂章节)
   factionShifts?: Array<{ a: string; b: string; delta: number }>; // 派系关系增量(+结盟 / -交恶)
-  omen?: "吉" | "平" | "凶"; // 奇门吉凶 → 决定大事结果(引擎据此施加进展/折损)
+  // 大事吉凶倾向: 引擎中立的连续量, 不认任何命理字面量。valence -1..1(>0 好兆→机缘进展/雪恨; <0 凶兆→危殆折损/反目; ≈0 中性)。
+  // pack 把自己的占卜(如奇门吉凶)翻译成 valence 交给引擎; 引擎只按符号施加通用奖惩, 不内嵌"吉/凶"语义。
+  outcome?: { valence: number; magnitude?: number };
 }
 
 // ── 内容包总接口 ──
@@ -143,7 +145,7 @@ export interface ContentPack {
   // 系统级剧情事件: 引擎每 tick 问 pack 是否起一桩大事(影响多角色/全局)
   nextStoryEvent?(snapshot: WorldSnapshot, tick: number): StoryEvent | null;
   // 奇门为"作者裁决"提供吉凶建议(议事栏显示 + 无人值守时据此自动裁决)
-  divine?(tick: number): { hint: string; omen: "吉" | "平" | "凶" };
+  divine?(tick: number): { hint: string; valence: number }; // hint 给作者的建议文案(pack 可含 genre 措辞); valence 是中立倾向(无人值守时引擎据其符号自动裁决)
   // 被吞并的派系: 残部拥立枭雄复兴(longrun 在吞并数章后调用; 版图有兴有衰)
   reviveFaction?(faction: string, index: number): CharacterState;
   // 长篇情境弧线(genre 场景序列, 喂 longrun 的 sceneFor; 缺省则用 longrun 内置)

@@ -395,15 +395,15 @@ function nextStoryEvent(snapshot: WorldSnapshot, tick: number): StoryEvent | nul
     summary: `${ev.summary}。${qm.line}`,
     crisis: `${ev.crisis}（${qm.line}；${outcome}）`,
     stressDelta: Math.min(0.5, (ev.stressDelta ?? 0.2) * qm.mult),
-    omen: qm.omen,
+    outcome: { valence: qm.omen === "吉" ? 0.6 : qm.omen === "凶" ? -0.6 : 0 }, // 奇门吉凶 → 引擎中立 valence
   };
 }
 
 // 奇门为"作者裁决"提供吉凶建议(议事栏显示 + 无人值守时据此自动裁决)
-function divine(tick: number): { hint: string; omen: "吉" | "平" | "凶" } {
+function divine(tick: number): { hint: string; valence: number } {
   const qm = qimenForecast(tick);
   const adv = qm.omen === "吉" ? "奇门示喜：此局宜进，破之有望" : qm.omen === "凶" ? "奇门示警：此局宜避，强为恐遭反噬" : "奇门示平：此局虚实难料，宜慎勿躁";
-  return { hint: `${adv}（${qm.line}）`, omen: qm.omen };
+  return { hint: `${adv}（${qm.line}）`, valence: qm.omen === "吉" ? 0.6 : qm.omen === "凶" ? -0.6 : 0 };
 }
 
 // 被吞并派系的复兴: 残部拥立一名修为颇高的枭雄, 重举旗号(版图有兴有衰)

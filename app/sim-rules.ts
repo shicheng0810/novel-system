@@ -20,7 +20,7 @@ export interface SimRule {
   name: string;
   trigger: { metric: Metric; op: ">" | "<"; value: number };
   cooldown: number;
-  event: { summary: string; crisis?: string; stressDelta?: number; gatherAt?: string; factionShifts?: Array<{ a: string; b: string; delta: number }>; omen?: "吉" | "平" | "凶" };
+  event: { summary: string; crisis?: string; stressDelta?: number; gatherAt?: string; factionShifts?: Array<{ a: string; b: string; delta: number }>; valence?: number };
   rationale: string;
   atVol: number;
   lastFired?: number;
@@ -67,7 +67,7 @@ function validateSimRule(j: Record<string, unknown>, vol: number, idSuffix: stri
       stressDelta: typeof ev["stressDelta"] === "number" ? Math.max(-0.4, Math.min(0.4, ev["stressDelta"] as number)) : undefined,
       gatherAt: typeof ev["gatherAt"] === "string" ? (ev["gatherAt"] as string) : undefined,
       factionShifts: factionShifts.length ? factionShifts : undefined,
-      omen: ev["omen"] === "吉" || ev["omen"] === "凶" ? (ev["omen"] as "吉" | "凶") : "平",
+      valence: typeof ev["valence"] === "number" ? Math.max(-1, Math.min(1, ev["valence"] as number)) : 0,
     },
     rationale: typeof j["rationale"] === "string" ? (j["rationale"] as string).slice(0, 140) : "",
     atVol: vol,
@@ -112,7 +112,7 @@ export async function shadowSim(snapshot: WorldSnapshot, rule: SimRule, pack: Co
 async function proposeSimRule(llm: LLMProvider, sys: string, recent: string, vol: number, active: SimRule[], idSuffix: string): Promise<SimRule | null> {
   const have = active.map((r) => `${r.name}(当${r.trigger.metric}${r.trigger.op}${r.trigger.value})`).join("、") || "无";
   const raw = await llm.complete(
-    `${sys}\n你在为这个「小说世界模拟器」**发明一条全新的世界机制**(不是调数值, 是新玩法)——一个由世界状态触发、改变局面的规律。已有机制：${have}。\n近期世界梗概：${recent.slice(0, 500)}\n\n机制由「触发条件(读一个世界指标)+ 触发后的大事效果」构成。只能读这些指标：\n· avgStress(在场角色平均心境张力 0~1) · presentCount(在场人数) · factionCount(在场派系数) · avengerCount(怀复仇心的人数) · maxHostility(最敌对两派的交恶度 0~9)\n要新颖(别和已有机制同指标)、能自洽落地、且不会把世界写崩。只回 JSON：\n{"name":"机制名≤8字","trigger":{"metric":"上面之一","op":">"或"<","value":数},"cooldown":两次触发最小间隔tick(20~60),"event":{"summary":"触发时的大事描述(一句)","crisis":"设为世界危机的一句话","stressDelta":对在场张力的增减(-0.4~0.4),"factionShifts":[{"a":"派系名","b":"派系名","delta":关系增减(-3~3)}],"omen":"吉"或"平"或"凶"},"rationale":"这机制能涌现出什么现有大事覆盖不了的新局面(一句)"}`,
+    `${sys}\n你在为这个「小说世界模拟器」**发明一条全新的世界机制**(不是调数值, 是新玩法)——一个由世界状态触发、改变局面的规律。已有机制：${have}。\n近期世界梗概：${recent.slice(0, 500)}\n\n机制由「触发条件(读一个世界指标)+ 触发后的大事效果」构成。只能读这些指标：\n· avgStress(在场角色平均心境张力 0~1) · presentCount(在场人数) · factionCount(在场派系数) · avengerCount(怀复仇心的人数) · maxHostility(最敌对两派的交恶度 0~9)\n要新颖(别和已有机制同指标)、能自洽落地、且不会把世界写崩。只回 JSON：\n{"name":"机制名≤8字","trigger":{"metric":"上面之一","op":">"或"<","value":数},"cooldown":两次触发最小间隔tick(20~60),"event":{"summary":"触发时的大事描述(一句)","crisis":"设为世界危机的一句话","stressDelta":对在场张力的增减(-0.4~0.4),"factionShifts":[{"a":"派系名","b":"派系名","delta":关系增减(-3~3)}],"valence":大事吉凶倾向(-1到1, 正=机缘/好兆, 负=折损/凶兆, 0=中性)},"rationale":"这机制能涌现出什么现有大事覆盖不了的新局面(一句)"}`,
     { thinking: false, temperature: 0.95 },
   );
   let j: Record<string, unknown>;

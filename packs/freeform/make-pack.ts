@@ -127,10 +127,10 @@ export function makePack(cfg: WorldConfig) {
     return c;
   }
 
-  function divine(tick: number): { hint: string; omen: "吉" | "平" | "凶" } {
+  function divine(tick: number): { hint: string; valence: number } {
     const qm = qimenForecast(tick);
     const adv = qm.omen === "吉" ? "天机示喜：此局宜进、放手一搏" : qm.omen === "凶" ? "天机示警：此局宜避、强求恐败" : "天机示平：虚实难料，宜慎";
-    return { hint: `${adv}（${qm.line}）`, omen: qm.omen };
+    return { hint: `${adv}（${qm.line}）`, valence: qm.omen === "吉" ? 0.6 : qm.omen === "凶" ? -0.6 : 0 };
   }
   function nextStoryEvent(_s: WorldSnapshot, tick: number): StoryEvent | null {
     if (cfg.storyEvents.length === 0) return null;
@@ -142,7 +142,7 @@ export function makePack(cfg: WorldConfig) {
     const ev = cfg.storyEvents[(Math.floor(tick / period) - 1 + cfg.storyEvents.length) % cfg.storyEvents.length]!;
     const qm = qimenForecast(tick);
     const outcome = qm.omen === "吉" ? "此局得天时、乘势者上" : qm.omen === "凶" ? "此局犯大凶，恐有反目折戟" : "此局虚实难料，胜负在人";
-    return { id: `story-${tick}`, involve: "all", ...ev, summary: `${ev.summary}。${qm.line}`, crisis: `${ev.crisis}（${qm.line}；${outcome}）`, stressDelta: Math.min(0.5, (ev.stressDelta ?? 0.22) * qm.mult), omen: qm.omen };
+    return { id: `story-${tick}`, involve: "all", ...ev, summary: `${ev.summary}。${qm.line}`, crisis: `${ev.crisis}（${qm.line}；${outcome}）`, stressDelta: Math.min(0.5, (ev.stressDelta ?? 0.22) * qm.mult), outcome: { valence: qm.omen === "吉" ? 0.6 : qm.omen === "凶" ? -0.6 : 0 } };
   }
 
   const priorSystem: PriorSystem = {
