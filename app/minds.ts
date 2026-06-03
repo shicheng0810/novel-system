@@ -64,13 +64,17 @@ export function accrueImportance(m: MindsState, events: Array<{ kind: string; pa
   if (m.lastFp) for (const id of Object.keys(m.lastFp)) if (!snapshot.characters[id]?.present) delete m.lastFp[id];
 }
 
-// ② 选队列: pending 破阈者, 取 top-K
-export function selectQueue(m: MindsState, snapshot: WorldSnapshot): string[] {
-  return Object.entries(m.pendingImp)
-    .filter(([id, v]) => v >= THRESHOLD && snapshot.characters[id]?.present)
+// ② 选队列: pending 破阈者 + force-set(里程碑大事者即便卷入度未破阈也须反思), 按卷入度取 top-K(force 优先占位)
+// 修审计「force-set 对单个次阈大事失效」: 旧版只取 pending≥THRESHOLD 者, 一个只经历破境(1.2)或单条复仇了断(2.0)的角色独存时进不了队,
+//   其 force 标记在 longrun 里永远碰不到 → 强制反思不可达。现把在场 force 角色 union 进队(必反思), 余位按卷入度补满。
+export function selectQueue(m: MindsState, snapshot: WorldSnapshot, force: string[] = []): string[] {
+  const present = (id: string): boolean => !!snapshot.characters[id]?.present;
+  const forced = [...new Set(force)].filter(present); // 在场 + 去重: 必进队
+  const overThresh = Object.entries(m.pendingImp)
+    .filter(([id, v]) => v >= THRESHOLD && present(id) && !forced.includes(id))
     .sort((a, b) => b[1] - a[1])
-    .slice(0, K_MAX)
     .map(([id]) => id);
+  return [...forced, ...overThresh].slice(0, K_MAX);
 }
 
 // ③ 批量反思: 一次 LLM 调用更新 K 人。每人编号独立小节防串味; 只回 JSON 数组。

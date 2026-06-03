@@ -159,7 +159,7 @@ export function factionTension(snapshot: WorldSnapshot, events: WorldEventRecord
   const avengers = present.filter((c) => typeof c.props["avenge"] === "string").length;
   const intensity = Math.min(1, 0.55 * avgStress + 0.25 * hasCrisis + 0.2 * Math.min(1, avengers / 3));
 
-  // resolution: 历史上多少陨落得到了了断(VengeanceResolved / CharacterFell)
+  // resolution: 多少陨落得了断(VengeanceResolved/CharacterFell 之比)。注: events 为调用方传入窗口(longrun 增量读近 ~800), 故此为近窗了断率而非终身——偏差 ~0.01-0.05, 属取样权衡, 审计§进化数据流确认非回归(不为 0.014 适应度加全量计数的管线)
   const nFell = events.filter((e) => e.kind === "CharacterFell").length;
   const nResolved = events.filter((e) => e.kind === "VengeanceResolved").length;
   const resolution = nFell ? Math.min(1, nResolved / nFell) : 0.5;

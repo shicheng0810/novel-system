@@ -31,8 +31,13 @@ export function canonBlock(c: Canon): string {
 // 一步: 更新 canon(抽取并入新事实) + 校验近章矛盾。落盘(含 lastConsistency / lastContradictions)。
 export async function canonStep(llm: LLMProvider, sys: string, d: string, chapters: Array<{ goal: string; text: string }>, atCh: number, hardFacts = ""): Promise<{ canon: Canon; contradictions: string[]; score: number }> {
   const c = loadCanon(d);
-  // 样本取头尾(不再只看首 900 字漏掉大半正文): 头 1200 + 尾 400
-  const sample = chapters.map((x) => `《${x.goal}》${x.text.slice(0, 1200)}${x.text.length > 1600 ? "……" + x.text.slice(-400) : ""}`).join("\n\n");
+  // 样本取头尾(不再只看首 900 字漏掉大半正文): 头 1200 + 尾≤400。修取样死区: 1200~1600 字章按实际长度补尾(首尾相接、不插省略号、不重叠), >1600 才中段省略
+  const sample = chapters.map((x) => {
+    const t = x.text;
+    if (t.length <= 1200) return `《${x.goal}》${t}`;
+    const tail = Math.min(400, t.length - 1200); // 1200~1600 段 tail=len-1200(首尾恰好相接), >1600 段 tail=400(中段省略)
+    return `《${x.goal}》${t.slice(0, 1200)}${t.length > 1600 ? "……" : ""}${t.slice(-tail)}`;
+  }).join("\n\n");
   // ① 抽取/更新【软设定层】(境界/派系/生死由引擎权威派生, 此处不碰 → 消除抽取漂移)
   try {
     const raw = await llm.complete(

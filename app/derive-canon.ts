@@ -4,7 +4,8 @@
 //   canonStep 的 LLM 退化为只补「软描述层」(灵根来历/隐秘/性情/伏笔), 不再碰境界/派系。core/ 不涉, 叶子模块。
 import type { WorldSnapshot, CharacterState } from "../core/domain/world";
 
-export interface Derived { name: string; tier: string; faction: string; alive: boolean; bonds: string[]; avenge?: string; seasoning: number }
+// onStage = c.present(是否在场)。注: present=false 有三源——CharacterFell/同归于尽(真死) 与 CharacterTranscended(飞升, 非死亡); 故此字段是"在场"而非"存活", 勿据此判生死/可复仇。下游 derivedBlock/derivedFacts 只用它做在场过滤(写谁约束谁), 飞升者与逝者同样排除出在场设定块, 语义正确。
+export interface Derived { name: string; tier: string; faction: string; onStage: boolean; bonds: string[]; avenge?: string; seasoning: number }
 
 const numOf = (c: CharacterState, k: string): number => (typeof c.props[k] === "number" ? (c.props[k] as number) : 0);
 
@@ -21,7 +22,7 @@ export function deriveCanon(snap: WorldSnapshot, tierName: (id?: string) => stri
       name: c.name,
       tier: tierName(c.progressionTier),
       faction: typeof c.props["faction"] === "string" ? (c.props["faction"] as string) : "",
-      alive: c.present,
+      onStage: c.present,
       bonds,
       avenge: typeof c.props["avenge"] === "string" ? (c.props["avenge"] as string) : undefined,
       seasoning: numOf(c, "历练"),
@@ -32,7 +33,7 @@ export function deriveCanon(snap: WorldSnapshot, tierName: (id?: string) => stri
 
 // 权威设定块(引擎确定值, 每章强注入生成; prose 不可与之矛盾)。只列在场者——写谁约束谁。
 export function derivedBlock(derived: Record<string, Derived>): string {
-  const present = Object.values(derived).filter((d) => d.alive);
+  const present = Object.values(derived).filter((d) => d.onStage);
   if (!present.length) return "";
   const lines = present.slice(0, 16).map((d) => {
     const seasoned = d.seasoning >= 15 ? "·历经百劫" : d.seasoning >= 6 ? "·略有阅历" : "";
@@ -44,7 +45,7 @@ export function derivedBlock(derived: Record<string, Derived>): string {
 // 喂一致性校验的"硬事实"对照表: 让 LLM 据此判 prose 有无写错境界/派系, 而非自己再抽取(消除抽取漂移)
 export function derivedFacts(derived: Record<string, Derived>): string {
   return Object.values(derived)
-    .filter((d) => d.alive)
+    .filter((d) => d.onStage)
     .slice(0, 20)
     .map((d) => `${d.name}(${d.tier}${d.faction ? "·" + d.faction : ""}${d.avenge ? "·复仇中" : ""})`)
     .join("、");

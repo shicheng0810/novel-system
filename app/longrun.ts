@@ -220,9 +220,9 @@ async function main(): Promise<void> {
     if (n % 5 === 0 && PACK.spawnCharacter) {
       const sp0 = store.loadSnapshot(db, worldId);
       const present = sp0 ? Object.values(sp0.snapshot.characters).filter((c) => c.present).length : 99;
-      const TARGET = 16, FLOOR = 10;
-      if (present < TARGET) {
-        const nSpawn = present < FLOOR ? Math.min(4, TARGET - present) : 1;
+      const ROSTER_TARGET = 16, FLOOR = 10; // 目标在场人数(勿与模块级 TARGET=章节总目标混淆)
+      if (present < ROSTER_TARGET) {
+        const nSpawn = present < FLOOR ? Math.min(4, ROSTER_TARGET - present) : 1;
         for (let k = 0; k < nSpawn; k++) store.enqueueInput(db, `spawn-${n}-${k}`, worldId, "spawn-character", { character: PACK.spawnCharacter("长篇", n + k) }, Date.now());
       }
     }
@@ -276,7 +276,7 @@ async function main(): Promise<void> {
     const facSummary = fr
       ? Object.entries(fr).flatMap(([a, m]) => Object.entries(m).filter(([b]) => a < b).map(([b, v]) => `${a}与${b}${v > 0 ? "结盟" : v < 0 ? "交恶" : "中立"}`)).slice(0, 4).join("；")
       : "";
-    // 变故: 自上章以来的陨落/吞并 + 复兴 + 怀复仇者 → 写进本章正文。【副作用(evCursor推进/复兴入队出队/伏笔/反思)全部延后到本章落盘成功后, 守门弃章则一概不发生 → 干净重试】
+    // 变故: 自上章以来的陨落/吞并 + 复兴 + 怀复仇者 → 写进本章正文。【仅叙述耦合副作用(evCursor推进/复兴入队出队/伏笔/反思)延后到本章落盘成功后, 守门弃章则这些一概不发生 → 干净重试。注: 世界步进/drama streak 已在上方提交、不随弃章回滚——但 evCursor 未推进, 其新事件下章如实补叙, 无重复计数】
     const newEvs = store.readEventsSince(db, worldId, evCursor); // 增量读(替代全量读再 filter, 治千章 O(N^2))
     const upsets = newEvs.filter((e) => e.kind === "CharacterFell" || e.kind === "FactionDissolved" || e.kind === "VengeanceResolved" || e.kind === "CharacterTranscended").map((e) => e.summary).filter((s): s is string => !!s);
     // 被吞并的派系排期 8 章后复兴; 到期者此处只算"值"(供正文), 真正入队/出队延后到落盘后
@@ -327,7 +327,7 @@ async function main(): Promise<void> {
     }
     writeFileSync(join(CH_DIR, `ch-${String(n).padStart(4, "0")}.md`), `# 第${n}章　${ch.goal}\n\n${ch.text}\n`, "utf8");
     store.saveChapter(db, { id: `saga-ch-${n}`, worldId, goal: ch.goal, text: ch.text, status: "inscribed", createdAt: Date.now() });
-    // ── 本章落盘成功 → 现在才提交所有副作用(守门弃章则上面一概未发生 → 干净重试; 修审计「守门 n-- 不回滚 evCursor/复兴/伏笔」) ──
+    // ── 本章落盘成功 → 现在才提交叙述耦合副作用(守门弃章则下面一概未发生 → 干净重试; 修审计「守门 n-- 不回滚 evCursor/复兴/伏笔」)。世界步进已在上方提交但 evCursor 未推进→新事件下章补叙不重复 ──
     for (const e of newEvs) evCursor = Math.max(evCursor, e.seq ?? 0);
     for (const e of newEvs) if (e.kind === "FactionDissolved") { const f = (e.payload as { faction?: string }).faction; if (f) revivals.push({ faction: f, at: n + 8 }); }
     for (const rs of reviveSpawns) store.enqueueInput(db, `revive-${rs.faction}-${n}`, worldId, "spawn-character", { character: rs.reviver }, Date.now());
@@ -339,7 +339,7 @@ async function main(): Promise<void> {
       try {
         accrueImportance(minds, newEvs, snap.snapshot);
         if (n - minds.lastReflectCh >= 3) {
-          const queue = selectQueue(minds, snap.snapshot);
+          const queue = selectQueue(minds, snap.snapshot, minds.force); // force-set 角色即便未破阈也 union 进队(里程碑大事必反思)
           minds.lastFp = minds.lastFp ?? {};
           const fresh: string[] = []; let cachedN = 0;
           const forceSet = new Set(minds.force ?? []); // 大事经历者(复仇/破境/羁绊者陨落)强制反思, 绕过 M4 情境指纹缓存(防漏反思)
