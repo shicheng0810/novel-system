@@ -45,7 +45,8 @@ export const DEFAULT_GENOME: Genome = {
   engine: { priorWeight: 1.0, scarcity: 0, conflictRate: 1.0, eventBias: 1.0, turnoverRate: 1.0, nicheWeight: 0, structureGrowth: 0 }, // 全默认 = 现状行为(不破坏在跑世界)
   generation: 0,
 };
-const cloneGenome = (g: Genome): Genome => ({ gen: { ...g.gen }, engine: { ...g.engine }, generation: g.generation });
+// 注意 backfill DEFAULT_GENOME.engine: 旧存档/全局基因是改造前的 engine 形状(只有 priorWeight), 选作变异父本时会丢新旋钮 → undefined。补默认确保 7 个旋钮都在、都能进化。
+const cloneGenome = (g: Genome): Genome => ({ gen: { ...g.gen }, engine: { ...DEFAULT_GENOME.engine, ...g.engine }, generation: g.generation });
 const emptyLedger = (): Ledger => ({ avoid: [], amplify: [], directives: [], scores: [] });
 
 export function loadGenome(d: string): Genome {
@@ -94,7 +95,7 @@ export function promoteToGlobal(worldDir: string): void {
     try {
       if (existsSync(join(D, "archive.json"))) {
         const cells = ((JSON.parse(readFileSync(join(D, "archive.json"), "utf8")).cells ?? []) as Cell[]);
-        for (const c of cells) if (c.fitness > bestFit && c.genome) { bestFit = c.fitness; bestGenome = { gen: { ...c.genome.gen }, engine: { ...c.genome.engine }, generation: 0 }; }
+        for (const c of cells) if (c.fitness > bestFit && c.genome) { bestFit = c.fitness; bestGenome = { ...cloneGenome(c.genome), generation: 0 }; } // cloneGenome 已 backfill 新旋钮默认
       }
     } catch { /* ignore */ }
   }
