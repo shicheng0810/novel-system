@@ -106,19 +106,22 @@ export class DeepSeekLLM implements LLMProvider {
   }
 }
 
-// 带 fallback 的包装: 主 provider 失败 → 回退(用户指令: hermes 不应答就本地直接跑)
+// 带 fallback 的包装: 主 provider 先【重试退避】(扛瞬时 429/503/网络抖动), 多次仍失败才回退。
+//   教训: 直接首错回退会把 MockLLM 的 46 字占位当正文落盘(瞬时限流→整章成垃圾)。重试让瞬时故障自愈。
 export class FallbackLLM implements LLMProvider {
   readonly id: string;
+  private readonly delays = [0, 3000, 8000, 20000]; // 立刻 / 3s / 8s / 20s
   constructor(private primary: LLMProvider, private fallback: LLMProvider) {
     this.id = `${primary.id}|fallback:${fallback.id}`;
   }
   async complete(prompt: string, opts?: CompleteOpts): Promise<string> {
-    try {
-      const out = await this.primary.complete(prompt, opts);
-      if (out && out.length > 0) return out;
-      return await this.fallback.complete(prompt, opts);
-    } catch {
-      return await this.fallback.complete(prompt, opts);
+    for (let i = 0; i < this.delays.length; i++) {
+      if (this.delays[i]! > 0) await new Promise((r) => setTimeout(r, this.delays[i]!));
+      try {
+        const out = await this.primary.complete(prompt, opts);
+        if (out && out.length > 0) return out;
+      } catch { /* 瞬时故障, 退避后重试 */ }
     }
+    return await this.fallback.complete(prompt, opts); // 多次重试仍失败才回退占位(调用方另有短输出守门)
   }
 }
