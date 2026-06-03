@@ -15,6 +15,9 @@ import { generateWorldConfig } from "./world-gen";
 import { loadGenome, loadLedger, loadArchive, loadGlobal } from "./evolve";
 import { loadConstraints, applyConstraintVerdict } from "./constraints";
 import { loadCanon } from "./canon";
+import { loadSimFitness, loadSimHistory } from "./sim-fitness";
+import { loadSimRules } from "./sim-rules";
+import { loadDrama } from "./drama";
 
 const PORT = Number(process.env["PORT"] ?? 8990);
 const here = dirname(fileURLToPath(import.meta.url));
@@ -171,7 +174,10 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       const dir = join(here, "..", ".novel-output", SAGA);
       const l = loadLedger(dir);
       const cn = loadCanon(dir);
-      return json(res, { genome: loadGenome(dir), archive: loadArchive(dir), scores: l.scores, avoid: l.avoid.map((a) => a.p), amplify: l.amplify, directives: l.directives, global: loadGlobal(dir), canon: { characters: cn.characters, world: cn.world, consistency: cn.lastConsistency, foreshadow: cn.lastForeshadow, contradictions: cn.lastContradictions } });
+      const sf = loadSimFitness(dir); // 模拟层(世界本身)自进化
+      const sr = loadSimRules(dir);
+      return json(res, { genome: loadGenome(dir), archive: loadArchive(dir), scores: l.scores, avoid: l.avoid.map((a) => a.p), amplify: l.amplify, directives: l.directives, global: loadGlobal(dir), canon: { characters: cn.characters, world: cn.world, consistency: cn.lastConsistency, foreshadow: cn.lastForeshadow, contradictions: cn.lastContradictions },
+        sim: sf ? { total: sf.total, sift: sf.sift, tension: sf.tension, novelty: sf.novelty, history: loadSimHistory(dir).history, rules: sr.active.map((r) => ({ name: r.name, trigger: r.trigger, summary: r.event.summary, rationale: r.rationale })), rulesRejected: sr.rejected.slice(-5), drama: loadDrama(dir) } : null });
     } catch {
       return json(res, { genome: null, archive: [], scores: [] });
     }

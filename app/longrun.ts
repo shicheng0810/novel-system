@@ -15,6 +15,9 @@ import * as store from "../core/services/store";
 import { step } from "../core/runtime/world-actor";
 import { PACK, natalLabel, goalLabel, plateLabel } from "./pack-select";
 import { loadGenome, loadLedger, buildGuidance, evolveOnce, loadGlobal } from "./evolve";
+import { computeSimFitness, saveSimFitness, loadSimFitness } from "./sim-fitness";
+import { dramaControl, loadDrama, saveDrama } from "./drama";
+import { evolveSimRules, loadSimRules } from "./sim-rules";
 import { loadConstraints, constraintsBlock, proposeConstraintMutation } from "./constraints";
 import { canonStep, canonBlock, loadCanon, saveCanon } from "./canon";
 import type { WorldSnapshot } from "../core/domain/world";
@@ -54,6 +57,7 @@ process.on("SIGTERM", () => { releaseLock(); process.exit(0); });
 const EVOLVE = process.env["NOVEL_EVOLVE"] !== "0";
 let evoGenome = loadGenome(ROOT);
 let evoGuidance = buildGuidance(loadLedger(ROOT), evoGenome, loadGlobal(ROOT).avoid);
+let drama = loadDrama(ROOT); // T4 临界控制器 + 戏剧导演状态(coldStreak/hotStreak), 跨重启持久
 let conBlock = constraintsBlock(loadConstraints(ROOT).active); // 规则层: 世界铁律(定义概念空间), 每章注入
 let canonInject = canonBlock(loadCanon(ROOT)); // 一致性: 已确立设定 + 待修正矛盾, 每章注入
 
@@ -194,11 +198,34 @@ async function main(): Promise<void> {
     n++;
     const vol = Math.floor((n - 1) / VOL) + 1;
     const scene = sceneFor(n);
-    // 世代更替: 持续补充新血(每 10 章), 在场上限 ~18 → 有人退场(飞升/陨落)便有新人填补, 代谢不息
-    if (n % 10 === 0 && PACK.spawnCharacter) {
+    // 世代更替 + 群像稳态: 每 5 章补血, 维持在场 ~16; 跌破下限 10 → 批量补(防坍塌, 已验证旧世界减员快于补员→塌到 2 人)。turnoverRate 旋钮另在引擎侧调折损节律。
+    if (n % 5 === 0 && PACK.spawnCharacter) {
       const sp0 = store.loadSnapshot(db, worldId);
       const present = sp0 ? Object.values(sp0.snapshot.characters).filter((c) => c.present).length : 99;
-      if (present < 18) store.enqueueInput(db, `spawn-${n}`, worldId, "spawn-character", { character: PACK.spawnCharacter("长篇", n / 10) }, Date.now());
+      const TARGET = 16, FLOOR = 10;
+      if (present < TARGET) {
+        const nSpawn = present < FLOOR ? Math.min(4, TARGET - present) : 1;
+        for (let k = 0; k < nSpawn; k++) store.enqueueInput(db, `spawn-${n}-${k}`, worldId, "spawn-character", { character: PACK.spawnCharacter("长篇", n + k) }, Date.now());
+      }
+    }
+    // T4 临界控制器 + 戏剧导演: 每章在进化 baseline(evoGenome.engine)上做稳态/戏剧干预 → 写 tuning/dramaFocus/dramaHint, 本章步进据此演化
+    let dramaHintText = "";
+    if (EVOLVE) {
+      const spd = store.loadSnapshot(db, worldId);
+      if (spd) {
+        const dc = dramaControl(store.readEvents(db, worldId), spd.snapshot, loadSimFitness(ROOT), evoGenome.engine, drama);
+        drama = dc.ctrl; saveDrama(ROOT, drama);
+        spd.snapshot.props["tuning"] = { ...dc.tuning };
+        spd.snapshot.props["dramaFocus"] = dc.dramaFocus;
+        dramaHintText = dc.dramaHint;
+        // T5: 把已准入的进化机制注入活世界(保留各机制的 lastFired 冷却态, 防每章重置后狂触发)
+        const fileRules = loadSimRules(ROOT).active;
+        const cur = Array.isArray(spd.snapshot.props["simRules"]) ? (spd.snapshot.props["simRules"] as Array<{ id: string; lastFired?: number }>) : [];
+        const lastById = new Map(cur.map((r) => [r.id, r.lastFired]));
+        spd.snapshot.props["simRules"] = fileRules.map((r) => ({ ...r, lastFired: lastById.get(r.id) ?? r.lastFired ?? -99999 }));
+        store.saveSnapshot(db, worldId, spd.snapshot, spd.lastSeq, Date.now());
+        if (n % 4 === 0) console.log(`  🎭 ${dc.log}`);
+      }
     }
     for (let t = 0; t < 3; t++) await guardedStep();
 
@@ -249,7 +276,7 @@ async function main(): Promise<void> {
       .map((c) => `${c.name}痛失${String(c.props["avenge"])}、誓复此仇`);
     const upheaval = [...upsets, ...avengers, ...reviveNotes].join("；");
     const qimen = plateLabel(snap.snapshot.tick ?? n * 3);
-    const crisis = [crisisBase, `奇门·${qimen}`, facSummary ? `派系格局：${facSummary}` : "", upheaval ? `近时变故：${upheaval}` : ""].filter(Boolean).join(" ｜ ");
+    const crisis = [crisisBase, `奇门·${qimen}`, facSummary ? `派系格局：${facSummary}` : "", upheaval ? `近时变故：${upheaval}` : "", dramaHintText ? `导演：${dramaHintText}` : ""].filter(Boolean).join(" ｜ ");
     const sig = configSignature();
     if (sig !== llmSig) { llm = makeLLM(); llmSig = sig; console.log(`↻ LLM 已切换为 ${llm.id}`); } // 网页改设置 → 热切换, 无需重启长跑
     // 认知②: 召回在场角色的显著情景记忆 → 章节作前情回响(callback)
@@ -302,11 +329,25 @@ async function main(): Promise<void> {
       bible = await rollSummary(bible, recent.slice(-8));
       if (EVOLVE) {
         try {
-          const rc = store.readChapters(db, worldId).filter((c) => c.id.startsWith("saga-ch-")).slice(-8).map((c) => ({ goal: c.goal, text: c.text }));
-          const evo = await evolveOnce(llm, sys, ROOT, vol, rc);
+          const allCh = store.readChapters(db, worldId).filter((c) => c.id.startsWith("saga-ch-")).map((c) => ({ goal: c.goal, text: c.text }));
+          // 模拟层 fitness: 先算好存盘(evolveOnce 会读它折进基因适应度; server 读出来画曲线)
+          const spf = store.loadSnapshot(db, worldId);
+          if (spf) {
+            const sf = computeSimFitness(store.readEvents(db, worldId), spf.snapshot, allCh, vol, n);
+            saveSimFitness(ROOT, sf);
+            console.log(`  🌍 模拟层${sf.total}/10 · 故事链${sf.sift.score}(${sf.sift.chains}条:${Object.entries(sf.sift.patterns).map(([k, v]) => k + v).join(",")}) · 派系张力${sf.tension.score}(势均${sf.tension.balance}/交锋${sf.tension.directness}/化解${sf.tension.resolution}) · 新颖${(sf.novelty * 10).toFixed(1)}${sf.sift.dangling.length ? " · 悬而未决:" + sf.sift.dangling.length : ""}`);
+          }
+          const evo = await evolveOnce(llm, sys, ROOT, vol, allCh.slice(-8));
           evoGenome = evo.genome; evoGuidance = evo.guidance; // 下一卷据此生成
           console.log(`  🧬 ${evo.report}`);
         } catch (e) { console.log("  🧬 进化跳过:", String(e).slice(0, 80)); }
+      }
+      // T5 模拟器自创机制: 每 16 章让 LLM 提议一条全新世界机制 → 静态/新颖/影子模拟三闸 → 过则注入活世界(模拟器自己长出新玩法)
+      if (EVOLVE && n % 16 === 0) {
+        try {
+          const sps = store.loadSnapshot(db, worldId);
+          if (sps) { const out = await evolveSimRules(llm, sys, ROOT, sps.snapshot, PACK, recent.slice(-6).join("；"), vol); console.log(`  🧪 ${out.report}`); }
+        } catch (e) { console.log("  🧪 机制提议跳过:", String(e).slice(0, 80)); }
       }
       // 规则层进化: 每 24 章, 若无待裁且距上次铁律变更≥16章, 提议一条【变革性】铁律变异 → 进议事由作者裁决
       if (n % 24 === 0) {
@@ -325,8 +366,7 @@ async function main(): Promise<void> {
       const s = store.loadSnapshot(db, worldId);
       if (s) {
         s.snapshot.props["bible"] = bible;
-        s.snapshot.props["tuning"] = { priorWeight: evoGenome.engine.priorWeight }; // 引擎读: 先验引导强度
-        store.saveSnapshot(db, worldId, s.snapshot, s.lastSeq, Date.now());
+        store.saveSnapshot(db, worldId, s.snapshot, s.lastSeq, Date.now()); // tuning 改由 T4 控制器每章写(baseline=evoGenome.engine + 临界/戏剧干预)
       }
     }
     console.log(`第 ${n}/${TARGET} 章　《${ch.goal}》　${ch.text.length}字　(${((Date.now() - t0) / 1000).toFixed(0)}s)`);

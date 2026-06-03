@@ -380,8 +380,12 @@ const STORY_EVENTS = [
 ];
 // 奇门真盘排局(节气定局/转盘九星·八门·八神/复合读吉凶)已移至 ./qimen.ts; qimenForecast 自该模块导入。
 function nextStoryEvent(snapshot: WorldSnapshot, tick: number): StoryEvent | null {
-  if (tick <= 0 || tick % 20 !== 0) return null;
-  const ev = STORY_EVENTS[(Math.floor(tick / 20) - 1) % STORY_EVENTS.length]!;
+  // eventBias(模拟旋钮, 默认1=每20拍): >1 大事更频(戏剧密度高), <1 更疏。引擎中立; 此处 pack 读 props.tuning 决定节律。
+  const tune = snapshot.props["tuning"];
+  const eventBias = tune && typeof tune === "object" && typeof (tune as { eventBias?: unknown }).eventBias === "number" ? (tune as { eventBias: number }).eventBias : 1;
+  const period = Math.max(6, Math.round(20 / Math.max(0.3, eventBias)));
+  if (tick <= 0 || tick % period !== 0) return null;
+  const ev = STORY_EVENTS[(Math.floor(tick / period) - 1 + STORY_EVENTS.length) % STORY_EVENTS.length]!;
   const qm = qimenForecast(tick);
   const outcome = qm.omen === "吉" ? "此局得天时，正道破局功成、机缘暗藏" : qm.omen === "凶" ? "此局犯大凶，恐有折损反目、道途受挫" : "此局虚实难料，胜负在人谋";
   return {
@@ -457,6 +461,7 @@ export const xianxiaBaziPack: ContentPack = {
       StoryEventTriggered: "大事",
       CharacterFell: "陨落",
       FactionDissolved: "吞并",
+      FactionSplit: "裂变",
       VengeanceResolved: "了断",
       CharacterTranscended: "飞升",
       ProgressionAdvanced: "破境",

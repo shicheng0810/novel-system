@@ -133,8 +133,13 @@ export function makePack(cfg: WorldConfig) {
     return { hint: `${adv}（${qm.line}）`, omen: qm.omen };
   }
   function nextStoryEvent(_s: WorldSnapshot, tick: number): StoryEvent | null {
-    if (tick <= 0 || tick % 20 !== 0 || cfg.storyEvents.length === 0) return null;
-    const ev = cfg.storyEvents[(Math.floor(tick / 20) - 1) % cfg.storyEvents.length]!;
+    if (cfg.storyEvents.length === 0) return null;
+    // eventBias(模拟旋钮, 默认1=每20拍): >1 大事更频, <1 更疏。引擎中立; pack 读 props.tuning 决定节律。
+    const tune = _s.props["tuning"];
+    const eventBias = tune && typeof tune === "object" && typeof (tune as { eventBias?: unknown }).eventBias === "number" ? (tune as { eventBias: number }).eventBias : 1;
+    const period = Math.max(6, Math.round(20 / Math.max(0.3, eventBias)));
+    if (tick <= 0 || tick % period !== 0) return null;
+    const ev = cfg.storyEvents[(Math.floor(tick / period) - 1 + cfg.storyEvents.length) % cfg.storyEvents.length]!;
     const qm = qimenForecast(tick);
     const outcome = qm.omen === "吉" ? "此局得天时、乘势者上" : qm.omen === "凶" ? "此局犯大凶，恐有反目折戟" : "此局虚实难料，胜负在人";
     return { id: `story-${tick}`, involve: "all", ...ev, summary: `${ev.summary}。${qm.line}`, crisis: `${ev.crisis}（${qm.line}；${outcome}）`, stressDelta: Math.min(0.5, (ev.stressDelta ?? 0.22) * qm.mult), omen: qm.omen };
@@ -251,7 +256,7 @@ export function makePack(cfg: WorldConfig) {
         { id: "commit", label: "落定" },
         { id: "compose", label: "成文" },
       ],
-      verbs: { CharacterEntered: "登场", StoryEventTriggered: "风云", CharacterFell: "出局", FactionDissolved: "并吞", VengeanceResolved: "了断", ProgressionAdvanced: "晋阶", CharacterTranscended: "归隐", StageCommitted: "落定" },
+      verbs: { CharacterEntered: "登场", StoryEventTriggered: "风云", CharacterFell: "出局", FactionDissolved: "并吞", FactionSplit: "分立", VengeanceResolved: "了断", ProgressionAdvanced: "晋阶", CharacterTranscended: "归隐", StageCommitted: "落定" },
     },
     composeProfile: {
       systemPrompt: cfg.composePrompt,

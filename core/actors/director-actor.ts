@@ -27,8 +27,12 @@ export function planDirector(state: DirectorState, snapshot: WorldSnapshot): { p
   const order = Object.values(snapshot.characters)
     .filter((c) => c.present)
     .map((c) => c.id);
-  // focus 轮转: 每 tick 一位登场, round-robin → 30 tick 内所有角色都演到
-  const focus = order.length > 0 ? [order[state.tickCount % order.length]] : [];
+  // focus 轮转: 默认 round-robin(30 tick 内所有角色都演到); 但戏剧导演可经 props.dramaFocus(通用 id 列表)
+  // 半数 tick 优先聚焦"半成形故事链"的角色(Awash 顺水推舟), 另半数仍轮转保群像不偏废。引擎中立: 只读 id 列表。
+  const dramaFocus = (Array.isArray(snapshot.props["dramaFocus"]) ? (snapshot.props["dramaFocus"] as string[]) : []).filter((id) => order.includes(id));
+  const focus = order.length === 0 ? []
+    : dramaFocus.length > 0 && state.tickCount % 2 === 0 ? [dramaFocus[Math.floor(state.tickCount / 2) % dramaFocus.length]!]
+    : [order[state.tickCount % order.length]!];
   const compose = snapshot.props["autoCompose"] === false ? false : tickCount % 10 === 0; // M2: 每 10 tick 出一章; longrun 关掉自管
   return { plan: { arcPhase, tension, focus, compose }, next: { tension, arcPhase, focus, tickCount } };
 }

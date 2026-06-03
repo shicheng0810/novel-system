@@ -2,7 +2,7 @@
 //   plan(focus) → drainInputs → frame → agents(reflect+plan via LLM) → branches → gate → commit → director → saveStep(单事务)
 // 铁律: 只有这里写 world 表; events + 快照 + checkpoint + scheduler 全在 saveStep 同一事务 → 无半提交。
 import type { DB } from "../services/db";
-import type { ContentPack, ScoredCandidate } from "../domain/pack";
+import type { ContentPack, ScoredCandidate, StoryEvent } from "../domain/pack";
 import type { WorldSnapshot, CandidateAction, CharacterState } from "../domain/world";
 import type { DomainEvent, WorldEventRecord, StateDelta } from "../domain/events";
 import type { LLMProvider } from "../services/llm";
@@ -25,6 +25,60 @@ function uniformScore(c: CandidateAction): ScoredCandidate {
     contributingInfluences: [],
     explain: "uniform(无 prior)",
   };
+}
+
+// 通用数值旋钮读取(genre 中立: 引擎只从 props.tuning.* 读 number, 不解释语义; 由 app 层进化/控制器写入)
+function tnum(tune: unknown, key: string, def: number): number {
+  if (tune && typeof tune === "object") { const v = (tune as Record<string, unknown>)[key]; if (typeof v === "number" && Number.isFinite(v)) return v; }
+  return def;
+}
+const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
+const numOf = (c: CharacterState, k: string): number => (typeof c.props[k] === "number" ? (c.props[k] as number) : 0);
+const facOf = (c: CharacterState): string => (typeof c.props["faction"] === "string" ? (c.props["faction"] as string) : "");
+
+// ── T5: app 层进化出的「模拟机制」(经影子模拟闸准入)以通用数据形式挂在 props.simRules; 引擎只按通用 metric/effect 解释, 零 genre 语义。
+function simRuleMetric(metric: string, snapshot: WorldSnapshot): number {
+  const present = Object.values(snapshot.characters).filter((c) => c.present);
+  switch (metric) {
+    case "avgStress": return present.length ? present.reduce((a, c) => a + c.narrativeStress, 0) / present.length : 0;
+    case "presentCount": return present.length;
+    case "factionCount": return new Set(present.map(facOf).filter(Boolean)).size;
+    case "avengerCount": return present.filter((c) => typeof c.props["avenge"] === "string").length;
+    case "maxHostility": {
+      const fr = (snapshot.props["factionRelations"] as Record<string, Record<string, number>> | undefined) ?? {};
+      const live = new Set(present.map(facOf).filter(Boolean));
+      let m = 0; for (const a of Object.keys(fr)) for (const b of Object.keys(fr[a] ?? {})) if (live.has(a) && live.has(b)) m = Math.max(m, -(fr[a]?.[b] ?? 0));
+      return m;
+    }
+    default: return 0;
+  }
+}
+function simRuleStoryEvent(snapshot: WorldSnapshot, tick: number): StoryEvent | null {
+  const rules = Array.isArray(snapshot.props["simRules"]) ? (snapshot.props["simRules"] as Array<Record<string, unknown>>) : [];
+  for (const r of rules) {
+    const trig = r["trigger"] as { metric?: string; op?: string; value?: number } | undefined;
+    const ev = r["event"] as Record<string, unknown> | undefined;
+    if (!trig || !ev || typeof trig.metric !== "string") continue;
+    const cooldown = typeof r["cooldown"] === "number" ? (r["cooldown"] as number) : 30;
+    const lastFired = typeof r["lastFired"] === "number" ? (r["lastFired"] as number) : -99999;
+    if (tick - lastFired < cooldown) continue;
+    const mv = simRuleMetric(trig.metric, snapshot);
+    if (!(trig.op === "<" ? mv < (trig.value ?? 0) : mv > (trig.value ?? 0))) continue;
+    r["lastFired"] = tick; // 标记(snapshot 落盘持久)
+    const shifts = Array.isArray(ev["factionShifts"]) ? (ev["factionShifts"] as Array<{ a: string; b: string; delta: number }>).filter((s) => s && typeof s.a === "string" && typeof s.b === "string" && typeof s.delta === "number").map((s) => ({ a: s.a, b: s.b, delta: Math.max(-3, Math.min(3, s.delta)) })) : undefined;
+    return {
+      id: `simrule-${String(r["id"] ?? "x")}-t${tick}`,
+      name: typeof ev["name"] === "string" ? (ev["name"] as string) : String(r["name"] ?? "异变"),
+      summary: typeof ev["summary"] === "string" ? (ev["summary"] as string) : "",
+      involve: "all",
+      gatherAt: typeof ev["gatherAt"] === "string" ? (ev["gatherAt"] as string) : undefined,
+      stressDelta: typeof ev["stressDelta"] === "number" ? Math.max(-0.4, Math.min(0.4, ev["stressDelta"] as number)) : undefined,
+      crisis: typeof ev["crisis"] === "string" ? (ev["crisis"] as string) : undefined,
+      factionShifts: shifts,
+      omen: ev["omen"] === "吉" || ev["omen"] === "凶" ? (ev["omen"] as "吉" | "凶") : "平",
+    };
+  }
+  return null;
 }
 
 function applyDeltas(snapshot: WorldSnapshot, deltas: StateDelta[]): void {
@@ -50,6 +104,8 @@ function evSubject(ev: DomainEvent): string | undefined {
       return `${ev.name} — ${ev.cause}`;
     case "FactionDissolved":
       return `${ev.faction}一脉为${ev.into}所并`;
+    case "FactionSplit":
+      return `${ev.leader}自${ev.faction}裂土自立${ev.into}`;
     case "VengeanceResolved":
       return `${ev.characterId} 为${ev.avenged}·${ev.outcome}`;
     case "CharacterTranscended":
@@ -167,12 +223,32 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
     evs.push({ kind: "MemoryRecorded", entryId: `mem-${ch.id}-t${tick}`, characterId: ch.id, memoryKind: "reflection", body: turn.reflection, importance: 0.3 });
   }
 
-  // branches: 打分 → argmax(确定性, id 平手)。tuning.priorWeight(通用数值, 默认1=现状)放大/抑制先验引导强度, 供外部自调谐。
-  const tuneRaw = snapshot.props["tuning"];
-  const pw = tuneRaw && typeof tuneRaw === "object" && typeof (tuneRaw as { priorWeight?: unknown }).priorWeight === "number" ? (tuneRaw as { priorWeight: number }).priorWeight : 1;
+  // 模拟旋钮(genre 中立通用数值; 默认=现状行为, app 层进化/控制器写入 props.tuning)
+  const tune = snapshot.props["tuning"];
+  const pw = tnum(tune, "priorWeight", 1);
+  const scarcity = clamp01(tnum(tune, "scarcity", 0));
+  const conflictRate = tnum(tune, "conflictRate", 1);
+  const turnoverRate = tnum(tune, "turnoverRate", 1);
+  const nicheWeight = clamp01(tnum(tune, "nicheWeight", 0));
+  const structureGrowth = clamp01(tnum(tune, "structureGrowth", 0));
+  // branches: 打分 → argmax(确定性, id 平手)。priorWeight 放大/抑制先验引导; nicheWeight 奖励"填补本派系空白生态位"(职能分工涌现, 借 Project Sid)。
   const scored: ScoredCandidate[] = candidates.map((c) => {
     const s = frame && pack.priorSystem ? pack.priorSystem.scoreCandidate(c, frame) : uniformScore(c);
-    return pw === 1 ? s : { ...s, weight: Math.max(0, Math.min(1, s.weight + (pw - 1) * s.breakdown.influence)) };
+    let w = pw === 1 ? s.weight : Math.max(0, Math.min(1, s.weight + (pw - 1) * s.breakdown.influence));
+    if (nicheWeight > 0) {
+      const actor = snapshot.characters[c.characterId];
+      const fac = actor ? facOf(actor) : "";
+      if (fac) {
+        const mates = Object.values(snapshot.characters).filter((m) => m.present && facOf(m) === fac);
+        if (mates.length >= 2) {
+          const sameRole = mates.filter((m) => m.props["roleKind"] === c.kind).length;
+          const bonus = nicheWeight * 0.3 * (1 - sameRole / mates.length); // 本派系里该职能(动作类型)越少见 → 越该补位
+          w = Math.max(0, Math.min(1, w + bonus));
+          return { ...s, weight: w, breakdown: { ...s.breakdown, niche: +bonus.toFixed(3) } };
+        }
+      }
+    }
+    return w === s.weight ? s : { ...s, weight: w };
   });
   scored.sort((a, b) => b.weight - a.weight || a.candidate.id.localeCompare(b.candidate.id));
   const chosen: ScoredCandidate | null = scored.length > 0 ? scored[0]! : null;
@@ -206,6 +282,8 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
   if (committed) {
     const deltas = (committed.candidate.payload["deltas"] as StateDelta[] | undefined) ?? [];
     applyDeltas(snapshot, deltas);
+    const cActor = snapshot.characters[committed.candidate.characterId];
+    if (cActor) cActor.props["roleKind"] = committed.candidate.kind; // 生态位: 记录角色当前职能(动作类型) → 供 nicheWeight 分工打分
     evs.push({ kind: "StageCommitted", stageNumber: tick, chosenCandidateId: committed.candidate.id, deltas, summary: committed.candidate.summary });
     // 认知②: 落定的行动 → 显著情景记忆 + 历练累积(喂叙事召回与决策, 非每 tick 反思的流水账)
     const ckind = committed.candidate.kind;
@@ -222,13 +300,27 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
   snapshot.clock.tick = tick + 1; // 推进故事时钟(评估: 之前冻结在 0)
   snapshot.props["pendingDecisions"] = pending;
 
-  // 经济 + 离场也有戏: 在场者累积资源; 非焦点者另有微动(心境回落 + 偶尔迁徙, 无 LLM, 确定性) → 世界处处有人活动
+  // 经济: scarcity=0 → 各按地块 yield 自由积累(现状); scarcity→1 → 同地块为「固定且次线性的资源池」零和竞争(质量守恒, 强者多得、拥挤减产) → 竞争/生态位/寄生自发涌现(借 Tierra/Avida/Flow-Lenia)。
   const locKeys = Object.keys(snapshot.locations);
-  for (const c of Object.values(snapshot.characters)) {
-    if (!c.present) continue;
-    const loc = snapshot.locations[c.locationId ?? ""];
+  const presentAll = Object.values(snapshot.characters).filter((c) => c.present);
+  const powerOf = (c: CharacterState): number => 1 + numOf(c, "历练") * 0.3 + (c.progressionTier ? 0.5 : 0);
+  const byLoc = new Map<string, CharacterState[]>();
+  for (const c of presentAll) { const k = c.locationId ?? ""; const arr = byLoc.get(k); if (arr) arr.push(c); else byLoc.set(k, [c]); }
+  for (const [locId, occ] of byLoc) {
+    const loc = snapshot.locations[locId];
     const y = loc && typeof loc.props["yield"] === "number" ? (loc.props["yield"] as number) : 0.3;
-    c.props["resource"] = (typeof c.props["resource"] === "number" ? (c.props["resource"] as number) : 0) + y;
+    if (scarcity <= 0 || occ.length < 2) { for (const c of occ) c.props["resource"] = numOf(c, "resource") + y; continue; }
+    const pool = y * Math.sqrt(occ.length); // 次线性池: 人越多人均越少(拥挤)→ 稀缺
+    const totP = occ.reduce((a, c) => a + powerOf(c), 0) || 1;
+    const top = [...occ].sort((a, b) => powerOf(b) - powerOf(a))[0]!;
+    for (const c of occ) {
+      const gain = (1 - scarcity) * y + scarcity * (pool * (powerOf(c) / totP));
+      c.props["resource"] = numOf(c, "resource") + gain;
+      // 同地块同派系竞争: 吃亏者对头号得利者生嫌隙 → 派系内裂痕积累(喂 structureGrowth 分裂)
+      if (gain < y * 0.85 && c.id !== top.id && facOf(c) && facOf(c) === facOf(top)) c.props[`bond:${top.id}`] = numOf(c, `bond:${top.id}`) - scarcity * conflictRate * 0.4;
+    }
+  }
+  for (const c of presentAll) {
     if (plan.focus.includes(c.id)) continue; // 焦点者已由 agent 循环主理
     const sig = c.id.charCodeAt(c.id.length - 1);
     c.narrativeStress = c.narrativeStress > 0.3 ? Math.max(0.3, c.narrativeStress - 0.03) : Math.min(0.3, c.narrativeStress + 0.015); // 久不登场→心境渐归平静
@@ -238,8 +330,9 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
     }
   }
 
-  // 系统级剧情事件(势力战争/秘境副本/魔道入侵…): 涉事角色聚集 + 抬张力 + 设世界危机
-  const story = pack.nextStoryEvent?.(snapshot, tick) ?? null;
+  // 系统级剧情事件(势力战争/秘境副本/魔道入侵…): 涉事角色聚集 + 抬张力 + 设世界危机。
+  // pack 不起大事时, 回落到 app 层进化出的「模拟机制」(经影子模拟闸准入, props.simRules)——让模拟器自己长出新玩法。
+  const story = pack.nextStoryEvent?.(snapshot, tick) ?? simRuleStoryEvent(snapshot, tick);
   if (story) {
     const present2 = Object.values(snapshot.characters).filter((c) => c.present);
     const targets =
@@ -248,7 +341,7 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
         : present2.filter((c) => (story.involve as string[]).includes(c.id) || (story.involve as string[]).includes(String(c.props["faction"] ?? "")));
     for (const c of targets) {
       if (story.gatherAt && snapshot.locations[story.gatherAt]) c.locationId = story.gatherAt;
-      if (story.stressDelta) c.narrativeStress = Math.max(0, Math.min(1, c.narrativeStress + story.stressDelta));
+      if (story.stressDelta) c.narrativeStress = Math.max(0, Math.min(1, c.narrativeStress + story.stressDelta * conflictRate)); // conflictRate 放大/收敛张力增益
     }
     if (story.crisis !== undefined) snapshot.props["crisis"] = story.crisis;
     if (story.factionShifts) {
@@ -322,9 +415,12 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
         b.props[`bond:${a.id}`] = numProp(b, `bond:${a.id}`) - 2;
       }
       if (a) a.props["actCount"] = Math.max(0, numProp(a, "actCount") - 1);
-      // 凶事折损: 涉事配角(动态登场者 id 以 s 开头)有一人陨落 — 世界有真生死(主角生死留给作者裁决)
+      // 凶事折损: 涉事配角(动态登场者 id 以 s 开头)有一人陨落 — 世界有真生死(主角生死留给作者裁决)。
+      // turnoverRate 代谢率累加器: <1 → 隔次才折损(角色更长寿, 防群像坍塌; 已验证旧世界减员快于补员→坍塌到2人); =1 现状; >1 略增。
       const fallen = targets.find((c) => c.id.startsWith("s") && c.present);
-      if (fallen) {
+      const fallDebt = fallen ? Math.min(2, tnum(snapshot.props, "fallDebt", 0) + turnoverRate) : 0;
+      if (fallen && fallDebt >= 1) {
+        snapshot.props["fallDebt"] = fallDebt - 1;
         fallen.present = false;
         evs.push({ kind: "CharacterFell", characterId: fallen.id, name: fallen.name, cause: story.name });
         // 立碑·复仇: 与逝者羁绊最深的在场者起复仇之心(后续章节自动生复仇/追杀线)
@@ -343,9 +439,39 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
           avenger.narrativeStress = Math.min(1, avenger.narrativeStress + 0.2);
           avenger.traits["initiative"] = (avenger.traits["initiative"] ?? 0) + 1;
         }
+      } else if (fallen) {
+        snapshot.props["fallDebt"] = fallDebt; // 未到阈值: 攒着, 这桩凶事不折损(turnoverRate<1 的长寿效果)
       }
     }
     evs.push({ kind: "StoryEventTriggered", eventId: story.id, name: story.name, summary: story.summary });
+  }
+
+  // 结构生长: 派系分裂/新生(structureGrowth>0 才启)。大派系内部出现「与本派系离心」的小团体(intra bond 转负, 由 scarcity 竞争/凶事积累)→ 叛离自立新派系。
+  // 对冲「只合并不新生」的版图单一化, 让社会结构本身随世界生长(借 Static-Sandboxes 协同演化 + 命名游戏临界质量)。core 中立: 派系=prop 字符串, 新派系以叛首为名。
+  if (structureGrowth > 0) {
+    let splitDebt = tnum(snapshot.props, "splitDebt", 0);
+    const facMembers = new Map<string, CharacterState[]>();
+    for (const c of presentAll) { const f = facOf(c); if (!f) continue; const a = facMembers.get(f); if (a) a.push(c); else facMembers.set(f, [c]); }
+    for (const [fac, mem] of facMembers) {
+      if (mem.length < 4) continue;
+      const avgIntra = (m: CharacterState): number => { const o = mem.filter((x) => x.id !== m.id); return o.length ? o.reduce((a, x) => a + numOf(m, `bond:${x.id}`), 0) / o.length : 0; };
+      const dissidents = mem.filter((m) => avgIntra(m) < -1); // 与本派系离心者(临界质量小团体)
+      if (dissidents.length >= 2 && dissidents.length < mem.length) {
+        splitDebt += structureGrowth;
+        if (splitDebt >= 1) {
+          splitDebt -= 1;
+          const leader = [...dissidents].sort((a, b) => avgIntra(a) - avgIntra(b))[0]!;
+          const newFac = `${leader.name}部`;
+          for (const d of dissidents) d.props["faction"] = newFac;
+          const fr2 = (snapshot.props["factionRelations"] as Record<string, Record<string, number>> | undefined) ?? {};
+          (fr2[fac] = fr2[fac] ?? {})[newFac] = -4; (fr2[newFac] = fr2[newFac] ?? {})[fac] = -4; // 新旧派系交恶
+          snapshot.props["factionRelations"] = fr2;
+          evs.push({ kind: "FactionSplit", faction: fac, into: newFac, leader: leader.name });
+          break; // 一 tick 至多一裂, 防雪崩
+        }
+      }
+    }
+    snapshot.props["splitDebt"] = splitDebt;
   }
 
   // director 相位: 计划已于 tick 起算好(focus 轮转); 此处仅 emit + 状态已在 nextDirector

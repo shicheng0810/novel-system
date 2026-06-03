@@ -32,6 +32,7 @@ export type DomainEvent =
   | { kind: "StoryEventTriggered"; eventId: string; name: string; summary: string }
   | { kind: "CharacterFell"; characterId: CharacterId; name: string; cause: string }
   | { kind: "FactionDissolved"; faction: string; into: string }
+  | { kind: "FactionSplit"; faction: string; into: string; leader: string }
   | { kind: "VengeanceResolved"; characterId: CharacterId; avenged: string; outcome: string }
   | { kind: "CharacterTranscended"; characterId: CharacterId; name: string; toTier: string }
   | { kind: "ChapterDrafted"; chapterId: string; goal: string }
@@ -81,6 +82,7 @@ export const EVENT_SUBSYSTEM: Record<DomainEventKind, { subsystem: string; sever
   StoryEventTriggered: { subsystem: "world", severity: "notable" },
   CharacterFell: { subsystem: "world", severity: "notable" },
   FactionDissolved: { subsystem: "world", severity: "notable" },
+  FactionSplit: { subsystem: "world", severity: "notable" },
   VengeanceResolved: { subsystem: "world", severity: "notable" },
   CharacterTranscended: { subsystem: "world", severity: "notable" },
   ChapterDrafted: { subsystem: "compose", severity: "ambient" },
