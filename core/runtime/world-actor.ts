@@ -233,6 +233,16 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
         snapshot.characters[ch.id] = ch;
         evs.push({ kind: "CharacterEntered", characterId: ch.id, name: ch.name, faction: String(ch.props["faction"] ?? "") });
       }
+    } else if (inp.type === "mind-update") {
+      // M3: 批量反思的产出(app 层异步算好), 在此单事务里写入角色内心 → 单写者铁律不破。通用: 只写 mind 字符串 + 心境微调。
+      const updates = Array.isArray(inp.payload["updates"]) ? (inp.payload["updates"] as Array<{ id?: string; mind?: string; stress?: number }>) : [];
+      for (const u of updates) {
+        const ch = u.id ? snapshot.characters[u.id] : undefined;
+        if (ch && typeof u.mind === "string" && u.mind) {
+          ch.props["mind"] = u.mind;
+          if (typeof u.stress === "number") ch.narrativeStress = Math.max(0, Math.min(1, ch.narrativeStress + u.stress));
+        }
+      }
     }
     store.markInputProcessed(db, inp.id, Date.now());
   }

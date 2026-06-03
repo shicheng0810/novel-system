@@ -22,8 +22,10 @@ export function personaDigest(c: CharacterState, snap: WorldSnapshot, canon: Can
   const av = typeof c.props["avenge"] === "string" ? `誓为「${String(c.props["avenge"])}」复仇` : "";
   const li = numOf(c, "历练");
   const seasoned = li >= 15 ? "历经百劫" : li >= 6 ? "略有阅历" : "";
+  const mind = typeof c.props["mind"] === "string" ? (c.props["mind"] as string) : ""; // M3 反思产出的当下心声
   const parts = [attrs.join("、"), seasoned, inner, bonds.length ? "牵系：" + bonds.join("、") : "", av].filter(Boolean);
-  return parts.length ? `${c.name}——${parts.join("；")}` : "";
+  if (!parts.length && !mind) return "";
+  return `${c.name}——${mind ? "「" + mind + "」　" : ""}${parts.join("；")}`;
 }
 
 // 在场者 persona 块(注入 compose; 取在场中最"有戏"的若干人, 避免过长)

@@ -19,9 +19,10 @@ import { computeSimFitness, saveSimFitness, loadSimFitness } from "./sim-fitness
 import { dramaControl, loadDrama, saveDrama } from "./drama";
 import { evolveSimRules, loadSimRules } from "./sim-rules";
 import { personaBlock, recallShared, INNER_CN } from "./persona";
+import { loadMinds, saveMinds, accrueImportance, selectQueue, batchReflect, situationFp } from "./minds";
 import { loadConstraints, constraintsBlock, proposeConstraintMutation } from "./constraints";
 import { canonStep, canonBlock, loadCanon, saveCanon } from "./canon";
-import type { WorldSnapshot } from "../core/domain/world";
+import type { WorldSnapshot, CharacterState } from "../core/domain/world";
 
 const TARGET = Number(process.env["NOVEL_TARGET"] ?? 1000);
 const MINLEN = Number(process.env["NOVEL_MINLEN"] ?? 3000);
@@ -59,6 +60,7 @@ const EVOLVE = process.env["NOVEL_EVOLVE"] !== "0";
 let evoGenome = loadGenome(ROOT);
 let evoGuidance = buildGuidance(loadLedger(ROOT), evoGenome, loadGlobal(ROOT).avoid);
 let drama = loadDrama(ROOT); // T4 临界控制器 + 戏剧导演状态(coldStreak/hotStreak), 跨重启持久
+const minds = loadMinds(ROOT); // M3 全员连续心智: pending_importance 队列 + 上次反思章, 跨重启持久
 let conBlock = constraintsBlock(loadConstraints(ROOT).active); // 规则层: 世界铁律(定义概念空间), 每章注入
 let canonInject = canonBlock(loadCanon(ROOT)); // 一致性: 已确立设定 + 待修正矛盾, 每章注入
 
@@ -279,6 +281,30 @@ async function main(): Promise<void> {
     const upheaval = [...upsets, ...avengers, ...reviveNotes].join("；");
     const qimen = plateLabel(snap.snapshot.tick ?? n * 3);
     const crisis = [crisisBase, `奇门·${qimen}`, facSummary ? `派系格局：${facSummary}` : "", upheaval ? `近时变故：${upheaval}` : "", dramaHintText ? `导演：${dramaHintText}` : ""].filter(Boolean).join(" ｜ ");
+    // M3 批量异步反思: 累加卷入度(零 LLM); 每 3 章若有破阈者, 一次 LLM 批量更新其内心 → 经 input 队列下个 step 写入(单写者铁律不破)
+    if (EVOLVE) {
+      try {
+        accrueImportance(minds, newEvs, snap.snapshot);
+        if (n - minds.lastReflectCh >= 3) {
+          const queue = selectQueue(minds, snap.snapshot);
+          minds.lastFp = minds.lastFp ?? {};
+          const fresh: string[] = []; let cachedN = 0;
+          for (const id of queue) { const c = snap.snapshot.characters[id]; if (!c) continue; if (situationFp(c) !== minds.lastFp[id]) fresh.push(id); else { delete minds.pendingImp[id]; cachedN++; } } // M4: 情境未变→复用旧心声、不调 LLM
+          if (fresh.length) {
+            const recentByChar = (c: CharacterState): string =>
+              newEvs.filter((e) => (e.payload as { characterId?: string })?.characterId === c.id || (e.summary ?? "").includes(c.name)).map((e) => e.summary).filter((s): s is string => !!s).slice(-2).join("；") || "近来世事牵动";
+            const updates = await batchReflect(llm, sys, snap.snapshot, fresh, crisis, recentByChar);
+            if (updates.length) {
+              store.enqueueInput(db, `mind-${n}`, worldId, "mind-update", { updates }, Date.now());
+              for (const id of fresh) { delete minds.pendingImp[id]; const c = snap.snapshot.characters[id]; if (c) minds.lastFp[id] = situationFp(c); } // 反思过即清零 + 记指纹
+              minds.lastReflectCh = n;
+              console.log(`  🧠 批量反思 ${updates.length} 人(1次LLM${cachedN ? "·缓存复用" + cachedN + "人" : ""}): ${updates.slice(0, 3).map((u) => (snap.snapshot.characters[u.id]?.name ?? u.id) + "「" + u.mind + "」").join(" ")}`);
+            }
+          } else if (cachedN) minds.lastReflectCh = n;
+        }
+        saveMinds(ROOT, minds);
+      } catch (e) { console.log("  🧠 反思跳过:", String(e).slice(0, 60)); }
+    }
     const sig = configSignature();
     if (sig !== llmSig) { llm = makeLLM(); llmSig = sig; console.log(`↻ LLM 已切换为 ${llm.id}`); } // 网页改设置 → 热切换, 无需重启长跑
     // 认知②: 召回在场角色的显著情景记忆 → 章节作前情回响(callback)
