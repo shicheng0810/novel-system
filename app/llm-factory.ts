@@ -5,6 +5,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { MockLLM, HermesLLM, DeepSeekLLM, FallbackLLM, type LLMProvider, type HermesOpts } from "../core/services/llm";
+import { hashStr } from "../core/util/rng";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const LLM_CONFIG_PATH = join(here, "..", ".novel-output", "llm-config.json");
@@ -75,5 +76,6 @@ export function llmStatus(cfg: LLMConfig = readLLMConfig()): { provider: string;
 
 // 配置指纹: 变了则 longrun 热切换 provider(温度/thinking 变也要热切换 → 纳入指纹)
 export function configSignature(cfg: LLMConfig = readLLMConfig()): string {
-  return `${cfg.provider}|${cfg.model ?? ""}|${(cfg.deepseekKey ?? "").length}|${cfg.temperature ?? ""}|${cfg.thinking ?? ""}`;
+  // 取 key+baseUrl 的内容哈希(而非仅长度): 换等长 key / 换端点都能正确触发 longrun 热切换
+  return `${cfg.provider}|${cfg.model ?? ""}|${(hashStr((cfg.deepseekKey ?? "") + "|" + (cfg.deepseekBaseUrl ?? "")) >>> 0).toString(16)}|${cfg.temperature ?? ""}|${cfg.thinking ?? ""}`;
 }

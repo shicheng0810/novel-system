@@ -192,6 +192,7 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
   evs.push({ kind: "RunStarted", runId, tick });
 
   // drainInputs: 处理作者裁决(M3)——人/agent 同一种 input。accept → 真正改正史(头号 REDO)。
+  const processedInputIds: string[] = []; // 标记延后到 saveStep 同事务 → 真原子(防 pkill -9 在 drain 后/save 前: 输入被标 processed 但快照效果未落盘 = 永久丢裁决/spawn/反思)
   for (const inp of store.drainPendingInputs(db, worldId)) {
     if (inp.type === "author-verdict") {
       const decisionId = String(inp.payload["decisionId"] ?? "");
@@ -238,13 +239,13 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
       const updates = Array.isArray(inp.payload["updates"]) ? (inp.payload["updates"] as Array<{ id?: string; mind?: string; stress?: number }>) : [];
       for (const u of updates) {
         const ch = u.id ? snapshot.characters[u.id] : undefined;
-        if (ch && typeof u.mind === "string" && u.mind) {
+        if (ch && ch.present && typeof u.mind === "string" && u.mind) { // 校验仍在场: 滞后落地时角色已陨落则丢弃(不给退场者写心声/心境)
           ch.props["mind"] = u.mind;
           if (typeof u.stress === "number") ch.narrativeStress = Math.max(0, Math.min(1, ch.narrativeStress + u.stress));
         }
       }
     }
-    store.markInputProcessed(db, inp.id, Date.now());
+    processedInputIds.push(inp.id); // 不在此处提交; 留到 saveStep 同事务标记
   }
 
   // frame(deterministic prior; 可空 = 纯涌现包)
@@ -356,7 +357,7 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
       const gain = (1 - scarcity) * y + scarcity * (pool * (powerOf(c) / totP));
       c.props["resource"] = numOf(c, "resource") + gain;
       // 同地块同派系竞争: 吃亏者对头号得利者生嫌隙 → 派系内裂痕积累(喂 structureGrowth 分裂)
-      if (gain < y * 0.85 && c.id !== top.id && facOf(c) && facOf(c) === facOf(top)) c.props[`bond:${top.id}`] = numOf(c, `bond:${top.id}`) - scarcity * conflictRate * 0.4;
+      if (gain < y * 0.85 && c.id !== top.id && facOf(c) && facOf(c) === facOf(top)) c.props[`bond:${top.id}`] = numOf(c, `bond:${top.id}`) - scarcity * conflictRate * 0.4 * (1 - nicheWeight); // niche 协作缓冲 scarcity 内斗: 二者共享派系内聚力轴, 此消彼长而非各写各的
     }
   }
   // M1 符号心跳: 全员每 tick 更新持续 drive(零 LLM); 非焦点心境改为受未满足 drive 牵引的 EMA → 不再"冻结"(根治个体内心短板)
@@ -379,6 +380,7 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
 
   // 系统级剧情事件(势力战争/秘境副本/魔道入侵…): 涉事角色聚集 + 抬张力 + 设世界危机。
   // pack 不起大事时, 回落到 app 层进化出的「模拟机制」(经影子模拟闸准入, props.simRules)——让模拟器自己长出新玩法。
+  const mergedThisTick = new Set<string>(); // 本 tick 被吞并(改派)的角色 → 不再参与同 tick 的结构生长分裂(防同一角色"并了又裂"自相矛盾)
   const story = pack.nextStoryEvent?.(snapshot, tick) ?? simRuleStoryEvent(snapshot, tick);
   if (story) {
     const present2 = Object.values(snapshot.characters).filter((c) => c.present);
@@ -411,7 +413,7 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
         const loser = membersOf(sh.a).length <= membersOf(sh.b).length ? sh.a : sh.b;
         const winner = loser === sh.a ? sh.b : sh.a;
         if (protectedFac.has(loser) || membersOf(loser).length === 0) continue;
-        for (const c of membersOf(loser)) c.props["faction"] = winner; // 残部归并强者
+        for (const c of membersOf(loser)) { c.props["faction"] = winner; mergedThisTick.add(c.id); } // 残部归并强者(记入本 tick 已吞并集)
         delete fr[loser];
         for (const k of Object.keys(fr)) {
           const row = fr[k];
@@ -439,7 +441,7 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
           c.present = false;
         } else {
           outcome = "复仇受挫";
-          c.narrativeStress = 1;
+          appraise(c, 0.6); // 顶满改大正增量(经 caution divider): 不再绝对 =1 抹掉前面 appraise, 命格钝化对所有路径一致生效
         }
       } else {
         outcome = "恩怨释怀";
@@ -464,7 +466,7 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
       if (a) a.props["actCount"] = Math.max(0, numProp(a, "actCount") - 1);
       // 凶事折损: 涉事配角(动态登场者 id 以 s 开头)有一人陨落 — 世界有真生死(主角生死留给作者裁决)。
       // turnoverRate 代谢率累加器: <1 → 隔次才折损(角色更长寿, 防群像坍塌; 已验证旧世界减员快于补员→坍塌到2人); =1 现状; >1 略增。
-      const fallen = targets.find((c) => c.id.startsWith("s") && c.present);
+      const fallen = targets.find((c) => c.id.startsWith("s") && c.present && !pending.some((p) => p.charId === c.id)); // 排除正等作者裁决的角色: 避免突破悬而未决时被凶事写死(裁决落空到已退场角色)
       const fallDebt = fallen ? Math.min(2, tnum(snapshot.props, "fallDebt", 0) + turnoverRate) : 0;
       if (fallen && fallDebt >= 1) {
         snapshot.props["fallDebt"] = fallDebt - 1;
@@ -502,7 +504,7 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
     for (const [fac, mem] of facMembers) {
       if (mem.length < 4) continue;
       const avgIntra = (m: CharacterState): number => { const o = mem.filter((x) => x.id !== m.id); return o.length ? o.reduce((a, x) => a + numOf(m, `bond:${x.id}`), 0) / o.length : 0; };
-      const dissidents = mem.filter((m) => avgIntra(m) < -1); // 与本派系离心者(临界质量小团体)
+      const dissidents = mem.filter((m) => avgIntra(m) < -1 && !mergedThisTick.has(m.id)); // 与本派系离心者(临界质量小团体); 排除本 tick 刚被吞并者 → 同一角色一 tick 内只允许一次终态 faction 变更
       if (dissidents.length >= 2 && dissidents.length < mem.length) {
         splitDebt += structureGrowth;
         if (splitDebt >= 1) {
@@ -572,6 +574,7 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
     store.saveSnapshot(db, worldId, snapshot, seq, ts);
     store.writeCheckpoint(db, worldId, tick, "tick-end", gen, { director: nextDirector }, ts);
     store.setSchedulerState(db, worldId, { gen: gen + 1, nextTick: tick + 1, status: "running" }, ts);
+    for (const id of processedInputIds) store.markInputProcessed(db, id, ts); // 与快照效果同事务提交: 半路被杀则输入仍 pending, 下次重放(裁决经 pending 列表/spawn 经 id 去重/mind 幂等, 重放安全)
     store.finishRun(db, runId, "completed", ts);
   });
 

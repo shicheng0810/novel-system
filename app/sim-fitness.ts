@@ -222,7 +222,11 @@ export function computeSimFitness(events: WorldEventRecord[], snapshot: WorldSna
   const tension = factionTension(snapshot, events);
   const novelty = historicalNovelty(chapters, windowN);
 
-  const total = +(0.5 * siftScore + 0.3 * tension.score + 0.2 * (novelty * 10)).toFixed(2);
+  // 反 reward-hack(审计 §防自欺红线): 兴亡密度顶天 + 化解极低 = 永恒混战/天天灭门(曲线顶格也无聊), 非真有戏 → 折扣
+  // 防进化发现"多杀人多起大事就能抬 simFit"而朝灭门坍塌(simFit 占基因适应度 28%)。
+  const massacre = tension.volatility >= 0.9 && tension.resolution < 0.3;
+  let total = +(0.5 * siftScore + 0.3 * tension.score + 0.2 * (novelty * 10)).toFixed(2);
+  if (massacre) total = +(total * 0.75).toFixed(2);
   return {
     sift: { chains: chains.length, quality: +lifetimeQ.toFixed(2), score: siftScore, top, patterns, dangling },
     tension, novelty, total, vol, atCh,

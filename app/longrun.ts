@@ -5,7 +5,7 @@
 //   · 控战力崩坏: 36 级阶梯 + 慢进 + 仅卷末批准突破
 //   · 可断点续写(文件 DB + 每章落盘) → 适合 hermes/nohup 长跑
 // 环境: NOVEL_TARGET=1000  NOVEL_MINLEN=3000  NOVEL_SECTIONS=4  NOVEL_LIVE_LLM=hermes
-import { mkdirSync, writeFileSync, readFileSync, existsSync, unlinkSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync, unlinkSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { openDb } from "../core/services/db";
@@ -19,6 +19,7 @@ import { computeSimFitness, saveSimFitness, loadSimFitness } from "./sim-fitness
 import { dramaControl, loadDrama, saveDrama } from "./drama";
 import { evolveSimRules, loadSimRules } from "./sim-rules";
 import { personaBlock, recallShared, INNER_CN } from "./persona";
+import { deriveCanon, derivedBlock, derivedFacts } from "./derive-canon";
 import { loadMinds, saveMinds, accrueImportance, selectQueue, batchReflect, situationFp } from "./minds";
 import { loadConstraints, constraintsBlock, proposeConstraintMutation } from "./constraints";
 import { canonStep, canonBlock, loadCanon, saveCanon } from "./canon";
@@ -44,12 +45,14 @@ if (existsSync(LOCK)) {
   const oldPid = Number(readFileSync(LOCK, "utf8").trim());
   let alive = false;
   try { process.kill(oldPid, 0); alive = oldPid > 0; } catch { alive = false; } // kill(pid,0) 不发信号, 仅探活
-  if (alive) {
-    console.error(`[longrun] 世界「${process.env["NOVEL_SAGA_DIR"] ?? "saga"}」已有写者 PID ${oldPid} 在跑，本进程退出以免赛跑串台。`);
+  const fresh = (() => { try { return Date.now() - statSync(LOCK).mtimeMs < 10 * 60 * 1000; } catch { return false; } })(); // 锁文件 mtime = 心跳(主循环每章重写刷新)
+  if (alive && fresh) { // PID 活【且】心跳新鲜(<10min)才认作真写者 → 防 pkill -9 后 PID 被系统复用而误判有写者退出(锁与"pkill -9 重启"打架)
+    console.error(`[longrun] 世界「${process.env["NOVEL_SAGA_DIR"] ?? "saga"}」已有写者 PID ${oldPid} 在跑(心跳新鲜)，本进程退出以免赛跑串台。`);
     process.exit(0);
-  }
+  } // PID 活但心跳陈旧 = 多半 PID 复用(旧写者已 pkill -9、releaseLock 没跑)→ 接管
 }
-writeFileSync(LOCK, String(process.pid), "utf8");
+const heartbeat = (): void => { try { writeFileSync(LOCK, String(process.pid), "utf8"); } catch { /* ignore */ } }; // 重写刷新 mtime
+heartbeat();
 const releaseLock = (): void => { try { if (existsSync(LOCK) && Number(readFileSync(LOCK, "utf8").trim()) === process.pid) unlinkSync(LOCK); } catch { /* ignore */ } };
 process.on("exit", releaseLock);
 process.on("SIGINT", () => { releaseLock(); process.exit(0); });
@@ -62,7 +65,8 @@ let evoGuidance = buildGuidance(loadLedger(ROOT), evoGenome, loadGlobal(ROOT).av
 let drama = loadDrama(ROOT); // T4 临界控制器 + 戏剧导演状态(coldStreak/hotStreak), 跨重启持久
 const minds = loadMinds(ROOT); // M3 全员连续心智: pending_importance 队列 + 上次反思章, 跨重启持久
 let conBlock = constraintsBlock(loadConstraints(ROOT).active); // 规则层: 世界铁律(定义概念空间), 每章注入
-let canonInject = canonBlock(loadCanon(ROOT)); // 一致性: 已确立设定 + 待修正矛盾, 每章注入
+let canonInject = canonBlock(loadCanon(ROOT)); // 一致性·软层: 已确立软设定 + 待修正矛盾, 每章注入
+let canonHard = ""; // 一致性·硬层(deriveCanon): 引擎权威境界/派系/生死/恩怨, 每章从快照确定性派生 + 强注入(prose 不漂)
 
 // 叙事·伏笔账(setup→payoff 跨章结构, 文件持久化, resume 安全)
 interface Foreshadow { id: string; desc: string; plantedCh: number; dueCh: number; paid: boolean }
@@ -90,6 +94,12 @@ async function guardedStep(): Promise<void> {
   } finally {
     _busy = false;
   }
+}
+// 临界区(读快照→改 props→存快照)须与 step 互斥: 否则 setInterval 的快速裁决 step 在其 await 处交错, 旁路 saveSnapshot 会丢更新(审计: drama/bible 写竞态)
+async function withLock<T>(fn: () => T): Promise<T> {
+  while (_busy) await new Promise((r) => setTimeout(r, 30));
+  _busy = true;
+  try { return fn(); } finally { _busy = false; }
 }
 
 // 情境随章/卷推进(破开篇循环); 循环时升级世界。优先用内容包提供的场景弧线(换 genre 即换场景)
@@ -157,7 +167,7 @@ async function writeChapter(n: number, vol: number, scene: string, crisis: strin
   let prev = "";
   for (let i = 0; i < beats.length; i++) {
     const last = i === beats.length - 1;
-    const secPrompt = `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
+    const secPrompt = `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。${canonHard ? "\n" + canonHard : ""}${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
     let sec = "";
     for (let attempt = 0; attempt < 4; attempt++) { // 每段守门: 正常数百字; <120 字多半是 DeepSeek 抽风回退 mock 占位 → 等 15s 重试本段, 扛持续抽风、防部分垃圾混入
       sec = await llm.complete(secPrompt, { thinking: false, temperature: evoGenome.gen.temperature, topP: evoGenome.gen.topP, frequencyPenalty: evoGenome.gen.frequencyPenalty, presencePenalty: evoGenome.gen.presencePenalty }); // 进化基因控制采样
@@ -174,7 +184,7 @@ async function writeChapter(n: number, vol: number, scene: string, crisis: strin
 }
 
 async function main(): Promise<void> {
-  let n = store.readChapters(db, worldId).filter((c) => c.id.startsWith("saga-ch-")).length;
+  let n = store.listChapters(db, worldId).filter((c) => c.id.startsWith("saga-ch-")).length; // 只数标题(不读全量正文)
   if (n === 0) {
     const seeded = PACK.seedWorld({ worldId, packId: PACK.id, seed: "千章长篇", config: {} });
     seeded.props["autoCompose"] = false;
@@ -203,6 +213,7 @@ async function main(): Promise<void> {
     }
     if (_wasPaused) { console.log("▶ 世界已继续"); _wasPaused = false; }
     n++;
+    heartbeat(); // 刷新单写者锁 mtime(心跳): 让本写者的锁保持"新鲜", 防被误判为陈旧锁接管
     const vol = Math.floor((n - 1) / VOL) + 1;
     const scene = sceneFor(n);
     // 世代更替 + 群像稳态: 每 5 章补血, 维持在场 ~16; 跌破下限 10 → 批量补(防坍塌, 已验证旧世界减员快于补员→塌到 2 人)。turnoverRate 旋钮另在引擎侧调折损节律。
@@ -218,13 +229,13 @@ async function main(): Promise<void> {
     // T4 临界控制器 + 戏剧导演: 每章在进化 baseline(evoGenome.engine)上做稳态/戏剧干预 → 写 tuning/dramaFocus/dramaHint, 本章步进据此演化
     let dramaHintText = "";
     if (EVOLVE) {
-      const spd = store.loadSnapshot(db, worldId);
-      if (spd) {
-        const dc = dramaControl(store.readEvents(db, worldId), spd.snapshot, loadSimFitness(ROOT), evoGenome.engine, drama);
+      dramaHintText = await withLock(() => { // 与 step 互斥, 防快速裁决 step 交错覆盖本章 tuning/dramaFocus/simRules
+        const spd = store.loadSnapshot(db, worldId);
+        if (!spd) return "";
+        const dc = dramaControl(store.readRecentEvents(db, worldId, 300), spd.snapshot, loadSimFitness(ROOT), evoGenome.engine, drama); // 只需近窗事件算雪崩密度
         drama = dc.ctrl; saveDrama(ROOT, drama);
         spd.snapshot.props["tuning"] = { ...dc.tuning };
         spd.snapshot.props["dramaFocus"] = dc.dramaFocus;
-        dramaHintText = dc.dramaHint;
         // T5: 把已准入的进化机制注入活世界(保留各机制的 lastFired 冷却态, 防每章重置后狂触发)
         const fileRules = loadSimRules(ROOT).active;
         const cur = Array.isArray(spd.snapshot.props["simRules"]) ? (spd.snapshot.props["simRules"] as Array<{ id: string; lastFired?: number }>) : [];
@@ -232,7 +243,8 @@ async function main(): Promise<void> {
         spd.snapshot.props["simRules"] = fileRules.map((r) => ({ ...r, lastFired: lastById.get(r.id) ?? r.lastFired ?? -99999 }));
         store.saveSnapshot(db, worldId, spd.snapshot, spd.lastSeq, Date.now());
         if (n % 4 === 0) console.log(`  🎭 ${dc.log}`);
-      }
+        return dc.dramaHint;
+      });
     }
     for (let t = 0; t < 3; t++) await guardedStep();
 
@@ -257,34 +269,72 @@ async function main(): Promise<void> {
     const snap = store.loadSnapshot(db, worldId);
     if (!snap) throw new Error("no snapshot");
     const ros = roster(snap.snapshot);
+    canonHard = derivedBlock(deriveCanon(snap.snapshot, tierName)); // 权威硬事实(境界/派系/生死/恩怨)从快照确定性派生, 本章强注入
     const t0 = Date.now();
     const crisisBase = typeof snap.snapshot.props["crisis"] === "string" ? (snap.snapshot.props["crisis"] as string) : "";
     const fr = snap.snapshot.props["factionRelations"] as Record<string, Record<string, number>> | undefined;
     const facSummary = fr
       ? Object.entries(fr).flatMap(([a, m]) => Object.entries(m).filter(([b]) => a < b).map(([b, v]) => `${a}与${b}${v > 0 ? "结盟" : v < 0 ? "交恶" : "中立"}`)).slice(0, 4).join("；")
       : "";
-    // 变故: 自上章以来的陨落/吞并 + 当前怀复仇之心者 → 写进本章正文
-    const newEvs = store.readEvents(db, worldId).filter((e) => (e.seq ?? 0) > evCursor);
-    for (const e of newEvs) evCursor = Math.max(evCursor, e.seq ?? 0);
+    // 变故: 自上章以来的陨落/吞并 + 复兴 + 怀复仇者 → 写进本章正文。【副作用(evCursor推进/复兴入队出队/伏笔/反思)全部延后到本章落盘成功后, 守门弃章则一概不发生 → 干净重试】
+    const newEvs = store.readEventsSince(db, worldId, evCursor); // 增量读(替代全量读再 filter, 治千章 O(N^2))
     const upsets = newEvs.filter((e) => e.kind === "CharacterFell" || e.kind === "FactionDissolved" || e.kind === "VengeanceResolved" || e.kind === "CharacterTranscended").map((e) => e.summary).filter((s): s is string => !!s);
-    // (f) 被吞并的派系排期 8 章后复兴; 到期则残部拥立枭雄, 版图复振
-    for (const e of newEvs) if (e.kind === "FactionDissolved") { const f = (e.payload as { faction?: string }).faction; if (f) revivals.push({ faction: f, at: n + 8 }); }
+    // 被吞并的派系排期 8 章后复兴; 到期者此处只算"值"(供正文), 真正入队/出队延后到落盘后
+    const dueRevivals = PACK.reviveFaction ? revivals.filter((r) => n >= r.at) : [];
+    const reviveSpawns: Array<{ faction: string; reviver: CharacterState }> = [];
     const reviveNotes: string[] = [];
-    for (const r of revivals.filter((r) => n >= r.at)) {
-      if (PACK.reviveFaction) {
-        const reviver = PACK.reviveFaction(r.faction, n);
-        store.enqueueInput(db, `revive-${r.faction}-${n}`, worldId, "spawn-character", { character: reviver }, Date.now());
-        reviveNotes.push(`${r.faction}残部拥立${reviver.name}、揭竿复兴`);
-      }
-    }
-    revivals = revivals.filter((r) => n < r.at);
+    for (const r of dueRevivals) { const reviver = PACK.reviveFaction!(r.faction, n); reviveSpawns.push({ faction: r.faction, reviver }); reviveNotes.push(`${r.faction}残部拥立${reviver.name}、揭竿复兴`); }
     const avengers = Object.values(snap.snapshot.characters)
       .filter((c) => c.present && typeof c.props["avenge"] === "string")
       .map((c) => `${c.name}痛失${String(c.props["avenge"])}、誓复此仇`);
     const upheaval = [...upsets, ...avengers, ...reviveNotes].join("；");
     const qimen = plateLabel(snap.snapshot.tick ?? n * 3);
     const crisis = [crisisBase, `奇门·${qimen}`, facSummary ? `派系格局：${facSummary}` : "", upheaval ? `近时变故：${upheaval}` : "", dramaHintText ? `导演：${dramaHintText}` : ""].filter(Boolean).join(" ｜ ");
-    // M3 批量异步反思: 累加卷入度(零 LLM); 每 3 章若有破阈者, 一次 LLM 批量更新其内心 → 经 input 队列下个 step 写入(单写者铁律不破)
+    const sig = configSignature();
+    if (sig !== llmSig) { llm = makeLLM(); llmSig = sig; console.log(`↻ LLM 已切换为 ${llm.id}`); } // 网页改设置 → 热切换, 无需重启长跑
+    // 认知②: 召回在场角色的显著情景记忆 → 章节作前情回响(callback)
+    const present = new Set(Object.values(snap.snapshot.characters).filter((c) => c.present).map((c) => c.id));
+    const echoes = store.readSalientMemories(db, worldId, 0.6, 6).filter((m) => present.has(m.characterId)).map((m) => m.body);
+    const baseEcho = echoes.length ? `${bible}\n【角色近事回响】${echoes.slice(0, 4).join("；")}` : bible;
+    // M2 终身记忆: 每角色 persona digest(canon属性+M1心境+恩怨账+执念) + 宿缘旧账, 注入前情 → 角色带一生与恩怨出场(零新 LLM)
+    const persona = personaBlock(snap.snapshot, loadCanon(ROOT));
+    const shared = recallShared(store.readSalientMemories(db, worldId, 0.6, 40), snap.snapshot);
+    const bibleEcho = [baseEcho, persona, shared.length ? "【宿缘·同框者旧账(可点到)】" + shared.slice(0, 3).join("；") : ""].filter(Boolean).join("\n");
+    // 叙事·伏笔账: 到期回收 / 每 6 章埋设(开放伏笔 < 3 时), 形成 setup→payoff 跨章结构
+    const fsList = readFs();
+    let weave = "";
+    let paidDue: Foreshadow | undefined; // 落盘成功后才置 paid + writeFs(防守门弃章 → 伏笔假回收 + 灌假 consFit 适应度)
+    let plantedF: Foreshadow | undefined;
+    const due = fsList.find((f) => !f.paid && f.dueCh <= n);
+    if (due) {
+      weave = `回收伏笔——给出回应或揭其真相："${due.desc}"`;
+      paidDue = due;
+      console.log(`  ⟡ 回收伏笔: ${due.desc}`);
+    } else if (n % 6 === 0 && fsList.filter((f) => !f.paid).length < 3) {
+      const hook = (await llm.complete(`${sys}\n据当前态势构思一个可在 8~14 章后回收的"伏笔"(一桩悬念/隐秘/信物/预言/未了之债，≤24字)，只回伏笔本身：\n世界大事：${crisis}\n在场：${ros.slice(0, 200)}`)).replace(/\s+/g, " ").replace(/[《》「」#]/g, "").slice(0, 30);
+      if (hook) {
+        plantedF = { id: `fs-${n}`, desc: hook, plantedCh: n, dueCh: n + 8 + (n % 7), paid: false };
+        weave = `自然埋下一个伏笔(只露端倪、勿点破)："${hook}"`;
+        console.log(`  ⟡ 埋伏笔: ${hook}（第${plantedF.dueCh}章回收）`);
+      }
+    }
+    conBlock = constraintsBlock(loadConstraints(ROOT).active); // 拾取议事已批准的铁律变更(规则层概念空间)
+    const ch = await writeChapter(n, vol, scene, crisis, bibleEcho, ros, recent, prevHook, weave);
+
+    if (ch.text.replace(/\s/g, "").length < MINLEN * 0.4) { // 守门: 疑似 LLM 失败回退占位(正常≥3000字)→ 不落盘、退避重试本章, 不推进(防垃圾入正文/污染进化)
+      console.log(`  ⚠ 第${n}章疑似生成失败(仅${ch.text.length}字, 多半 DeepSeek 瞬时故障回退占位)→ 弃, 30s 后重试本章`);
+      n--; await new Promise((r) => setTimeout(r, 30000)); continue;
+    }
+    writeFileSync(join(CH_DIR, `ch-${String(n).padStart(4, "0")}.md`), `# 第${n}章　${ch.goal}\n\n${ch.text}\n`, "utf8");
+    store.saveChapter(db, { id: `saga-ch-${n}`, worldId, goal: ch.goal, text: ch.text, status: "inscribed", createdAt: Date.now() });
+    // ── 本章落盘成功 → 现在才提交所有副作用(守门弃章则上面一概未发生 → 干净重试; 修审计「守门 n-- 不回滚 evCursor/复兴/伏笔」) ──
+    for (const e of newEvs) evCursor = Math.max(evCursor, e.seq ?? 0);
+    for (const e of newEvs) if (e.kind === "FactionDissolved") { const f = (e.payload as { faction?: string }).faction; if (f) revivals.push({ faction: f, at: n + 8 }); }
+    for (const rs of reviveSpawns) store.enqueueInput(db, `revive-${rs.faction}-${n}`, worldId, "spawn-character", { character: rs.reviver }, Date.now());
+    revivals = revivals.filter((r) => n < r.at);
+    if (paidDue) { paidDue.paid = true; writeFs(fsList); }
+    else if (plantedF) { fsList.push(plantedF); writeFs(fsList); }
+    // M3 批量异步反思(落盘后跑: 守门弃章不浪费 LLM、不双重累加卷入度)
     if (EVOLVE) {
       try {
         accrueImportance(minds, newEvs, snap.snapshot);
@@ -292,7 +342,8 @@ async function main(): Promise<void> {
           const queue = selectQueue(minds, snap.snapshot);
           minds.lastFp = minds.lastFp ?? {};
           const fresh: string[] = []; let cachedN = 0;
-          for (const id of queue) { const c = snap.snapshot.characters[id]; if (!c) continue; if (situationFp(c) !== minds.lastFp[id]) fresh.push(id); else { delete minds.pendingImp[id]; cachedN++; } } // M4: 情境未变→复用旧心声、不调 LLM
+          const forceSet = new Set(minds.force ?? []); // 大事经历者(复仇/破境/羁绊者陨落)强制反思, 绕过 M4 情境指纹缓存(防漏反思)
+          for (const id of queue) { const c = snap.snapshot.characters[id]; if (!c) continue; if (forceSet.has(id) || situationFp(c) !== minds.lastFp[id]) fresh.push(id); else { delete minds.pendingImp[id]; cachedN++; } } // M4: 情境未变且无大事→复用旧心声、不调 LLM
           if (fresh.length) {
             const recentByChar = (c: CharacterState): string =>
               newEvs.filter((e) => (e.payload as { characterId?: string })?.characterId === c.id || (e.summary ?? "").includes(c.name)).map((e) => e.summary).filter((s): s is string => !!s).slice(-2).join("；") || "近来世事牵动";
@@ -308,44 +359,6 @@ async function main(): Promise<void> {
         saveMinds(ROOT, minds);
       } catch (e) { console.log("  🧠 反思跳过:", String(e).slice(0, 60)); }
     }
-    const sig = configSignature();
-    if (sig !== llmSig) { llm = makeLLM(); llmSig = sig; console.log(`↻ LLM 已切换为 ${llm.id}`); } // 网页改设置 → 热切换, 无需重启长跑
-    // 认知②: 召回在场角色的显著情景记忆 → 章节作前情回响(callback)
-    const present = new Set(Object.values(snap.snapshot.characters).filter((c) => c.present).map((c) => c.id));
-    const echoes = store.readSalientMemories(db, worldId, 0.6, 6).filter((m) => present.has(m.characterId)).map((m) => m.body);
-    const baseEcho = echoes.length ? `${bible}\n【角色近事回响】${echoes.slice(0, 4).join("；")}` : bible;
-    // M2 终身记忆: 每角色 persona digest(canon属性+M1心境+恩怨账+执念) + 宿缘旧账, 注入前情 → 角色带一生与恩怨出场(零新 LLM)
-    const persona = personaBlock(snap.snapshot, loadCanon(ROOT));
-    const shared = recallShared(store.readSalientMemories(db, worldId, 0.6, 40), snap.snapshot);
-    const bibleEcho = [baseEcho, persona, shared.length ? "【宿缘·同框者旧账(可点到)】" + shared.slice(0, 3).join("；") : ""].filter(Boolean).join("\n");
-    // 叙事·伏笔账: 到期回收 / 每 6 章埋设(开放伏笔 < 3 时), 形成 setup→payoff 跨章结构
-    const fsList = readFs();
-    let weave = "";
-    const due = fsList.find((f) => !f.paid && f.dueCh <= n);
-    if (due) {
-      weave = `回收伏笔——给出回应或揭其真相："${due.desc}"`;
-      due.paid = true;
-      writeFs(fsList);
-      console.log(`  ⟡ 回收伏笔: ${due.desc}`);
-    } else if (n % 6 === 0 && fsList.filter((f) => !f.paid).length < 3) {
-      const hook = (await llm.complete(`${sys}\n据当前态势构思一个可在 8~14 章后回收的"伏笔"(一桩悬念/隐秘/信物/预言/未了之债，≤24字)，只回伏笔本身：\n世界大事：${crisis}\n在场：${ros.slice(0, 200)}`)).replace(/\s+/g, " ").replace(/[《》「」#]/g, "").slice(0, 30);
-      if (hook) {
-        const f: Foreshadow = { id: `fs-${n}`, desc: hook, plantedCh: n, dueCh: n + 8 + (n % 7), paid: false };
-        fsList.push(f);
-        writeFs(fsList);
-        weave = `自然埋下一个伏笔(只露端倪、勿点破)："${hook}"`;
-        console.log(`  ⟡ 埋伏笔: ${hook}（第${f.dueCh}章回收）`);
-      }
-    }
-    conBlock = constraintsBlock(loadConstraints(ROOT).active); // 拾取议事已批准的铁律变更(规则层概念空间)
-    const ch = await writeChapter(n, vol, scene, crisis, bibleEcho, ros, recent, prevHook, weave);
-
-    if (ch.text.replace(/\s/g, "").length < MINLEN * 0.4) { // 守门: 疑似 LLM 失败回退占位(正常≥3000字)→ 不落盘、退避重试本章, 不推进(防垃圾入正文/污染进化)
-      console.log(`  ⚠ 第${n}章疑似生成失败(仅${ch.text.length}字, 多半 DeepSeek 瞬时故障回退占位)→ 弃, 30s 后重试本章`);
-      n--; await new Promise((r) => setTimeout(r, 30000)); continue;
-    }
-    writeFileSync(join(CH_DIR, `ch-${String(n).padStart(4, "0")}.md`), `# 第${n}章　${ch.goal}\n\n${ch.text}\n`, "utf8");
-    store.saveChapter(db, { id: `saga-ch-${n}`, worldId, goal: ch.goal, text: ch.text, status: "inscribed", createdAt: Date.now() });
     try { // 发 compose 事件 → SSE 点亮「成文」灯 + 触发网页"新章已落"+刷新(长跑此前不发, 故成文灯不亮)
       store.appendEvent(db, { id: `compose:ch${n}:ChapterInscribed`, worldId, lineId: "main", tick: n * 3, kind: "ChapterInscribed", subsystem: "compose", severity: "notable", verb: "成文", subject: ch.goal, summary: `第${n}章《${ch.goal}》落成`, payload: { kind: "ChapterInscribed", chapterId: `saga-ch-${n}`, sceneIds: [] }, ts: Date.now() });
     } catch { /* 灯轨非关键, 失败不影响写章 */ }
@@ -354,8 +367,9 @@ async function main(): Promise<void> {
 
     if (n % 8 === 0) { // 一致性: 更新设定档 canon + 校验矛盾, 喂生成(修正)与适应度(canonStep 先于 evolveOnce)
       try {
-        const rcc = store.readChapters(db, worldId).filter((c) => c.id.startsWith("saga-ch-")).slice(-8).map((c) => ({ goal: c.goal, text: c.text }));
-        const cs = await canonStep(llm, sys, ROOT, rcc, n);
+        const rcc = store.readRecentChapters(db, worldId, 8).map((c) => ({ goal: c.goal, text: c.text }));
+        const cs = await canonStep(llm, sys, ROOT, rcc, n, derivedFacts(deriveCanon(snap.snapshot, tierName))); // 传引擎权威硬事实, 一致性校验据此判 prose 对错(不再让 LLM 自抽境界)
+
         // 可验证子目标②: 伏笔回收率(据伏笔账本, 到期未收=扣分)
         const fsAll = readFs(); const due = fsAll.filter((f) => f.dueCh <= n);
         const fsRate = due.length ? +((due.filter((f) => f.paid).length / due.length) * 10).toFixed(1) : 10;
@@ -368,15 +382,15 @@ async function main(): Promise<void> {
       bible = await rollSummary(bible, recent.slice(-8));
       if (EVOLVE) {
         try {
-          const allCh = store.readChapters(db, worldId).filter((c) => c.id.startsWith("saga-ch-")).map((c) => ({ goal: c.goal, text: c.text }));
+          const recentCh = store.readRecentChapters(db, worldId, 48).map((c) => ({ goal: c.goal, text: c.text })); // 近 48 章(novelty 对照窗口; 不再读全量千章正文)
           // 模拟层 fitness: 先算好存盘(evolveOnce 会读它折进基因适应度; server 读出来画曲线)
           const spf = store.loadSnapshot(db, worldId);
           if (spf) {
-            const sf = computeSimFitness(store.readEvents(db, worldId), spf.snapshot, allCh, vol, n);
+            const sf = computeSimFitness(store.readRecentEvents(db, worldId, 800), spf.snapshot, recentCh, vol, n); // 近 800 事件(recency 加权下足够; sift/张力按近窗算)
             saveSimFitness(ROOT, sf);
             console.log(`  🌍 模拟层${sf.total}/10 · 故事链${sf.sift.score}(${sf.sift.chains}条:${Object.entries(sf.sift.patterns).map(([k, v]) => k + v).join(",")}) · 派系张力${sf.tension.score}(势均${sf.tension.balance}/交锋${sf.tension.directness}/化解${sf.tension.resolution}) · 新颖${(sf.novelty * 10).toFixed(1)}${sf.sift.dangling.length ? " · 悬而未决:" + sf.sift.dangling.length : ""}`);
           }
-          const evo = await evolveOnce(llm, sys, ROOT, vol, allCh.slice(-8));
+          const evo = await evolveOnce(llm, sys, ROOT, vol, recentCh.slice(-8));
           evoGenome = evo.genome; evoGuidance = evo.guidance; // 下一卷据此生成
           console.log(`  🧬 ${evo.report}`);
         } catch (e) { console.log("  🧬 进化跳过:", String(e).slice(0, 80)); }
@@ -402,11 +416,10 @@ async function main(): Promise<void> {
           }
         } catch (e) { console.log("  ⚖ 铁律提案跳过:", String(e).slice(0, 80)); }
       }
-      const s = store.loadSnapshot(db, worldId);
-      if (s) {
-        s.snapshot.props["bible"] = bible;
-        store.saveSnapshot(db, worldId, s.snapshot, s.lastSeq, Date.now()); // tuning 改由 T4 控制器每章写(baseline=evoGenome.engine + 临界/戏剧干预)
-      }
+      await withLock(() => { // 与 step 互斥, 防 bible 写覆盖快速裁决 step 的世界推进
+        const s = store.loadSnapshot(db, worldId);
+        if (s) { s.snapshot.props["bible"] = bible; store.saveSnapshot(db, worldId, s.snapshot, s.lastSeq, Date.now()); } // tuning 改由 T4 控制器每章写
+      });
     }
     console.log(`第 ${n}/${TARGET} 章　《${ch.goal}》　${ch.text.length}字　(${((Date.now() - t0) / 1000).toFixed(0)}s)`);
   }

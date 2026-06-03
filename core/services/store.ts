@@ -26,9 +26,8 @@ export function maxSeq(db: DB, worldId: string): number {
   return row?.m ?? 0;
 }
 
-export function readEvents(db: DB, worldId: string): WorldEventRecord[] {
-  const rows = db.prepare(`SELECT * FROM events WHERE world_id = ? ORDER BY seq`).all(worldId) as Array<Record<string, unknown>>;
-  return rows.map((r) => ({
+function rowToEvent(r: Record<string, unknown>): WorldEventRecord {
+  return {
     seq: r.seq as number,
     id: r.id as string,
     worldId: r.world_id as string,
@@ -43,7 +42,18 @@ export function readEvents(db: DB, worldId: string): WorldEventRecord[] {
     payload: JSON.parse(r.payload_json as string) as DomainEvent,
     refs: r.refs_json ? (JSON.parse(r.refs_json as string) as Record<string, unknown>) : undefined,
     ts: r.ts as number,
-  }));
+  };
+}
+export function readEvents(db: DB, worldId: string): WorldEventRecord[] {
+  return (db.prepare(`SELECT * FROM events WHERE world_id = ? ORDER BY seq`).all(worldId) as Array<Record<string, unknown>>).map(rowToEvent);
+}
+// 增量读: 只取 seq>sinceSeq(替代"全量读再 filter", 治千章 O(N^2) 膨胀)
+export function readEventsSince(db: DB, worldId: string, sinceSeq: number): WorldEventRecord[] {
+  return (db.prepare(`SELECT * FROM events WHERE world_id = ? AND seq > ? ORDER BY seq`).all(worldId, sinceSeq) as Array<Record<string, unknown>>).map(rowToEvent);
+}
+// 近 limit 条事件(dramaControl/simFitness 只需近窗, 不必全量反序列化)
+export function readRecentEvents(db: DB, worldId: string, limit: number): WorldEventRecord[] {
+  return (db.prepare(`SELECT * FROM events WHERE world_id = ? ORDER BY seq DESC LIMIT ?`).all(worldId, limit) as Array<Record<string, unknown>>).reverse().map(rowToEvent);
 }
 
 // ── world_state(快照投影; last_seq = 已 fold 到的 seq) ──
@@ -158,6 +168,10 @@ export function readChapters(db: DB, worldId: string): Array<{ id: string; goal:
     status: string;
   }>;
   return rows;
+}
+// 近 limit 章(含正文; canon/evolve 只需近窗, 不必全量读千章正文进内存)
+export function readRecentChapters(db: DB, worldId: string, limit: number, prefix = "saga-ch-"): Array<{ id: string; goal: string; text: string; status: string }> {
+  return (db.prepare(`SELECT id, goal, text, status FROM chapters WHERE world_id=? AND id LIKE ? ORDER BY created_at DESC LIMIT ?`).all(worldId, prefix + "%", limit) as Array<{ id: string; goal: string; text: string; status: string }>).reverse();
 }
 // 轻量: 只列标题(供网页章节目录, 千章不卡)
 export function listChapters(db: DB, worldId: string): Array<{ id: string; goal: string }> {

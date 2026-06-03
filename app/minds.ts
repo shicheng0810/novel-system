@@ -9,7 +9,7 @@ import { join } from "node:path";
 import type { LLMProvider } from "../core/services/llm";
 import type { WorldSnapshot, CharacterState } from "../core/domain/world";
 
-export interface MindsState { pendingImp: Record<string, number>; lastReflectCh: number; lastFp?: Record<string, string> }
+export interface MindsState { pendingImp: Record<string, number>; lastReflectCh: number; lastFp?: Record<string, string>; force?: string[] }
 export interface MindUpdate { id: string; mind: string; stress?: number }
 
 // M4 策略缓存(AGA Lifestyle Policy): 情境指纹。破阈但指纹未变 → 复用上次心声、不重新调 LLM。
@@ -50,6 +50,18 @@ export function accrueImportance(m: MindsState, events: Array<{ kind: string; pa
       if (!c.present) continue; const b = c.props[`bond:${cid}`]; if (typeof b === "number" && Math.abs(b) >= 2) bump(c.id, Math.min(2, Math.abs(b) / 2));
     }
   }
+  // 强制反思集: 本窗口经历离散大事者(复仇了断/破境/飞升/羁绊者陨落)→ 绕过 M4 情境指纹缓存, 防"该反思的被缓存跳过"
+  const force = new Set<string>();
+  for (const e of events) {
+    const p = e.payload as Record<string, unknown>;
+    const cid = typeof p["characterId"] === "string" ? (p["characterId"] as string) : "";
+    if ((e.kind === "VengeanceResolved" || e.kind === "CharacterTranscended" || e.kind === "ProgressionAdvanced") && cid && snapshot.characters[cid]?.present) force.add(cid);
+    if (e.kind === "CharacterFell" && cid) for (const c of Object.values(snapshot.characters)) if (c.present && typeof c.props[`bond:${cid}`] === "number" && Math.abs(c.props[`bond:${cid}`] as number) >= 2) force.add(c.id);
+  }
+  m.force = [...force];
+  // GC: 删除已离场角色的死键(防 pendingImp/lastFp 随世代更替无界增长)
+  for (const id of Object.keys(m.pendingImp)) if (!snapshot.characters[id]?.present) delete m.pendingImp[id];
+  if (m.lastFp) for (const id of Object.keys(m.lastFp)) if (!snapshot.characters[id]?.present) delete m.lastFp[id];
 }
 
 // ② 选队列: pending 破阈者, 取 top-K

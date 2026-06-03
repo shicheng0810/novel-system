@@ -28,6 +28,7 @@ export interface Ledger {
   amplify: string[];
   directives: string[];
   scores: Array<{ vol: number; gen: number; fitness: number; llm: number; obj: number; cell: string; len: number; slm: number; rep: number; dlg: number; ttr: number; avoidHits: number } & Rubric>;
+  bestEngine?: { engine: EngineGenes; sim: number }; // 世界级最优模拟旋钮(按 simFit 单独进化, 与风格格解耦 → 不被风格精英化拖拽、跨 15 格共享)
 }
 export interface Cell { key: string; tone: string; rhythm: string; conflict: string; genome: Genome; fitness: number; at: string }
 
@@ -83,7 +84,7 @@ export function promoteToGlobal(worldDir: string): void {
   const prev = loadGlobal(worldDir); // 单调: 既有全局最优基因/避雷不被"无格世界"清空(清世界后重开仍继承)
   const counts = new Map<string, number>(); const from: string[] = [];
   for (const p of prev.avoid) counts.set(p, 1);
-  let bestFit = prev.bestFitness ?? -1; let bestGenome: Genome | null = prev.genome;
+  let bestFit = prev.bestFitness ?? -1; let bestGenome: Genome | null = prev.genome ? cloneGenome(prev.genome) : null; // backfill: 单调保底的旧形状全局基因也补齐 7 旋钮默认, 保证落盘 global 恒规范
   for (const d of dirs) {
     const D = join(root, d);
     try {
@@ -182,9 +183,10 @@ export async function critique(llm: LLMProvider, sys: string, chapters: Array<{ 
 }
 
 // ── LLM 提议变异(自由调参，带边界裁剪与确定性兜底) ──
-async function mutateGenome(llm: LLMProvider, parent: Genome, reflection: string): Promise<Genome> {
+async function mutateGenome(llm: LLMProvider, parent: Genome, engineBase: EngineGenes, reflection: string): Promise<Genome> {
   const child = cloneGenome(parent); child.generation = parent.generation + 1;
-  const e = parent.engine;
+  child.engine = { ...DEFAULT_GENOME.engine, ...engineBase }; // engine 取世界级最优(解耦于风格父本 → 风格精英化不再拖拽模拟旋钮), 下面只在此基础上微调
+  const e = child.engine;
   try {
     const raw = await llm.complete(
       `你在为「小说世界模拟器」调参。两类基因：\n[文笔] temperature=${parent.gen.temperature}, frequencyPenalty=${parent.gen.frequencyPenalty}, presencePenalty=${parent.gen.presencePenalty}\n[模拟] priorWeight=${e.priorWeight}(命理先验引导强度) scarcity=${e.scarcity}(资源稀缺度: 0自由积累→1零和竞争, 催生派系生态/寄生分工) conflictRate=${e.conflictRate}(冲突张力增益) eventBias=${e.eventBias}(大事触发倾向) turnoverRate=${e.turnoverRate}(人物登场/陨落代谢, 偏低则人物更长寿、群像不易坍塌) nicheWeight=${e.nicheWeight}(生态位分工加分: 鼓励派系内角色职能互补) structureGrowth=${e.structureGrowth}(派系分裂/新生倾向)\n最近评审：${reflection}\n据反馈提议小幅调整(只动 1-3 个键；文笔每个幅度≤0.2、模拟每个≤0.25)，目标同时提升文笔质量与「世界涌现的戏剧性/丰富度/群像存活」。只回 JSON(只列你要改的键)：{"scarcity":数,"conflictRate":数,...}`,
@@ -231,11 +233,12 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
   const cn = loadCanon(dir);
   const castSize = Object.keys(cn.characters ?? {}).length;
   const repThreshold = 0.15 + Math.min(0.12, castSize * 0.006); // 群像豁免: 人物越多, 实体/人名复现越正常, 重复阈值随之放宽(4人≈0.17, 14人≈0.23, 上限0.27)
-  const antiProxy = (avgLen > 0 && m.len > avgLen * 1.6) || m.repetition > repThreshold; // 长度暴涨/重复飙升=疑似刷分
-  const consFit = (() => { const a = typeof cn.lastConsistency === "number" ? cn.lastConsistency : 8; const b = typeof cn.lastForeshadow === "number" ? cn.lastForeshadow : 8; return +((a + b) / 2).toFixed(1); })(); // 可验证子目标: 一致性 + 伏笔回收均值(canonStep/longrun 先算)
+  const antiProxy = (avgLen > 0 && m.len > avgLen * 1.6) || m.repetition > repThreshold || m.dialogueRatio > 0.55 || m.ttr > 0.62; // 刷分嫌疑: 长度暴涨/重复飙升/对白堆砌(>55%)/碎句刷词汇多样(ttr>0.62) — 覆盖 obj 的可刷代理指标
+  const consFit = (() => { const a = typeof cn.lastConsistency === "number" ? cn.lastConsistency : 5; const b = typeof cn.lastForeshadow === "number" ? cn.lastForeshadow : 5; return +((a + b) / 2).toFixed(1); })(); // 缺省取保守 5(未测≠及格8: 防白送地板污染跨卷/跨世界比较)
   // 模拟层 fitness(longrun 在 evolveOnce 前算好存盘): 世界本身够不够有戏(story-sifting+派系张力+新颖度)。有则作主驱动之一, 无则退回纯作者层混合。
   const sf = loadSimFitness(dir);
   const simFit = sf ? sf.total : null;
+  if (simFit !== null && (!ledger.bestEngine || simFit > ledger.bestEngine.sim)) ledger.bestEngine = { engine: { ...cur.engine }, sim: simFit }; // engine 按 simFit 单独进化: 本卷模拟旋钮更优 → 记为世界级最优(下卷据此变异, 不被风格格干扰)
   let fitness = simFit !== null
     ? +(0.42 * llmFit + 0.18 * objFit + 0.12 * consFit + 0.28 * simFit).toFixed(2) // 作者层(文笔+客观+一致) + 模拟层(simFit 28%)
     : +(0.6 * llmFit + 0.25 * objFit + 0.15 * consFit).toFixed(2);
@@ -263,7 +266,7 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
     ? ` 模拟层${sf.total}/10(故事链${sf.sift.score}·派系张力${sf.tension.score}·新颖${(sf.novelty * 10).toFixed(1)}；极化${sf.tension.polarization}/势均${sf.tension.balance}/交锋${sf.tension.directness}/化解${sf.tension.resolution}/在场派系${Object.keys(sf.sift.patterns).length}型戏)。${sf.tension.score < 4 ? "⚠世界张力低/疑人物坍塌→宜降 turnoverRate、升 structureGrowth/scarcity 让派系活起来；" : ""}${sf.sift.score < 4 ? "戏剧密度低→宜升 conflictRate/eventBias；" : ""}`
     : "";
   const reflection = `适应度${fitness}(LLM${llmFit}/客观${objFit})。修正：${c.fixes.join("；") || "无"}。客观：重复率${(m.repetition * 100).toFixed(1)}%、对白${(m.dialogueRatio * 100).toFixed(0)}%、词汇多样${(m.ttr * 100).toFixed(0)}%、命中避雷${m.avoidHits}。${simReflect}${antiProxy ? "⚠长度/重复疑似刷分(已打折)" : ""}`;
-  const next = await mutateGenome(llm, selectParent(archive, cur), reflection);
+  const next = await mutateGenome(llm, selectParent(archive, cur), ledger.bestEngine?.engine ?? cur.engine, reflection); // gen 取风格父本、engine 取世界级最优(解耦)
   const target = pickTarget(archive); if (target) next.targetStyle = target; // novelty: 逼填未点亮的风格格
 
   saveGenome(dir, next); saveArchive(dir, archive); saveLedger(dir, ledger);
