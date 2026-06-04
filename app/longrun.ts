@@ -253,7 +253,7 @@ async function main(): Promise<void> {
       const sp = store.loadSnapshot(db, worldId);
       const pend = sp && Array.isArray(sp.snapshot.props["pendingDecisions"]) ? (sp.snapshot.props["pendingDecisions"] as Array<{ decisionId: string; valence?: number }>) : [];
       const curTick = sp?.snapshot.tick ?? 0;
-      const GRACE_TICKS = 3 * 3; // 宽限约 3 章(给作者插手窗口)
+      const GRACE_TICKS = existsSync(join(ROOT, "autoverdict")) ? 0 : 3 * 3; // 宽限约 3 章(给作者插手窗口); 网页开「全自动裁决」则归零→立即据奇门吉凶自动定夺
       let auto = false;
       for (const p of pend) {
         const m = p.decisionId.match(/t(\d+)$/);

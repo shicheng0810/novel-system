@@ -206,6 +206,12 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     let alive = false; try { const lf = join(dir, "longrun.lock"); if (existsSync(lf)) { const pid = Number(readFileSync(lf, "utf8").trim()); process.kill(pid, 0); alive = pid > 0; } } catch { alive = false; }
     return json(res, { paused: existsSync(pf), alive });
   }
+  if (url === "/api/autoverdict") { // 全自动裁决开关(写者 longrun 轮询此文件: 存在=之后议事宽限归零、立即据奇门吉凶自动定夺、不再请作者)
+    const dir = join(here, "..", ".novel-output", SAGA);
+    const af = join(dir, "autoverdict");
+    if (req.method === "POST") { try { if (existsSync(af)) unlinkSync(af); else writeFileSync(af, String(Date.now()), "utf8"); } catch { /* ignore */ } }
+    return json(res, { auto: existsSync(af) });
+  }
   if (url === "/api/kill" && req.method === "POST") { // 终止该世界写者(读锁文件 PID, SIGKILL)。已写章节保留, server 不停可继续看。
     const lf = join(here, "..", ".novel-output", SAGA, "longrun.lock");
     let killed = false, pid = 0;
@@ -229,10 +235,11 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     req.on("end", () => {
       void (async () => {
         try {
-          const p = JSON.parse(body || "{}") as { prompt?: string; name?: string };
-          if (!p.prompt) {
+          const p = JSON.parse(body || "{}") as { prompt?: string; name?: string; outline?: string };
+          const basePrompt = (p.prompt || "").trim() || ((p.outline || "").trim().split("\n").find((l) => l.trim()) || "").slice(0, 120);
+          if (!basePrompt) {
             res.statusCode = 400;
-            return json(res, { error: "缺少世界描述" });
+            return json(res, { error: "缺少世界描述或大纲" });
           }
           const reg = readReg();
           const safe = (p.name || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24) || `world-${reg.length + 1}`;
@@ -241,7 +248,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
             return json(res, { error: "同名世界已存在" });
           }
           const port = 9000 + reg.length;
-          const cfg = await generateWorldConfig(p.prompt, llm); // ← LLM 据提示词生成世界配置
+          const cfg = await generateWorldConfig(basePrompt, llm, p.outline); // ← LLM 据提示词(+可选成品大纲做设定底座)生成世界配置
           const cfgPath = join(OUT, "worlds", `${safe}.json`);
           mkdirSync(dirname(cfgPath), { recursive: true });
           writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
@@ -249,7 +256,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           const baseEnv = { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: safe, NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4" };
           spawn("npx", ["tsx", "app/longrun.ts"], { cwd: root, env: baseEnv, detached: true, stdio: "ignore" }).unref(); // 起长跑
           spawn("npx", ["tsx", "app/server.ts"], { cwd: root, env: { ...baseEnv, NOVEL_VIEW: "saga", PORT: String(port) }, detached: true, stdio: "ignore" }).unref(); // 起观察器
-          const entry: WorldEntry = { name: safe, displayName: String((cfg as { displayName?: unknown }).displayName ?? safe), port, prompt: p.prompt };
+          const entry: WorldEntry = { name: safe, displayName: String((cfg as { displayName?: unknown }).displayName ?? safe), port, prompt: basePrompt };
           reg.push(entry);
           writeReg(reg);
           json(res, { ok: true, ...entry, url: `http://127.0.0.1:${port}` });
