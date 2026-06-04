@@ -342,12 +342,13 @@ async function enableAutoFromToast(){if(!AUTOV)await toggleAutoVerdict()}
 function chime(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const a=new A();const o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type="sine";o.frequency.value=784;g.gain.setValueAtTime(0.0001,a.currentTime);g.gain.exponentialRampToValueAtTime(0.05,a.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.45);o.start();o.stop(a.currentTime+0.46)}catch(e){}}
 // ── 新手引导(分步高亮 + 引导填 API Key) ──
 const TOUR=[
-  {sel:null,title:"欢迎来到「案头」",body:"这是一个**自己运转的小说世界**——角色有心智、会结仇结缘、破境陨落，章节是这世界自然长出来的副产品。你不必动笔，只需旁观，偶尔定夺。"},
-  {sel:"#tSet",title:"① 先递一把钥匙",body:"本系统用 DeepSeek 写作。填入你自己的 API Key（只存你本机、不回传）。**没有它，世界只会生成占位文。**",isKey:true},
-  {sel:"#pulse",title:"② 一炷香 · 世界在跑",body:"右上这点余烬每跳一下，世界就推演一拍。它按自己的节奏燃，你不用盯着。"},
-  {sel:"#tMs",title:"③ 手稿 · 在这读小说",body:"点「手稿」看世界写出的章节：左侧章目、右侧正文。这才是成品。"},
-  {sel:"#council",title:"④ 议事 · 偶尔请你定夺",body:"遇到关键抉择，世界会在此请你「依准」或「另议」。**懒得管？勾上「全自动裁决」，之后全交给世界。**"},
-  {sel:"#tWorlds",title:"⑤ 开你自己的世界",body:"点 ✦，一句话——或一份成品大纲——就能生成一个全新题材的世界。"},
+  {sel:null,title:"欢迎来到「案头」",body:"这是一个**自己运转的小说世界**——里面的人物有心智、会结仇结缘、破境陨落，章节是这世界自然长出来的。你不必动笔，只需旁观，偶尔当一下「天意」。"},
+  {sel:"#tSet",title:"① 先递一把钥匙",body:"本系统用 DeepSeek 把世界发生的事写成文字。填入你自己的 API Key（只存你本机、不回传）。**没有它，世界只会生成占位的废话文。**",isKey:true},
+  {sel:"#pulse",title:"② 一炷香 · 世界自己在跑",body:"右上这点余烬每跳一下，世界就推演一拍。它按自己的节奏燃，你不用盯着——章节会自然产出。"},
+  {sel:"#tWorld",title:"③ 世界 · 一张活地图",body:"默认这页是世界地图：谁在哪、谁和谁结盟（绿线）或结仇（红线）。**鼠标悬在角色上**看他此刻的心声，**点两个人**还能偷听他们当场对话。"},
+  {sel:"#tMs",title:"④ 手稿 · 在这读小说",body:"点「手稿」看世界写出的章节：左边章目、右边正文。这才是成品小说。"},
+  {sel:"#council",title:"⑤ 议事 · 偶尔请你拍板",body:"遇到关键抉择，世界会弹卡片请你「依准（顺其自然）」或「另议（逆转走向）」。**懒得管？勾上「全自动裁决」，往后全交给世界、不再打扰你。**"},
+  {sel:"#tWorlds",title:"⑥ 开你自己的世界",body:"点 ✦：**一句话**就能生成一个全新题材的世界；也可以贴一份**成品大纲**，再选「松散底座（世界自由发挥）」或「严格跟纲（逐章照你的大纲写）」。"},
 ];
 let _tourI=0;
 function startTour(){_tourI=0;$("tourmask").style.display="flex";renderTour()}
