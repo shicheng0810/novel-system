@@ -321,7 +321,12 @@ async function loadAutoVerdict(){try{const r=await(await fetch("/api/autoverdict
 async function toggleAutoVerdict(){try{const r=await(await fetch("/api/autoverdict",{method:"POST"})).json();AUTOV=!!r.auto;const c=$("autov");if(c)c.checked=AUTOV;setWay(AUTOV?"⚙ 已开全自动裁决 · 之后议事世界自行定夺":"已关全自动 · 议事将再请你定夺");if(AUTOV)document.querySelectorAll(".dtoast").forEach(c=>{c.classList.remove("show");setTimeout(()=>c.remove(),280)})}catch(e){}}
 // ── 议事浮层卡(醒目·可忽略) ──
 let _toasted={};
-function maybeToast(ds){for(const id in _toasted)if(!ds.some(d=>d.decisionId===id))delete _toasted[id];if(AUTOV)return;for(const d of ds){if(!_toasted[d.decisionId]&&!ruledIds[d.decisionId])decisionToast(d)}}
+function maybeToast(ds){for(const id in _toasted)if(!ds.some(d=>d.decisionId===id))delete _toasted[id];
+  if(AUTOV){ // 全自动: 不弹窗, 即刻据奇门吉凶(valence)自动裁每桩(不等写者下一章; 服务端宽限归零为兜底)
+    for(const d of ds){if(!ruledIds[d.decisionId]){ruledIds[d.decisionId]="自动";const v=(d.valence!=null&&d.valence<-0.2)?"reject":"accept";fetch("/api/verdict",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({decisionId:d.decisionId,verdict:v})}).catch(()=>{})}}
+    return;
+  }
+  for(const d of ds){if(!_toasted[d.decisionId]&&!ruledIds[d.decisionId])decisionToast(d)}}
 function decisionToast(d){_toasted[d.decisionId]=1;const wrap=$("dtoastwrap");if(!wrap)return;const card=document.createElement("div");card.className="dtoast";card.dataset.id=d.decisionId;
   card.innerHTML=`<div class="dt-h"><span class="dt-star">★</span><b>一桩待你定夺</b><span class="dt-x" onclick="dismissToast('${d.decisionId}')">✕</span></div><div class="dt-sum">${esc(d.summary||"世界遇到一桩抉择")}</div>${d.hint?`<div class="dt-hint" style="color:${decColor(d)}">☷ ${esc(d.hint)}</div>`:""}<div class="dt-btns"><button class="setbtn primary" onclick="toastRule('${d.decisionId}','accept')">依准·顺其自然</button><button class="setbtn" onclick="toastRule('${d.decisionId}','reject')">另议·逆转</button></div><div class="dt-foot">不理它 · 约三章后世界自行定夺 · <span class="dt-auto" onclick="enableAutoFromToast()">以后都自动</span></div>`;
   wrap.appendChild(card);requestAnimationFrame(()=>card.classList.add("show"));chime()}
