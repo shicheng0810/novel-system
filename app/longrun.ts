@@ -145,10 +145,10 @@ async function rollSummary(prev: string, recentGoals: string[]): Promise<string>
   return (await llm.complete(p, { thinking: false, temperature: 0.6 })).replace(/\s+/g, " ").slice(0, 320);
 }
 
-async function writeChapter(n: number, vol: number, scene: string, crisis: string, bible: string, ros: string, recent: string[], prevHook: string, weave: string, outlineBeat: string): Promise<{ goal: string; text: string; hook: string }> {
+async function writeChapter(n: number, vol: number, scene: string, crisis: string, bible: string, ros: string, recent: string[], prevHook: string, weave: string, outlineBeat: string, obedience: string): Promise<{ goal: string; text: string; hook: string }> {
   const forbid = recent.slice(-6).join("、") || "无";
   const outline = await llm.complete(
-    `${sys}\n【连载第${n}章·第${vol}卷】\n【当前情境】${scene}\n【当前世界大事】${crisis || "暂无"}\n【前情纲要】${bible}\n【在场(含亲疏)】${ros}\n【上章末钩子】${prevHook || "（开篇）"}\n【最近章节标题——严禁雷同、严禁重演开篇灵根试炼】${forbid}${weave ? `\n【本章叙事任务·须落实】${weave}` : ""}${outlineBeat ? `\n【本章须遵循的大纲主线·最要紧】${outlineBeat} —— 你列的 ${SECTIONS} 个节拍必须服务于推进这条主线、顺着它走，不可跑偏到别处情节。` : ""}\n列出本章 ${SECTIONS} 个情节节拍(每个≤20字)：首拍由上章钩子直接引发；每拍须是前一拍的直接后果(因果相承"因→果→再生变"，不得并列罗列)；${outlineBeat ? "在推进上述大纲主线的前提下" : `在"当前情境"内`}生新事件/冲突/转折；末拍留引向下章的悬念。只列 ${SECTIONS} 行节拍。`,
+    `${sys}\n【连载第${n}章·第${vol}卷】\n【当前情境】${scene}\n【当前世界大事】${crisis || "暂无"}\n【前情纲要】${bible}\n【在场(含亲疏)】${ros}\n【上章末钩子】${prevHook || "（开篇）"}\n【最近章节标题——严禁雷同、严禁重演开篇灵根试炼】${forbid}${weave ? `\n【本章叙事任务·须落实】${weave}` : ""}${outlineBeat ? (obedience === "balanced" ? `\n【本章大纲主线·建议方向】${outlineBeat} —— 优先顺势推进这条主线；但世界若自发涌现变数/冲突，可顺其自然地偏离，不必硬贴。` : `\n【本章须遵循的大纲主线·最要紧】${outlineBeat} —— 你列的 ${SECTIONS} 个节拍必须服务于推进这条主线、顺着它走，不可跑偏到别处情节。`) : ""}\n列出本章 ${SECTIONS} 个情节节拍(每个≤20字)：首拍由上章钩子直接引发；每拍须是前一拍的直接后果(因果相承"因→果→再生变"，不得并列罗列)；${outlineBeat ? "在推进上述大纲主线的前提下" : `在"当前情境"内`}生新事件/冲突/转折；末拍留引向下章的悬念。只列 ${SECTIONS} 行节拍。`,
     { temperature: 0.9 },
   );
   const beats = outline.split("\n").map((s) => s.replace(/^[\d.、)\-—•·*\s]+/, "").replace(/^节拍[零〇一二三四五六七八九十\d]+[：:、.\s]*/, "").trim()).filter(Boolean).slice(0, SECTIONS);
@@ -199,7 +199,7 @@ async function main(): Promise<void> {
   let evCursor = 0;
   let revivals: Array<{ faction: string; at: number }> = [];
   const outlinePlan = loadOutlinePlan(ROOT); // 严格跟纲模式: 有计划则逐章 steer 情节(松散底座模式为 null)
-  if (outlinePlan?.beats.length) console.log(`  📑 严格跟纲模式: ${outlinePlan.beats.length} 段大纲主线, 写者逐章跟写`);
+  if (outlinePlan?.beats.length) console.log(`  📑 跟纲模式(${outlinePlan.obedience === "balanced" ? "均衡·软建议、世界可偏离" : "照写·硬遵循"}): ${outlinePlan.beats.length} 段大纲主线`);
   let _wasPaused = false;
   const PAUSE = join(ROOT, "paused"); // 网页暂停开关(存在=暂停)
 
@@ -322,7 +322,7 @@ async function main(): Promise<void> {
       }
     }
     conBlock = constraintsBlock(loadConstraints(ROOT).active); // 拾取议事已批准的铁律变更(规则层概念空间)
-    const ch = await writeChapter(n, vol, scene, crisis, bibleEcho, ros, recent, prevHook, weave, beatForChapter(outlinePlan, n));
+    const ch = await writeChapter(n, vol, scene, crisis, bibleEcho, ros, recent, prevHook, weave, beatForChapter(outlinePlan, n), outlinePlan?.obedience ?? "strict");
 
     if (ch.text.replace(/\s/g, "").length < MINLEN * 0.4) { // 守门: 疑似 LLM 失败回退占位(正常≥3000字)→ 不落盘、退避重试本章, 不推进(防垃圾入正文/污染进化)
       console.log(`  ⚠ 第${n}章疑似生成失败(仅${ch.text.length}字, 多半 DeepSeek 瞬时故障回退占位)→ 弃, 30s 后重试本章`);

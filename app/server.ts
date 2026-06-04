@@ -234,8 +234,8 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           const cfgPath = join(OUT, "worlds", `${SAGA}.json`);
           mkdirSync(dirname(cfgPath), { recursive: true });
           writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
-          if (p.outlineMode === "follow" && p.outline && p.outline.trim()) {
-            try { const plan = await generateOutlinePlan(p.outline, llm, 1000); if (plan.beats.length) saveOutlinePlan(join(here, "..", ".novel-output", SAGA), plan); } catch { /* 退化松散, 不阻断 */ }
+          if ((p.outlineMode === "balanced" || p.outlineMode === "strict") && p.outline && p.outline.trim()) {
+            try { const plan = await generateOutlinePlan(p.outline, llm, 1000); plan.obedience = p.outlineMode; if (plan.beats.length) saveOutlinePlan(join(here, "..", ".novel-output", SAGA), plan); } catch { /* 退化涌现, 不阻断 */ }
           }
           spawn("npx", ["tsx", "app/longrun.ts"], { cwd: join(here, ".."), env: { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: SAGA, NOVEL_STANDBY: "0", NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4" }, detached: true, stdio: "ignore" }).unref();
           json(res, { ok: true, displayName: String((cfg as { displayName?: unknown }).displayName ?? SAGA) });
@@ -286,7 +286,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
           // 严格跟纲模式: 解析大纲 → 章节节拍主线, 落到世界目录, longrun 读到则逐章跟纲(松散底座模式不生成)
           if (p.outlineMode === "follow" && p.outline && p.outline.trim()) {
-            try { const wdir = join(OUT, safe); mkdirSync(wdir, { recursive: true }); const plan = await generateOutlinePlan(p.outline, llm, 1000); if (plan.beats.length) saveOutlinePlan(wdir, plan); } catch { /* 跟纲计划失败 → 退化为松散, 不阻断建世界 */ }
+            try { const wdir = join(OUT, safe); mkdirSync(wdir, { recursive: true }); const plan = await generateOutlinePlan(p.outline, llm, 1000); plan.obedience = p.outlineMode; if (plan.beats.length) saveOutlinePlan(wdir, plan); } catch { /* 跟纲计划失败 → 退化涌现, 不阻断 */ }
           }
           const root = join(here, "..");
           const baseEnv = { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: safe, NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4" };

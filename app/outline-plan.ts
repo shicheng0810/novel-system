@@ -7,7 +7,8 @@ import { join } from "node:path";
 import type { LLMProvider } from "../core/services/llm";
 
 export interface OutlineBeat { vol: number; from: number; to: number; goal: string }
-export interface OutlinePlan { beats: OutlineBeat[]; source: string; generation: number }
+// obedience(服从度): "balanced"=均衡(软建议、世界可偏离) / "strict"=照写(硬遵循、不可跑偏); 缺省按 strict(向后兼容旧 follow 计划)。"emergent"(涌现)不生成本文件。
+export interface OutlinePlan { beats: OutlineBeat[]; source: string; generation: number; obedience?: "balanced" | "strict" }
 
 const PLAN_FILE = (d: string): string => join(d, "outline-plan.json");
 
