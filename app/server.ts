@@ -128,6 +128,20 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const id = new URLSearchParams(url.split("?")[1] ?? "").get("id") ?? "";
     return json(res, store.getChapter(db, worldId, id));
   }
+  if (url.startsWith("/api/export")) { // 导出全本小说: 拼标题+逐章正文 → 浏览器下载(txt 通用 / md 带结构)
+    const fmt = new URLSearchParams(url.split("?")[1] ?? "").get("fmt") === "md" ? "md" : "txt";
+    const chs = store.readChapters(db, worldId).filter((c) => c.id.startsWith("saga-ch-"));
+    let title = SAGA;
+    try { const cfgP = join(OUT, "worlds", `${SAGA}.json`); if (existsSync(cfgP)) { const dn = (JSON.parse(readFileSync(cfgP, "utf8")) as { displayName?: string }).displayName; if (dn) title = dn; } } catch { /* fallback below */ }
+    if (title === SAGA) { try { const bible = store.loadSnapshot(db, worldId)?.snapshot.props["bible"]; if (typeof bible === "string" && bible) title = bible.slice(0, 20); } catch { /* keep SAGA */ } }
+    const doc = fmt === "md"
+      ? `# ${title}\n\n` + chs.map((c, i) => `## 第${i + 1}章　${c.goal}\n\n${c.text}`).join("\n\n")
+      : `${title}\n\n` + chs.map((c, i) => `第${i + 1}章　${c.goal}\n\n${c.text}`).join("\n\n\n");
+    res.statusCode = 200;
+    res.setHeader("Content-Type", `${fmt === "md" ? "text/markdown" : "text/plain"}; charset=utf-8`);
+    res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(title + "." + fmt)}`);
+    return res.end(doc);
+  }
   if (url.startsWith("/api/mind?")) {
     const id = new URLSearchParams(url.split("?")[1] ?? "").get("id") ?? "";
     const snap = store.loadSnapshot(db, worldId)?.snapshot;
