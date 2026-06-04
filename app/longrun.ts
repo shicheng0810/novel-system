@@ -15,6 +15,7 @@ import * as store from "../core/services/store";
 import { step } from "../core/runtime/world-actor";
 import { PACK, natalLabel, goalLabel, plateLabel } from "./pack-select";
 import { loadOutlinePlan, beatForChapter } from "./outline-plan";
+import { loadLore, recallLore } from "./lore-lib";
 import { loadGenome, loadLedger, buildGuidance, evolveOnce, loadGlobal } from "./evolve";
 import { computeSimFitness, saveSimFitness, loadSimFitness } from "./sim-fitness";
 import { dramaControl, loadDrama, saveDrama } from "./drama";
@@ -39,6 +40,7 @@ const sim = new MockLLM();
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", ".novel-output", process.env["NOVEL_SAGA_DIR"] ?? "saga");
 const CH_DIR = join(ROOT, "chapters");
 mkdirSync(CH_DIR, { recursive: true });
+const loreLib = loadLore(ROOT); // T3 触发式设定库(freeform 世界由 server 据配置写 lore.json; 无则 null, 不召回)
 
 // 单写者锁: 同一世界目录只许一个 longrun 写。防多进程赛跑串台(历史教训: 失败重开堆叠僵尸写者→同一章号被写两遍→标题/正文互相覆盖)。
 const LOCK = join(ROOT, "longrun.lock");
@@ -164,11 +166,12 @@ async function writeChapter(n: number, vol: number, scene: string, crisis: strin
     .slice(0, 20);
 
   const perSec = Math.ceil((MINLEN / SECTIONS) * 1.2);
+  const loreBlock = recallLore(loreLib, `${crisis} ${ros} ${beats.join(" ")} ${goal} ${weave}`); // T3: 召回本章相关设定(关键词命中→注入, 保设定一致)
   let text = "";
   let prev = "";
   for (let i = 0; i < beats.length; i++) {
     const last = i === beats.length - 1;
-    const secPrompt = `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。${canonHard ? "\n" + canonHard : ""}${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
+    const secPrompt = `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。${canonHard ? "\n" + canonHard : ""}${loreBlock ? "\n" + loreBlock : ""}${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
     let sec = "";
     for (let attempt = 0; attempt < 4; attempt++) { // 每段守门: 正常数百字; <120 字多半是 DeepSeek 抽风回退 mock 占位 → 等 15s 重试本段, 扛持续抽风、防部分垃圾混入
       sec = await llm.complete(secPrompt, { thinking: false, temperature: evoGenome.gen.temperature, topP: evoGenome.gen.topP, frequencyPenalty: evoGenome.gen.frequencyPenalty, presencePenalty: evoGenome.gen.presencePenalty }); // 进化基因控制采样

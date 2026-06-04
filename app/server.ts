@@ -13,6 +13,7 @@ import { step } from "../core/runtime/world-actor";
 import { PACK, describeMind, natalLabel, plateLabel } from "./pack-select";
 import { generateWorldConfig } from "./world-gen";
 import { generateOutlinePlan, saveOutlinePlan } from "./outline-plan";
+import { normalizeLore, saveLore } from "./lore-lib";
 import { loadGenome, loadLedger, loadArchive, loadGlobal } from "./evolve";
 import { loadConstraints, applyConstraintVerdict } from "./constraints";
 import { loadCanon } from "./canon";
@@ -237,6 +238,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           if ((p.outlineMode === "balanced" || p.outlineMode === "strict") && p.outline && p.outline.trim()) {
             try { const plan = await generateOutlinePlan(p.outline, llm, 1000); plan.obedience = p.outlineMode; if (plan.beats.length) saveOutlinePlan(join(here, "..", ".novel-output", SAGA), plan); } catch { /* 退化涌现, 不阻断 */ }
           }
+          try { const lore = normalizeLore((cfg as { lore?: unknown }).lore); if (lore.entries.length) saveLore(join(here, "..", ".novel-output", SAGA), lore); } catch { /* lore 非关键 */ }
           spawn("npx", ["tsx", "app/longrun.ts"], { cwd: join(here, ".."), env: { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: SAGA, NOVEL_STANDBY: "0", NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4" }, detached: true, stdio: "ignore" }).unref();
           json(res, { ok: true, displayName: String((cfg as { displayName?: unknown }).displayName ?? SAGA) });
         } catch (e: unknown) { defining = false; res.statusCode = 500; json(res, { error: String(e).slice(0, 150) }); }
@@ -288,6 +290,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           if (p.outlineMode === "follow" && p.outline && p.outline.trim()) {
             try { const wdir = join(OUT, safe); mkdirSync(wdir, { recursive: true }); const plan = await generateOutlinePlan(p.outline, llm, 1000); plan.obedience = p.outlineMode; if (plan.beats.length) saveOutlinePlan(wdir, plan); } catch { /* 跟纲计划失败 → 退化涌现, 不阻断 */ }
           }
+          try { const wdir = join(OUT, safe); mkdirSync(wdir, { recursive: true }); const lore = normalizeLore((cfg as { lore?: unknown }).lore); if (lore.entries.length) saveLore(wdir, lore); } catch { /* lore 非关键 */ }
           const root = join(here, "..");
           const baseEnv = { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: safe, NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4" };
           spawn("npx", ["tsx", "app/longrun.ts"], { cwd: root, env: baseEnv, detached: true, stdio: "ignore" }).unref(); // 起长跑
