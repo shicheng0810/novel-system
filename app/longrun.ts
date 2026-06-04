@@ -218,14 +218,13 @@ async function main(): Promise<void> {
     sseed.props["autoCompose"] = false;
     store.saveSnapshot(sdb, worldId, sseed, 0, Date.now());
     store.setSchedulerState(sdb, worldId, { gen: 0, nextTick: 0, status: "running" }, Date.now());
-    for (let t = 0; t < WARMUP; t++) {
-      if (t % 5 === 0 && PACK.spawnCharacter) {
-        const sp = store.loadSnapshot(sdb, worldId);
-        const present = sp ? Object.values(sp.snapshot.characters).filter((c) => c.present).length : 99;
-        if (present < 16) { const k = present < 10 ? Math.min(4, 16 - present) : 1; for (let i = 0; i < k; i++) store.enqueueInput(sdb, `warmup-spawn-${t}-${i}`, worldId, "spawn-character", { character: PACK.spawnCharacter("预演化", 2000 + t * 4 + i) }, Date.now()); }
-      }
-      await step(sdb, worldId, PACK, sim);
-    }
+    const warmRefill = (xdb: typeof db, t: number): void => { // 群像稳态补血(scout 与真世界快进共用, 防预演化期人口坍塌; 高位 index 避免与章节期 spawn 撞 id)
+      if (t % 5 !== 0 || !PACK.spawnCharacter) return;
+      const sp = store.loadSnapshot(xdb, worldId);
+      const present = sp ? Object.values(sp.snapshot.characters).filter((c) => c.present).length : 99;
+      if (present < 16) { const k = present < 10 ? Math.min(4, 16 - present) : 1; for (let i = 0; i < k; i++) store.enqueueInput(xdb, `warmup-spawn-${t}-${i}`, worldId, "spawn-character", { character: PACK.spawnCharacter("预演化", 2000 + t * 4 + i) }, Date.now()); }
+    };
+    for (let t = 0; t < WARMUP; t++) { warmRefill(sdb, t); await step(sdb, worldId, PACK, sim); }
     const pick = pickArcStart(store.readEvents(sdb, worldId));
     const T = Math.max(1, Math.min(pick ? pick.tick : Math.floor(WARMUP / 2), WARMUP - 1));
     arcHint = pick ? `世界已暗中发展一段，眼下正值：${pick.arc.desc}。本章 in-medias-res 直接切入这个局面（读者一翻开就在矛盾/张力里），不从头交代，前情留待后文渐补。` : "";
@@ -233,11 +232,7 @@ async function main(): Promise<void> {
     console.log(`  🌱 真世界快进到起笔点 tick${T}…`);
     for (let t = 0; t < T; t++) {
       if (existsSync(PAUSE)) { await new Promise((r) => setTimeout(r, 3000)); t--; continue; }
-      if (t % 5 === 0 && PACK.spawnCharacter) {
-        const sp = store.loadSnapshot(db, worldId);
-        const present = sp ? Object.values(sp.snapshot.characters).filter((c) => c.present).length : 99;
-        if (present < 16) { const k = present < 10 ? Math.min(4, 16 - present) : 1; for (let i = 0; i < k; i++) store.enqueueInput(db, `warmup-spawn-${t}-${i}`, worldId, "spawn-character", { character: PACK.spawnCharacter("预演化", 2000 + t * 4 + i) }, Date.now()); }
-      }
+      warmRefill(db, t);
       await guardedStep();
     }
     console.log(`  🌱 已快进到起笔点 → 第 1 章从此 in-medias-res 起笔`);

@@ -36,9 +36,19 @@ export function normalizeLore(raw: unknown): LoreLib {
 export function recallLore(lib: LoreLib | null, context: string, max = 4): string {
   if (!lib || !lib.entries.length) return "";
   const ctx = context || "";
-  const hit = lib.entries.filter((e) => e.alwaysOn || e.keys.some((k) => k && ctx.includes(k)));
-  hit.sort((a, b) => (b.alwaysOn ? 1 : 0) - (a.alwaysOn ? 1 : 0)); // alwaysOn 优先占位
-  const picked = hit.slice(0, max);
+  // 每条记录命中关键词与最长命中词(供跨条去重: 防重叠/同词条目重复注入、浪费 max 预算)
+  const hits = lib.entries
+    .map((e, idx) => { const matched = e.keys.filter((k) => k && ctx.includes(k)); return { e, idx, matched, longest: matched.reduce((a, b) => (b.length > a.length ? b : a), ""), on: !!e.alwaysOn }; })
+    .filter((h) => h.on || h.matched.length);
+  // o 主导 h(则压掉 h): o 覆盖 h 的全部命中词, 且 o 更具体(命中词更长 → 键更多 → 索引更前; 末项索引定唯一胜者, 防同词条目互相压掉)
+  const dominates = (o: typeof hits[number], h: typeof hits[number]): boolean =>
+    h.matched.every((k) => o.matched.some((ok) => ok.includes(k))) &&
+    (o.longest.length > h.longest.length ||
+      (o.longest.length === h.longest.length && o.e.keys.length > h.e.keys.length) ||
+      (o.longest.length === h.longest.length && o.e.keys.length === h.e.keys.length && o.idx < h.idx));
+  const kept = hits.filter((h) => h.on || !hits.some((o) => o !== h && dominates(o, h)));
+  kept.sort((a, b) => (b.on ? 1 : 0) - (a.on ? 1 : 0) || b.longest.length - a.longest.length); // alwaysOn 优先, 再按命中具体度
+  const picked = kept.slice(0, max);
   if (!picked.length) return "";
-  return `【世界设定·本章相关(须与之一致、可化入正文)】\n${picked.map((e) => `· ${e.name}：${e.text}`).join("\n")}`;
+  return `【世界设定·本章相关(须与之一致、可化入正文)】\n${picked.map((h) => `· ${h.e.name}：${h.e.text}`).join("\n")}`;
 }

@@ -392,10 +392,14 @@ const WORLD_TEMPLATES=[
   {name:"科幻·赛博东京",tag:"🌃 赛博朋克",desc:"赛博朋克东京，黑客、义体改造与巨型企业的暗战；底层少年在霓虹与数据洪流中逆袭。"},
   {name:"玄幻·万族争雄",tag:"⚡ 史诗玄幻",desc:"上古洪荒，万族林立、神魔并起；少年觉醒上古血脉，在诸族争霸的乱世中崛起为一族之主。"},
 ];
-let _sbShown=false,_sbSel=-1;
+let _sbShown=false,_sbSel=-1,_definingSince=0;
 async function checkStandby(){try{const s=await(await fetch("/api/standby")).json();
   const ml={emergent:"🌱 涌现·自由发挥",balanced:"⚖ 均衡·跟纲可偏离",strict:"📑 照写·严格跟纲"}[s.mode]||"";const wm=$("ws-mode");if(wm)wm.textContent=(ml&&s.hasWorld)?("　·　"+ml):"";
-  if(s.standby&&!s.hasWorld){if(!_sbShown){_sbShown=true;await renderStandby();$("standbymask").style.display="block"}if(s.defining)sbDefining()}
+  if(s.standby&&!s.hasWorld){if(!_sbShown){_sbShown=true;await renderStandby();$("standbymask").style.display="block"}
+    if(s.defining){if(!_definingSince)_definingSince=Date.now();
+      if(Date.now()-_definingSince>360000){const st=$("sbStatus");if(st)st.innerHTML='⚠ 起跑似乎失败（可能同名世界已在跑、或进程没起来）。<a href="javascript:location.reload()" style="color:#e8c87a">刷新重试</a>';const b=$("sbStart");if(b){b.disabled=false;b.textContent="🕯 重新创造世界"}}
+      else sbDefining();}
+    else _definingSince=0;}
   else if(_sbShown&&s.hasWorld){$("standbymask").style.display="none";_sbShown=false;location.reload()}}catch(e){}}
 async function renderStandby(){let hasKey=true;try{hasKey=!!(await(await fetch("/api/settings")).json()).hasKey}catch(e){}
   const keyBlock=hasKey?"":`<div style="background:#2a2218;border:1px solid #7a5a2c;border-radius:8px;padding:12px;margin-bottom:16px"><div style="color:#e8c87a;font-size:13px;margin-bottom:6px">① 先填 DeepSeek API Key</div><div class="muted" style="font-size:11px;margin-bottom:7px">世界用它把发生的事写成文字（只存你本机）。没有它只会生成占位废话文。<a href="https://platform.deepseek.com/api_keys" target="_blank" style="color:#e8c87a">何处获取↗</a></div><input id="sbKey" type="password" placeholder="sk-…" autocomplete="off" style="width:100%;box-sizing:border-box;background:#0f0c09;border:1px solid #6a5526;border-radius:7px;padding:9px 11px;color:#e8dcc8;font-size:14px;font-family:ui-monospace,monospace"></div>`;
