@@ -21,7 +21,7 @@
   .lamp .dot{width:8px;height:8px;border-radius:50%;background:#cfc4b0;transition:all .5s}
   .lamp.on .dot{background:var(--gold);box-shadow:0 0 9px var(--gold)}.lamp.on{color:var(--ink)}
   #worldstate{display:flex;align-items:center;gap:16px;padding:6px 22px;border-bottom:1px solid var(--line);background:#f7efe0;font-size:12.5px}
-  #ws-crisis{color:var(--ember);font-weight:bold;white-space:nowrap}#ws-fac{color:var(--ink-soft);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ws-prog{color:var(--gold);white-space:nowrap}
+  #ws-crisis{color:var(--ember);font-weight:bold;white-space:nowrap}#ws-fac{color:var(--ink-soft);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ws-mode{color:#8a6f3a;white-space:nowrap;font-size:11.5px}#ws-prog{color:var(--gold);white-space:nowrap}
   #worldstate.flash{animation:wsflash 1.5s ease-out}@keyframes wsflash{0%{background:#f0c49e}100%{background:#f7efe0}}
   .grid{display:grid;grid-template-columns:1fr 312px;height:calc(100vh - 124px)}
   .stage{position:relative;overflow:hidden;background:radial-gradient(circle at 50% 40%,#fbf6ec,#ebe2d2)}
@@ -72,7 +72,7 @@
   <div id="pulse"><span class="cinder" id="cinder"></span><span id="pulsetext">候火</span></div>
 </header>
 <div class="lamptrack" id="lamptrack"></div>
-<div id="worldstate"><span id="ws-crisis">世界初成</span><span id="ws-fac"></span><span id="ws-prog">第 0 章</span></div>
+<div id="worldstate"><span id="ws-crisis">世界初成</span><span id="ws-fac"></span><span id="ws-mode" title="本世界的写作模式：涌现=自由发挥 / 均衡=跟大纲但可偏离 / 照写=严格跟你的大纲"></span><span id="ws-prog">第 0 章</span></div>
 <div class="grid">
   <div class="stage">
     <svg id="svg" viewBox="0 0 900 500" preserveAspectRatio="xMidYMid meet"></svg>
@@ -390,6 +390,7 @@ const WORLD_TEMPLATES=[
 ];
 let _sbShown=false,_sbSel=-1;
 async function checkStandby(){try{const s=await(await fetch("/api/standby")).json();
+  const ml={emergent:"🌱 涌现·自由发挥",balanced:"⚖ 均衡·跟纲可偏离",strict:"📑 照写·严格跟纲"}[s.mode]||"";const wm=$("ws-mode");if(wm)wm.textContent=(ml&&s.hasWorld)?("　·　"+ml):"";
   if(s.standby&&!s.hasWorld){if(!_sbShown){_sbShown=true;await renderStandby();$("standbymask").style.display="block"}if(s.defining)sbDefining()}
   else if(_sbShown&&s.hasWorld){$("standbymask").style.display="none";_sbShown=false;location.reload()}}catch(e){}}
 async function renderStandby(){let hasKey=true;try{hasKey=!!(await(await fetch("/api/settings")).json()).hasKey}catch(e){}

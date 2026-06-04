@@ -12,7 +12,7 @@ import * as store from "../core/services/store";
 import { step } from "../core/runtime/world-actor";
 import { PACK, describeMind, natalLabel, plateLabel } from "./pack-select";
 import { generateWorldConfig } from "./world-gen";
-import { generateOutlinePlan, saveOutlinePlan } from "./outline-plan";
+import { generateOutlinePlan, saveOutlinePlan, loadOutlinePlan } from "./outline-plan";
 import { normalizeLore, saveLore } from "./lore-lib";
 import { loadGenome, loadLedger, loadArchive, loadGlobal } from "./evolve";
 import { loadConstraints, applyConstraintVerdict } from "./constraints";
@@ -217,9 +217,11 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     if (req.method === "POST") { try { if (existsSync(af)) unlinkSync(af); else writeFileSync(af, String(Date.now()), "utf8"); } catch { /* ignore */ } }
     return json(res, { auto: existsSync(af) });
   }
-  if (url === "/api/standby") { // 待机状态: 网页据此决定显示「定义你的世界」落地页还是正常世界
+  if (url === "/api/standby") { // 待机状态 + 当前世界用的模式(涌现/均衡/照写): 网页据此显示落地页或模式标
     const has = chapterCount(SAGA) > 0 || !!store.loadSnapshot(db, worldId);
-    return json(res, { standby: STANDBY, hasWorld: has, defining });
+    const plan = loadOutlinePlan(join(here, "..", ".novel-output", SAGA));
+    const mode = !plan ? "emergent" : plan.obedience === "balanced" ? "balanced" : "strict"; // 无大纲计划=涌现; 有则按 obedience(缺省 strict)
+    return json(res, { standby: STANDBY, hasWorld: has, defining, mode });
   }
   if (url === "/api/define-world" && req.method === "POST") { // 待机世界被定义: 生成配置(+跟纲计划) → spawn 写者本目录 → 首章落盘后网页自动从待机切正常
     let body = "";
