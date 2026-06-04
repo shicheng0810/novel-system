@@ -30,6 +30,7 @@ import type { WorldSnapshot, CharacterState } from "../core/domain/world";
 const TARGET = Number(process.env["NOVEL_TARGET"] ?? 1000);
 const MINLEN = Number(process.env["NOVEL_MINLEN"] ?? 3000);
 const SECTIONS = Number(process.env["NOVEL_SECTIONS"] ?? 4);
+const WARMUP = Number(process.env["NOVEL_WARMUP"] ?? 0); // 世界预演化: 起跑前静默推演 N tick(不出章)再写第 1 章, 让关系/恩怨/派系成形(StoryBox 实证: 先模拟提升人物/冲突)。0=快起笔(创世即写)
 const VOL = 25;
 const sys = PACK.composeProfile?.systemPrompt ?? "你是一位修仙小说作者。";
 const tierName = (id: string | undefined): string => PACK.progression.tiers.find((t) => t.id === id)?.name ?? id ?? "练气初期";
@@ -206,6 +207,26 @@ async function main(): Promise<void> {
   let _wasPaused = false;
   const PAUSE = join(ROOT, "paused"); // 网页暂停开关(存在=暂停)
 
+  // 🌱 世界预演化相位(NOVEL_WARMUP>0 且全新世界): 起跑前静默推演 N tick, 让关系/恩怨/派系/兴亡自然成形, 第 1 章从成熟态 in-medias-res 起笔。
+  //   step() 在 autoCompose=false 下只推演世界不落章, 故 N 次 guardedStep = N tick 静默历史。借 StoryBox(先模拟后叙述)思路; 起笔点=预演化末态(StoryBox 模型, 不回溯)。
+  if (n === 0 && WARMUP > 0) {
+    console.log(`  🌱 世界预演化: 静默推演 ${WARMUP} tick（不出章），让关系/恩怨/派系/兴亡自然成形…`);
+    for (let t = 0; t < WARMUP; t++) {
+      if (existsSync(PAUSE)) { await new Promise((r) => setTimeout(r, 3000)); t--; continue; }
+      if (t % 5 === 0 && PACK.spawnCharacter) { // 群像稳态: 防预演化期人口坍塌(同章节循环补血逻辑); 用高位 index 避免与章节期 spawn 撞 id
+        const sp = store.loadSnapshot(db, worldId);
+        const present = sp ? Object.values(sp.snapshot.characters).filter((c) => c.present).length : 99;
+        if (present < 16) { const k = present < 10 ? Math.min(4, 16 - present) : 1; for (let i = 0; i < k; i++) store.enqueueInput(db, `warmup-spawn-${t}-${i}`, worldId, "spawn-character", { character: PACK.spawnCharacter("预演化", 2000 + t * 4 + i) }, Date.now()); }
+      }
+      await guardedStep();
+      if (t > 0 && t % 10 === 0) console.log(`     预演化 ${t}/${WARMUP} tick…`);
+    }
+    try {
+      const evs = store.readRecentEvents(db, worldId, 800);
+      const c = (k: string): number => evs.filter((e) => e.kind === k).length;
+      console.log(`  🌱 预演化完成（${WARMUP} tick）：${c("CharacterFell")}死 / ${c("FactionSplit")}派系分裂 / ${c("VengeanceResolved")}复仇了断 / ${c("ProgressionAdvanced")}破境 → 第 1 章从这个成熟世界 in-medias-res 起笔`);
+    } catch { console.log(`  🌱 预演化完成（${WARMUP} tick）→ 从成熟态起笔`); }
+  }
   console.log(`长篇连载 v2：目标 ${TARGET} 章 · 每章≥${MINLEN}字(${SECTIONS}段) · 从第 ${n + 1} 章续写（LLM=${llm.id}）`);
   // 快速裁决: 作者在网页裁决后, 每 ~15s 检一次, 有待裁就用 sim 快走一步即时落定(不必等当前章写完)
   setInterval(() => {

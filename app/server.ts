@@ -232,7 +232,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     return json(res, { auto: existsSync(af) });
   }
   if (url === "/api/standby") { // 待机状态 + 当前世界用的模式(涌现/均衡/照写): 网页据此显示落地页或模式标
-    const has = chapterCount(SAGA) > 0 || !!store.loadSnapshot(db, worldId);
+    const has = chapterCount(SAGA) > 0; // 待机落地页停留到「首章落定」才切走(预演化/生成期都显示「世界生成中」)
     const plan = loadOutlinePlan(join(here, "..", ".novel-output", SAGA));
     const mode = !plan ? "emergent" : plan.obedience === "balanced" ? "balanced" : "strict"; // 无大纲计划=涌现; 有则按 obedience(缺省 strict)
     return json(res, { standby: STANDBY, hasWorld: has, defining, mode });
@@ -243,9 +243,10 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     req.on("end", () => {
       void (async () => {
         try {
-          const p = JSON.parse(body || "{}") as { prompt?: string; outline?: string; outlineMode?: string; rules?: string; protagonists?: string };
+          const p = JSON.parse(body || "{}") as { prompt?: string; outline?: string; outlineMode?: string; rules?: string; protagonists?: string; warmup?: number };
           const basePrompt = (p.prompt || "").trim() || ((p.outline || "").trim().split("\n").find((l) => l.trim()) || "").slice(0, 120);
           if (!basePrompt) { res.statusCode = 400; return json(res, { error: "缺少世界描述或大纲" }); }
+          const warmup = typeof p.warmup === "number" ? Math.max(0, Math.min(200, Math.floor(p.warmup))) : 0; // 预演化 tick(0=快起笔)
           defining = true;
           const cfg = await generateWorldConfig(basePrompt, llm, p.outline, { rules: p.rules, protagonists: p.protagonists });
           const cfgPath = join(OUT, "worlds", `${SAGA}.json`);
@@ -255,7 +256,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
             try { const plan = await generateOutlinePlan(p.outline, llm, 1000); plan.obedience = p.outlineMode; if (plan.beats.length) saveOutlinePlan(join(here, "..", ".novel-output", SAGA), plan); } catch { /* 退化涌现, 不阻断 */ }
           }
           try { const lore = normalizeLore((cfg as { lore?: unknown }).lore); if (lore.entries.length) saveLore(join(here, "..", ".novel-output", SAGA), lore); } catch { /* lore 非关键 */ }
-          spawn("npx", ["tsx", "app/longrun.ts"], { cwd: join(here, ".."), env: { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: SAGA, NOVEL_STANDBY: "0", NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4" }, detached: true, stdio: "ignore" }).unref();
+          spawn("npx", ["tsx", "app/longrun.ts"], { cwd: join(here, ".."), env: { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: SAGA, NOVEL_STANDBY: "0", NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4", NOVEL_WARMUP: String(warmup) }, detached: true, stdio: "ignore" }).unref();
           json(res, { ok: true, displayName: String((cfg as { displayName?: unknown }).displayName ?? SAGA) });
         } catch (e: unknown) { defining = false; res.statusCode = 500; json(res, { error: String(e).slice(0, 150) }); }
       })();
@@ -285,7 +286,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     req.on("end", () => {
       void (async () => {
         try {
-          const p = JSON.parse(body || "{}") as { prompt?: string; name?: string; outline?: string; outlineMode?: string; rules?: string; protagonists?: string };
+          const p = JSON.parse(body || "{}") as { prompt?: string; name?: string; outline?: string; outlineMode?: string; rules?: string; protagonists?: string; warmup?: number };
           const basePrompt = (p.prompt || "").trim() || ((p.outline || "").trim().split("\n").find((l) => l.trim()) || "").slice(0, 120);
           if (!basePrompt) {
             res.statusCode = 400;
@@ -308,7 +309,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           }
           try { const wdir = join(OUT, safe); mkdirSync(wdir, { recursive: true }); const lore = normalizeLore((cfg as { lore?: unknown }).lore); if (lore.entries.length) saveLore(wdir, lore); } catch { /* lore 非关键 */ }
           const root = join(here, "..");
-          const baseEnv = { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: safe, NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4" };
+          const baseEnv = { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: safe, NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4", NOVEL_WARMUP: String(typeof p.warmup === "number" ? Math.max(0, Math.min(200, Math.floor(p.warmup))) : 0) };
           spawn("npx", ["tsx", "app/longrun.ts"], { cwd: root, env: baseEnv, detached: true, stdio: "ignore" }).unref(); // 起长跑
           spawn("npx", ["tsx", "app/server.ts"], { cwd: root, env: { ...baseEnv, NOVEL_VIEW: "saga", PORT: String(port) }, detached: true, stdio: "ignore" }).unref(); // 起观察器
           const entry: WorldEntry = { name: safe, displayName: String((cfg as { displayName?: unknown }).displayName ?? safe), port, prompt: basePrompt };
