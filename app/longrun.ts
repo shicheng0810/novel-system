@@ -16,6 +16,7 @@ import { step } from "../core/runtime/world-actor";
 import { PACK, natalLabel, goalLabel, plateLabel } from "./pack-select";
 import { loadOutlinePlan, beatForChapter } from "./outline-plan";
 import { loadLore, recallLore } from "./lore-lib";
+import { pickArcStart } from "./arc-select";
 import { loadGenome, loadLedger, buildGuidance, evolveOnce, loadGlobal } from "./evolve";
 import { computeSimFitness, saveSimFitness, loadSimFitness } from "./sim-fitness";
 import { dramaControl, loadDrama, saveDrama } from "./drama";
@@ -42,6 +43,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", ".novel-output"
 const CH_DIR = join(ROOT, "chapters");
 mkdirSync(CH_DIR, { recursive: true });
 const loreLib = loadLore(ROOT); // T3 触发式设定库(freeform 世界由 server 据配置写 lore.json; 无则 null, 不召回)
+let arcHint = ""; // C方案: 预演化挑出的最佳弧线 → 注入第1章开篇做 in-medias-res 框定(无预演化则空)
 
 // 单写者锁: 同一世界目录只许一个 longrun 写。防多进程赛跑串台(历史教训: 失败重开堆叠僵尸写者→同一章号被写两遍→标题/正文互相覆盖)。
 const LOCK = join(ROOT, "longrun.lock");
@@ -151,7 +153,7 @@ async function rollSummary(prev: string, recentGoals: string[]): Promise<string>
 async function writeChapter(n: number, vol: number, scene: string, crisis: string, bible: string, ros: string, recent: string[], prevHook: string, weave: string, outlineBeat: string, obedience: string): Promise<{ goal: string; text: string; hook: string }> {
   const forbid = recent.slice(-6).join("、") || "无";
   const outline = await llm.complete(
-    `${sys}\n【连载第${n}章·第${vol}卷】\n【当前情境】${scene}\n【当前世界大事】${crisis || "暂无"}\n【前情纲要】${bible}\n【在场(含亲疏)】${ros}\n【上章末钩子】${prevHook || "（开篇）"}\n【最近章节标题——严禁雷同、严禁重演开篇灵根试炼】${forbid}${weave ? `\n【本章叙事任务·须落实】${weave}` : ""}${outlineBeat ? (obedience === "balanced" ? `\n【本章大纲主线·建议方向】${outlineBeat} —— 优先顺势推进这条主线；但世界若自发涌现变数/冲突，可顺其自然地偏离，不必硬贴。` : `\n【本章须遵循的大纲主线·最要紧】${outlineBeat} —— 你列的 ${SECTIONS} 个节拍必须服务于推进这条主线、顺着它走，不可跑偏到别处情节。`) : ""}\n列出本章 ${SECTIONS} 个情节节拍(每个≤20字)：首拍由上章钩子直接引发；每拍须是前一拍的直接后果(因果相承"因→果→再生变"，不得并列罗列)；${outlineBeat ? "在推进上述大纲主线的前提下" : `在"当前情境"内`}生新事件/冲突/转折；末拍留引向下章的悬念。只列 ${SECTIONS} 行节拍。`,
+    `${sys}\n【连载第${n}章·第${vol}卷】\n【当前情境】${scene}\n【当前世界大事】${crisis || "暂无"}\n【前情纲要】${bible}\n【在场(含亲疏)】${ros}\n【上章末钩子】${prevHook || "（开篇）"}\n【最近章节标题——严禁雷同、严禁重演开篇灵根试炼】${forbid}${weave ? `\n【本章叙事任务·须落实】${weave}` : ""}${outlineBeat ? (obedience === "balanced" ? `\n【本章大纲主线·建议方向】${outlineBeat} —— 优先顺势推进这条主线；但世界若自发涌现变数/冲突，可顺其自然地偏离，不必硬贴。` : `\n【本章须遵循的大纲主线·最要紧】${outlineBeat} —— 你列的 ${SECTIONS} 个节拍必须服务于推进这条主线、顺着它走，不可跑偏到别处情节。`) : ""}${n === 1 && arcHint ? "\n【开篇·in-medias-res·要紧】" + arcHint : ""}\n列出本章 ${SECTIONS} 个情节节拍(每个≤20字)：首拍由上章钩子直接引发；每拍须是前一拍的直接后果(因果相承"因→果→再生变"，不得并列罗列)；${outlineBeat ? "在推进上述大纲主线的前提下" : `在"当前情境"内`}生新事件/冲突/转折；末拍留引向下章的悬念。只列 ${SECTIONS} 行节拍。`,
     { temperature: 0.9 },
   );
   const beats = outline.split("\n").map((s) => s.replace(/^[\d.、)\-—•·*\s]+/, "").replace(/^节拍[零〇一二三四五六七八九十\d]+[：:、.\s]*/, "").trim()).filter(Boolean).slice(0, SECTIONS);
@@ -207,25 +209,38 @@ async function main(): Promise<void> {
   let _wasPaused = false;
   const PAUSE = join(ROOT, "paused"); // 网页暂停开关(存在=暂停)
 
-  // 🌱 世界预演化相位(NOVEL_WARMUP>0 且全新世界): 起跑前静默推演 N tick, 让关系/恩怨/派系/兴亡自然成形, 第 1 章从成熟态 in-medias-res 起笔。
-  //   step() 在 autoCompose=false 下只推演世界不落章, 故 N 次 guardedStep = N tick 静默历史。借 StoryBox(先模拟后叙述)思路; 起笔点=预演化末态(StoryBox 模型, 不回溯)。
+  // 🌱 世界预演化(C·挑最有戏弧线起笔): scout 临时 db 静默空跑 N tick 探弧线 → sim-fitness+Reagan+可空降性挑最佳弧 → 定 in-medias-res 起笔 tick → 真世界快进到该 tick(同 worldId/seed 确定性复现 scout 前 T tick) → 第 1 章从冲突现场起笔。
+  //   step() 在 autoCompose=false 下只推演不落章。scout 在内存 db 看完整弧线(供排序)、不污染真世界; 真世界只快进到起笔点 T(< N), 故不回溯、无风险。研究 .audit/20260604-arc-selection-research/。
   if (n === 0 && WARMUP > 0) {
-    console.log(`  🌱 世界预演化: 静默推演 ${WARMUP} tick（不出章），让关系/恩怨/派系/兴亡自然成形…`);
+    console.log(`  🌱 世界预演化(挑弧线起笔): scout 静默推演 ${WARMUP} tick 探最有戏的弧线…`);
+    const sdb = openDb(":memory:"); // scout: 内存 db, 同 worldId/seed → 与真世界确定性一致
+    const sseed = PACK.seedWorld({ worldId, packId: PACK.id, seed: "千章长篇", config: {} });
+    sseed.props["autoCompose"] = false;
+    store.saveSnapshot(sdb, worldId, sseed, 0, Date.now());
+    store.setSchedulerState(sdb, worldId, { gen: 0, nextTick: 0, status: "running" }, Date.now());
     for (let t = 0; t < WARMUP; t++) {
+      if (t % 5 === 0 && PACK.spawnCharacter) {
+        const sp = store.loadSnapshot(sdb, worldId);
+        const present = sp ? Object.values(sp.snapshot.characters).filter((c) => c.present).length : 99;
+        if (present < 16) { const k = present < 10 ? Math.min(4, 16 - present) : 1; for (let i = 0; i < k; i++) store.enqueueInput(sdb, `warmup-spawn-${t}-${i}`, worldId, "spawn-character", { character: PACK.spawnCharacter("预演化", 2000 + t * 4 + i) }, Date.now()); }
+      }
+      await step(sdb, worldId, PACK, sim);
+    }
+    const pick = pickArcStart(store.readEvents(sdb, worldId));
+    const T = Math.max(1, Math.min(pick ? pick.tick : Math.floor(WARMUP / 2), WARMUP - 1));
+    arcHint = pick ? `世界已暗中发展一段，眼下正值：${pick.arc.desc}。本章 in-medias-res 直接切入这个局面（读者一翻开就在矛盾/张力里），不从头交代，前情留待后文渐补。` : "";
+    console.log(`  🌱 scout 完: ${pick ? `选「${pick.arc.pattern}」"${pick.arc.desc}"(分${pick.score}) → in-medias-res 起笔 tick${T}（峰值 tick${pick.arc.atTick} 是开篇要建向的目标）` : `未筛出弧线 → 取中点 tick${T} 起笔`}`);
+    console.log(`  🌱 真世界快进到起笔点 tick${T}…`);
+    for (let t = 0; t < T; t++) {
       if (existsSync(PAUSE)) { await new Promise((r) => setTimeout(r, 3000)); t--; continue; }
-      if (t % 5 === 0 && PACK.spawnCharacter) { // 群像稳态: 防预演化期人口坍塌(同章节循环补血逻辑); 用高位 index 避免与章节期 spawn 撞 id
+      if (t % 5 === 0 && PACK.spawnCharacter) {
         const sp = store.loadSnapshot(db, worldId);
         const present = sp ? Object.values(sp.snapshot.characters).filter((c) => c.present).length : 99;
         if (present < 16) { const k = present < 10 ? Math.min(4, 16 - present) : 1; for (let i = 0; i < k; i++) store.enqueueInput(db, `warmup-spawn-${t}-${i}`, worldId, "spawn-character", { character: PACK.spawnCharacter("预演化", 2000 + t * 4 + i) }, Date.now()); }
       }
       await guardedStep();
-      if (t > 0 && t % 10 === 0) console.log(`     预演化 ${t}/${WARMUP} tick…`);
     }
-    try {
-      const evs = store.readRecentEvents(db, worldId, 800);
-      const c = (k: string): number => evs.filter((e) => e.kind === k).length;
-      console.log(`  🌱 预演化完成（${WARMUP} tick）：${c("CharacterFell")}死 / ${c("FactionSplit")}派系分裂 / ${c("VengeanceResolved")}复仇了断 / ${c("ProgressionAdvanced")}破境 → 第 1 章从这个成熟世界 in-medias-res 起笔`);
-    } catch { console.log(`  🌱 预演化完成（${WARMUP} tick）→ 从成熟态起笔`); }
+    console.log(`  🌱 已快进到起笔点 → 第 1 章从此 in-medias-res 起笔`);
   }
   console.log(`长篇连载 v2：目标 ${TARGET} 章 · 每章≥${MINLEN}字(${SECTIONS}段) · 从第 ${n + 1} 章续写（LLM=${llm.id}）`);
   // 快速裁决: 作者在网页裁决后, 每 ~15s 检一次, 有待裁就用 sim 快走一步即时落定(不必等当前章写完)
