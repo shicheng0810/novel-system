@@ -103,6 +103,14 @@ function nextStoryEvent(_snapshot: WorldSnapshot, tick: number): StoryEvent | nu
 // ── 动态登场 / 东山再起 ──
 const SPAWN_NAMES = ["陈骁", "Linda", "老钱", "苏曼", "K 总", "阿杰", "周婷", "Victor", "马总", "小野", "雷子", "顾盼"];
 const REVIVER_NAMES = ["东山客", "复盘人", "归零者", "卷土生", "翻盘侠", "再起君"];
+// 名字池用尽后用「姓+名」组合生成干净互异名(替代旧「·其N」漏进正文的 bug; 身份靠 id 唯一)。
+const MSUR = ["李", "王", "张", "刘", "陈", "杨", "赵", "黄", "周", "吴", "徐", "孙", "胡", "朱", "高", "林", "何", "郭", "马", "罗", "梁", "宋", "郑", "谢"];
+const MGIV = ["伟", "强", "磊", "军", "洋", "勇", "杰", "涛", "明", "超", "刚", "平", "辉", "斌", "波", "鹏", "飞", "健", "浩", "宇", "婷", "娜", "敏", "静"];
+function spawnName(index: number): string {
+  if (index < SPAWN_NAMES.length) return SPAWN_NAMES[index] ?? "路人";
+  const k = index - SPAWN_NAMES.length;
+  return (MSUR[k % MSUR.length] ?? "李") + (MGIV[Math.floor(k / MSUR.length) % MGIV.length] ?? "明");
+}
 function makeModern(seedIdx: number, h: number, name: string): CharacterState {
   const by = 1970 + (h % 40),
     bm = 1 + ((h >>> 6) % 12),
@@ -128,7 +136,7 @@ function makeModern(seedIdx: number, h: number, name: string): CharacterState {
 }
 function spawnCharacter(seed: string, index: number): CharacterState {
   const h = hashStr(`${seed}|spawn|${index}`) >>> 0;
-  const name = (SPAWN_NAMES[index % SPAWN_NAMES.length] ?? "路人") + (index >= SPAWN_NAMES.length ? `·其${Math.floor(index / SPAWN_NAMES.length) + 1}` : "");
+  const name = spawnName(index);
   return makeModern(index, h, name);
 }
 function reviveFaction(faction: string, index: number): CharacterState {

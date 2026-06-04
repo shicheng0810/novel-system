@@ -308,12 +308,20 @@ const LOCATIONS: Record<string, { id: string; name: string; props: Record<string
 };
 const LOC_IDS = Object.keys(LOCATIONS);
 const SPAWN_NAMES = ["秦霜", "陆沉", "叶孤鸿", "苍墟", "墨衍", "云栖月", "厉无咎", "南宫泫", "顾长歌", "邪刹", "冷千秋", "白骨真人"];
+// 名字池用尽后用「姓+名」组合生成干净且互异的角色名(替代旧「·其N」内部消歧后缀漏进正文的 bug; 身份本就靠 id 唯一)。
+const XSUR = ["云", "墨", "萧", "柳", "苏", "洛", "江", "凌", "楚", "卓", "澹台", "东方", "西门", "独孤", "慕容", "上官", "欧阳", "百里", "司空", "公孙", "赫连", "纳兰", "端木", "令狐"];
+const XGIV = ["惊鸿", "无极", "清玄", "寒星", "沧澜", "松雪", "问天", "凌霄", "知秋", "归尘", "映雪", "承影", "若虚", "怀瑾", "逐月", "御风", "煜明", "素心", "卧云", "听潮", "行舟", "断尘", "怅然", "醉影"];
+function spawnName(index: number): string {
+  if (index < SPAWN_NAMES.length) return SPAWN_NAMES[index] ?? "无名";
+  const k = index - SPAWN_NAMES.length;
+  return (XSUR[k % XSUR.length] ?? "云") + (XGIV[Math.floor(k / XSUR.length) % XGIV.length] ?? "客");
+}
 const FACTIONS = ["青云宗", "万剑门", "散修", "幽冥教", "北域妖族", "天衍商会"];
 const PROTAG_ELEM = ["water", "fire", "metal", "wood"]; // 主角四人五行各异 → 保证生克张力(冰/火/金/木)
 
 function spawnCharacter(seed: string, index: number): CharacterState {
   const h = hashStr(`${seed}|spawn|${index}`) >>> 0; // 无符号: 防负哈希污染日期/派系派生
-  const name = (SPAWN_NAMES[index % SPAWN_NAMES.length] ?? "无名") + (index >= SPAWN_NAMES.length ? `·其${Math.floor(index / SPAWN_NAMES.length) + 1}` : "");
+  const name = spawnName(index);
   const by = 1955 + (h % 55);
   const bm = 1 + ((h >>> 6) % 12);
   const bd = 1 + ((h >>> 10) % 27);

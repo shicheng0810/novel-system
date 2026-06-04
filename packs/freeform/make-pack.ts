@@ -30,6 +30,8 @@ export interface WorldConfig {
   titleStyle?: string; // 章节标题风格(缺省给通用反"假"提示)
   spawnNames: string[]; // 动态登场人名池
   reviverNames: string[]; // 东山再起人名池
+  surnames?: string[]; // 姓氏池(名字池用尽后「姓+名」组合, 避免「·N」后缀漏进正文)
+  givenNames?: string[]; // 名字池(同上)
   moodWords?: [string, string, string, string]; // 心境四档(焚/动/省/澄), 缺省给通用
 }
 
@@ -113,9 +115,19 @@ export function makePack(cfg: WorldConfig) {
     };
   }
 
+  // 名字池用尽后用「姓+名」组合生成干净互异名(身份靠 id 唯一; 无姓名池则干净循环、不加「·N」后缀污染正文)
+  function spawnName(index: number): string {
+    if (index < cfg.spawnNames.length) return cfg.spawnNames[index] ?? "路人";
+    const sur = cfg.surnames, giv = cfg.givenNames;
+    if (sur && sur.length && giv && giv.length) {
+      const k = index - cfg.spawnNames.length;
+      return (sur[k % sur.length] ?? "") + (giv[Math.floor(k / sur.length) % giv.length] ?? "");
+    }
+    return cfg.spawnNames[index % cfg.spawnNames.length] ?? "路人";
+  }
   function spawnCharacter(seed: string, index: number): CharacterState {
     const h = hashStr(`${seed}|spawn|${index}`) >>> 0;
-    const name = (cfg.spawnNames[index % cfg.spawnNames.length] ?? "路人") + (index >= cfg.spawnNames.length ? `·${Math.floor(index / cfg.spawnNames.length) + 1}` : "");
+    const name = spawnName(index);
     const faction = cfg.factions[(h >>> 4) % cfg.factions.length] ?? cfg.factions[0] ?? "散众";
     return mkChar(`s${index}`, name, faction, h, LOC_IDS[(h >>> 2) % LOC_IDS.length] ?? LOC_IDS[0]!, (h >>> 8) % Math.min(6, TIERS.length));
   }
