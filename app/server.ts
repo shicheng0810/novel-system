@@ -12,6 +12,7 @@ import * as store from "../core/services/store";
 import { step } from "../core/runtime/world-actor";
 import { PACK, describeMind, natalLabel, plateLabel } from "./pack-select";
 import { generateWorldConfig } from "./world-gen";
+import { generateOutlinePlan, saveOutlinePlan } from "./outline-plan";
 import { loadGenome, loadLedger, loadArchive, loadGlobal } from "./evolve";
 import { loadConstraints, applyConstraintVerdict } from "./constraints";
 import { loadCanon } from "./canon";
@@ -235,7 +236,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     req.on("end", () => {
       void (async () => {
         try {
-          const p = JSON.parse(body || "{}") as { prompt?: string; name?: string; outline?: string };
+          const p = JSON.parse(body || "{}") as { prompt?: string; name?: string; outline?: string; outlineMode?: string };
           const basePrompt = (p.prompt || "").trim() || ((p.outline || "").trim().split("\n").find((l) => l.trim()) || "").slice(0, 120);
           if (!basePrompt) {
             res.statusCode = 400;
@@ -252,6 +253,10 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           const cfgPath = join(OUT, "worlds", `${safe}.json`);
           mkdirSync(dirname(cfgPath), { recursive: true });
           writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
+          // 严格跟纲模式: 解析大纲 → 章节节拍主线, 落到世界目录, longrun 读到则逐章跟纲(松散底座模式不生成)
+          if (p.outlineMode === "follow" && p.outline && p.outline.trim()) {
+            try { const wdir = join(OUT, safe); mkdirSync(wdir, { recursive: true }); const plan = await generateOutlinePlan(p.outline, llm, 1000); if (plan.beats.length) saveOutlinePlan(wdir, plan); } catch { /* 跟纲计划失败 → 退化为松散, 不阻断建世界 */ }
+          }
           const root = join(here, "..");
           const baseEnv = { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: safe, NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4" };
           spawn("npx", ["tsx", "app/longrun.ts"], { cwd: root, env: baseEnv, detached: true, stdio: "ignore" }).unref(); // 起长跑
