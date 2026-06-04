@@ -22,11 +22,14 @@ import { loadDrama } from "./drama";
 
 const PORT = Number(process.env["PORT"] ?? 8990);
 const here = dirname(fileURLToPath(import.meta.url));
-const viewSaga = process.env["NOVEL_VIEW"] === "saga"; // 看长跑(只读); 否则跑自带 demo 世界
+const STANDBY = process.env["NOVEL_STANDBY"] === "1"; // 待机模式: 不跑默认世界, 等网页「定义你的世界」后再 spawn 写者
+const viewSaga = process.env["NOVEL_VIEW"] === "saga" || STANDBY; // 看长跑(只读)或待机; 否则跑自带 demo 世界
 const SAGA = process.env["NOVEL_SAGA_DIR"] ?? "saga";
 const worldId = viewSaga ? "saga" : "live";
+if (viewSaga) { try { mkdirSync(join(here, "..", ".novel-output", SAGA), { recursive: true }); } catch { /* 目录可建即可 */ } } // 待机/看长跑: 确保世界目录在, openDb 不炸
 const db = viewSaga ? openDb(join(here, "..", ".novel-output", SAGA, "world.db")) : openDb(":memory:");
 const pack = PACK;
+let defining = false; // 待机→「定义中/起跑中」标志: spawn 写者后置 true, 网页据此显示「世界生成中」直到首章落盘
 
 // provider 由 llm-factory 据网页设置/环境变量装配(网页 /api/settings 可改)
 const llm = makeLLM();
@@ -212,6 +215,34 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const af = join(dir, "autoverdict");
     if (req.method === "POST") { try { if (existsSync(af)) unlinkSync(af); else writeFileSync(af, String(Date.now()), "utf8"); } catch { /* ignore */ } }
     return json(res, { auto: existsSync(af) });
+  }
+  if (url === "/api/standby") { // 待机状态: 网页据此决定显示「定义你的世界」落地页还是正常世界
+    const has = chapterCount(SAGA) > 0 || !!store.loadSnapshot(db, worldId);
+    return json(res, { standby: STANDBY, hasWorld: has, defining });
+  }
+  if (url === "/api/define-world" && req.method === "POST") { // 待机世界被定义: 生成配置(+跟纲计划) → spawn 写者本目录 → 首章落盘后网页自动从待机切正常
+    let body = "";
+    req.on("data", (d: Buffer) => (body += d.toString()));
+    req.on("end", () => {
+      void (async () => {
+        try {
+          const p = JSON.parse(body || "{}") as { prompt?: string; outline?: string; outlineMode?: string };
+          const basePrompt = (p.prompt || "").trim() || ((p.outline || "").trim().split("\n").find((l) => l.trim()) || "").slice(0, 120);
+          if (!basePrompt) { res.statusCode = 400; return json(res, { error: "缺少世界描述或大纲" }); }
+          defining = true;
+          const cfg = await generateWorldConfig(basePrompt, llm, p.outline);
+          const cfgPath = join(OUT, "worlds", `${SAGA}.json`);
+          mkdirSync(dirname(cfgPath), { recursive: true });
+          writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
+          if (p.outlineMode === "follow" && p.outline && p.outline.trim()) {
+            try { const plan = await generateOutlinePlan(p.outline, llm, 1000); if (plan.beats.length) saveOutlinePlan(join(here, "..", ".novel-output", SAGA), plan); } catch { /* 退化松散, 不阻断 */ }
+          }
+          spawn("npx", ["tsx", "app/longrun.ts"], { cwd: join(here, ".."), env: { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: SAGA, NOVEL_STANDBY: "0", NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4" }, detached: true, stdio: "ignore" }).unref();
+          json(res, { ok: true, displayName: String((cfg as { displayName?: unknown }).displayName ?? SAGA) });
+        } catch (e: unknown) { defining = false; res.statusCode = 500; json(res, { error: String(e).slice(0, 150) }); }
+      })();
+    });
+    return;
   }
   if (url === "/api/kill" && req.method === "POST") { // 终止该世界写者(读锁文件 PID, SIGKILL)。已写章节保留, server 不停可继续看。
     const lf = join(here, "..", ".novel-output", SAGA, "longrun.lock");

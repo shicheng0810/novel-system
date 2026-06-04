@@ -145,6 +145,21 @@
 .dt-hint{font-size:11px;margin-bottom:9px;line-height:1.5}
 .dt-btns{display:flex;gap:7px}.dt-btns button{flex:1;padding:6px 4px;font-size:12px}
 .dt-foot{font-size:10px;color:#8a7f6d;margin-top:7px}.dt-auto{color:#c9a86a;cursor:pointer;text-decoration:underline}
+/* 待机·定义你的世界落地页(T1) */
+#standbymask{display:none;position:fixed;inset:0;background:linear-gradient(160deg,#1a1611,#12100c);z-index:75;overflow:auto;padding:38px 20px}
+#standbybox{max-width:680px;margin:0 auto}
+#standbybox h2{color:#e8c87a;font-size:22px;font-weight:500;text-align:center;margin:6px 0 4px}
+#standbybox .sub{color:#9c8f78;text-align:center;font-size:13px;margin-bottom:22px}
+.tpl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}
+.tpl-card{background:#221c14;border:1px solid #3a322a;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s}
+.tpl-card:hover{border-color:#7a5a2c;background:#2a2218}
+.tpl-card.sel{border-color:#e8c87a;background:#2c2316}
+.tpl-card .tag{font-size:12px;color:#c9a86a;margin-bottom:4px}
+.tpl-card .desc{font-size:11.5px;color:#b8ac96;line-height:1.55}
+.sb-label{color:#c8bca8;font-size:12px;margin:14px 0 5px}
+#standbybox textarea{width:100%;box-sizing:border-box;background:#0f0c09;border:1px solid #3a322a;border-radius:7px;padding:9px 11px;color:#e8dcc8;font-size:13px;font-family:var(--serif);resize:vertical}
+#sbStatus{color:#c9a86a;font-size:12px;text-align:center;margin-top:12px;min-height:18px;line-height:1.6}
+#sbStart{width:100%;margin-top:14px;padding:12px;font-size:15px}
 </style>
 <div id="setmask" onclick="if(event.target===this)this.style.display='none'"><div id="setbox">
   <h3>⚙ 模型设置 · 章节文笔</h3>
@@ -185,6 +200,7 @@
   <div class="muted" style="font-size:11px;margin-top:10px;line-height:1.5">约 20-40 秒生成配置并起跑（带大纲约 30-60 秒）；之后在上方列表点开（各世界独立端口、独立画布）。</div>
 </div></div>
 <div id="dtoastwrap"></div>
+<div id="standbymask"><div id="standbybox"></div></div>
 <div id="tourmask"><div id="tourcard"></div></div>
 <script>
 const $=id=>document.getElementById(id);
@@ -360,7 +376,40 @@ async function renderTour(){document.querySelectorAll(".tour-hot").forEach(e=>e.
   const dots=TOUR.map((_,i)=>`<span class="tour-dot${i===_tourI?" on":""}"></span>`).join("");
   $("tourcard").innerHTML=`<div class="tour-title">${step.title}</div><div class="tour-body">${step.body.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>${keyHtml}<div class="tour-nav"><div class="tour-dots">${dots}</div>${_tourI>0?`<button class="setbtn" onclick="tourPrev()">上一步</button>`:`<button class="setbtn" onclick="endTour()">跳过</button>`}<button class="setbtn primary" onclick="${step.isKey?"tourSaveKey()":"tourNext()"}">${_tourI>=TOUR.length-1?"开始旁观":step.isKey?"保存并继续":"下一步"}</button></div>`}
 async function tourSaveKey(){const inp=$("tourKey");if(inp&&inp.value.trim()){const m=$("tourKeyMsg");if(m)m.textContent="保存中…";try{await fetch("/api/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({provider:"deepseek",deepseekKey:inp.value.trim()})})}catch(e){}}tourNext()}
-(async()=>{try{TIERS=(await(await fetch("/api/packmeta")).json()).tiers||{}}catch(e){}tickState();refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();setupCanvas();setInterval(tickState,1600);setInterval(()=>{refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict()},5000);setInterval(ambientThought,3200);
+
+// ── 待机·定义你的世界(T1: 开局不跑默认, 先让用户定义需求再起跑) ──
+const WORLD_TEMPLATES=[
+  {name:"修仙·宗门争锋",tag:"🗡 经典修仙",desc:"修仙世界，青云宗灵根试炼，四名命数交汇的少年各入门墙；正魔交锋、宗门倾轧、机缘与杀劫并存。"},
+  {name:"修仙·重生复仇",tag:"🔥 重生爽文",desc:"修仙世界，主角携前世记忆重生——前世被至交背叛、挚爱身死；这一世逆天改命、步步问鼎、快意恩仇。"},
+  {name:"都市·重生九零",tag:"🏙 年代商战",desc:"九十年代重生，主角带着记忆重走正道，从摆地摊到缔造商业帝国；亲情、爱情与家国变迁。"},
+  {name:"科幻·赛博东京",tag:"🌃 赛博朋克",desc:"赛博朋克东京，黑客、义体改造与巨型企业的暗战；底层少年在霓虹与数据洪流中逆袭。"},
+  {name:"玄幻·万族争雄",tag:"⚡ 史诗玄幻",desc:"上古洪荒，万族林立、神魔并起；少年觉醒上古血脉，在诸族争霸的乱世中崛起为一族之主。"},
+];
+let _sbShown=false,_sbSel=-1;
+async function checkStandby(){try{const s=await(await fetch("/api/standby")).json();
+  if(s.standby&&!s.hasWorld){if(!_sbShown){renderStandby();$("standbymask").style.display="block";_sbShown=true}if(s.defining)sbDefining()}
+  else if(_sbShown&&s.hasWorld){$("standbymask").style.display="none";_sbShown=false;location.reload()}}catch(e){}}
+function renderStandby(){const cards=WORLD_TEMPLATES.map((t,i)=>`<div class="tpl-card${i===_sbSel?" sel":""}" onclick="selectTpl(${i})"><div class="tag">${esc(t.tag)}</div><div class="desc">${esc(t.desc)}</div></div>`).join("");
+  $("standbybox").innerHTML=`<h2>🕯 先定义你的世界</h2><div class="sub">世界待机中 —— 选一个模板，或自己描述 / 贴一份大纲，再起跑。</div>
+    <div class="tpl-grid">${cards}</div>
+    <div class="sb-label">世界描述（一句话；选模板会自动填、可改）</div>
+    <textarea id="sbPrompt" rows="2" placeholder="例：修仙世界，青云宗灵根试炼，四名少年命数交汇"></textarea>
+    <div class="sb-label">成品大纲（可选 · 留空则只据上面一句话）</div>
+    <textarea id="sbOutline" rows="5" placeholder="可把你的大纲（多个文件也可一起粘进来）整段贴入；下面选用法。"></textarea>
+    <div style="margin:8px 0 2px">
+      <label style="display:flex;gap:7px;align-items:flex-start;font-size:12px;color:#c8bca8;cursor:pointer;margin-bottom:5px"><input type="radio" name="sbmode" value="loose" checked style="width:auto;margin-top:3px"><span><b>松散底座（涌现）</b> —— 大纲做设定底子，世界自行演化、情节会跑偏。要意外惊喜选这个。</span></label>
+      <label style="display:flex;gap:7px;align-items:flex-start;font-size:12px;color:#c8bca8;cursor:pointer"><input type="radio" name="sbmode" value="follow" style="width:auto;margin-top:3px"><span><b>严格跟纲（照写）</b> —— 逐章照你的大纲写（填了大纲才有意义）。</span></label>
+    </div>
+    <button class="setbtn primary" id="sbStart" onclick="defineWorld()">🕯 开始创造世界</button>
+    <div id="sbStatus"></div>`;}
+function selectTpl(i){_sbSel=i;document.querySelectorAll(".tpl-card").forEach((c,j)=>c.classList.toggle("sel",j===i));const p=$("sbPrompt");if(p)p.value=WORLD_TEMPLATES[i].desc}
+function sbDefining(){const b=$("sbStart");if(b){b.disabled=true;b.textContent="⏳ 世界生成中…"}const s=$("sbStatus");if(s)s.textContent="正在据你的设定生成世界并起跑，约 1-3 分钟…首章落定后本页自动进入。"}
+async function defineWorld(){const prompt=($("sbPrompt").value||"").trim(),outline=($("sbOutline").value||"").trim();const mode=(document.querySelector('input[name="sbmode"]:checked')||{}).value||"loose";
+  if(!prompt&&!outline){$("sbStatus").textContent="请先选个模板、或写一句描述 / 贴段大纲。";return}
+  sbDefining();
+  try{const r=await(await fetch("/api/define-world",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt,outline,outlineMode:mode})})).json();
+    if(!r.ok){$("sbStatus").textContent="失败："+(r.error||"未知");const b=$("sbStart");if(b){b.disabled=false;b.textContent="🕯 开始创造世界"}}}catch(e){$("sbStatus").textContent="失败："+e}}
+(async()=>{try{TIERS=(await(await fetch("/api/packmeta")).json()).tiers||{}}catch(e){}tickState();refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();checkStandby();setupCanvas();setInterval(tickState,1600);setInterval(()=>{refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();checkStandby()},5000);setInterval(ambientThought,3200);
   // 新手引导: 首次访问 或 未填 API Key 时自动弹(随时点 ? 重看)
   try{const s=await(await fetch("/api/settings")).json();if(!localStorage.getItem("novel_onboarded")||!s.hasKey)startTour()}catch(e){try{if(!localStorage.getItem("novel_onboarded"))startTour()}catch(_){}}})();
 </script>
