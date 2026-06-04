@@ -390,10 +390,12 @@ const WORLD_TEMPLATES=[
 ];
 let _sbShown=false,_sbSel=-1;
 async function checkStandby(){try{const s=await(await fetch("/api/standby")).json();
-  if(s.standby&&!s.hasWorld){if(!_sbShown){renderStandby();$("standbymask").style.display="block";_sbShown=true}if(s.defining)sbDefining()}
+  if(s.standby&&!s.hasWorld){if(!_sbShown){_sbShown=true;await renderStandby();$("standbymask").style.display="block"}if(s.defining)sbDefining()}
   else if(_sbShown&&s.hasWorld){$("standbymask").style.display="none";_sbShown=false;location.reload()}}catch(e){}}
-function renderStandby(){const cards=WORLD_TEMPLATES.map((t,i)=>`<div class="tpl-card${i===_sbSel?" sel":""}" onclick="selectTpl(${i})"><div class="tag">${esc(t.tag)}</div><div class="desc">${esc(t.desc)}</div></div>`).join("");
-  $("standbybox").innerHTML=`<h2>🕯 先定义你的世界</h2><div class="sub">世界待机中 —— 选一个模板，或自己描述 / 贴一份大纲，再起跑。</div>
+async function renderStandby(){let hasKey=true;try{hasKey=!!(await(await fetch("/api/settings")).json()).hasKey}catch(e){}
+  const keyBlock=hasKey?"":`<div style="background:#2a2218;border:1px solid #7a5a2c;border-radius:8px;padding:12px;margin-bottom:16px"><div style="color:#e8c87a;font-size:13px;margin-bottom:6px">① 先填 DeepSeek API Key</div><div class="muted" style="font-size:11px;margin-bottom:7px">世界用它把发生的事写成文字（只存你本机）。没有它只会生成占位废话文。<a href="https://platform.deepseek.com/api_keys" target="_blank" style="color:#e8c87a">何处获取↗</a></div><input id="sbKey" type="password" placeholder="sk-…" autocomplete="off" style="width:100%;box-sizing:border-box;background:#0f0c09;border:1px solid #6a5526;border-radius:7px;padding:9px 11px;color:#e8dcc8;font-size:14px;font-family:ui-monospace,monospace"></div>`;
+  const cards=WORLD_TEMPLATES.map((t,i)=>`<div class="tpl-card${i===_sbSel?" sel":""}" onclick="selectTpl(${i})"><div class="tag">${esc(t.tag)}</div><div class="desc">${esc(t.desc)}</div></div>`).join("");
+  $("standbybox").innerHTML=`<h2>🕯 先定义你的世界</h2><div class="sub">世界待机中 —— 选一个模板，或自己描述 / 贴一份大纲，再起跑。</div>${keyBlock}
     <div class="tpl-grid">${cards}</div>
     <div class="sb-label">世界描述（一句话；选模板会自动填、可改）</div>
     <textarea id="sbPrompt" rows="2" placeholder="例：修仙世界，青云宗灵根试炼，四名少年命数交汇"></textarea>
@@ -412,14 +414,15 @@ function renderStandby(){const cards=WORLD_TEMPLATES.map((t,i)=>`<div class="tpl
     <div id="sbStatus"></div>`;}
 function selectTpl(i){_sbSel=i;document.querySelectorAll(".tpl-card").forEach((c,j)=>c.classList.toggle("sel",j===i));const p=$("sbPrompt");if(p)p.value=WORLD_TEMPLATES[i].desc}
 function sbDefining(){const b=$("sbStart");if(b){b.disabled=true;b.textContent="⏳ 世界生成中…"}const s=$("sbStatus");if(s)s.textContent="正在据你的设定生成世界并起跑，约 1-3 分钟…首章落定后本页自动进入。"}
-async function defineWorld(){const prompt=($("sbPrompt").value||"").trim(),outline=($("sbOutline").value||"").trim();const rules=($("sbRules").value||"").trim(),protagonists=($("sbProtags").value||"").trim();const mode=(document.querySelector('input[name="sbmode"]:checked')||{}).value||"loose";
+async function defineWorld(){const kf=$("sbKey");if(kf){if(!kf.value.trim()){$("sbStatus").textContent="请先填上面的 DeepSeek API Key（否则世界只会生成占位废话文）。";return}try{await fetch("/api/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({provider:"deepseek",deepseekKey:kf.value.trim()})})}catch(e){}}
+  const prompt=($("sbPrompt").value||"").trim(),outline=($("sbOutline").value||"").trim();const rules=($("sbRules").value||"").trim(),protagonists=($("sbProtags").value||"").trim();const mode=(document.querySelector('input[name="sbmode"]:checked')||{}).value||"balanced";
   if(!prompt&&!outline){$("sbStatus").textContent="请先选个模板、或写一句描述 / 贴段大纲。";return}
   sbDefining();
   try{const r=await(await fetch("/api/define-world",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt,outline,outlineMode:mode,rules,protagonists})})).json();
     if(!r.ok){$("sbStatus").textContent="失败："+(r.error||"未知");const b=$("sbStart");if(b){b.disabled=false;b.textContent="🕯 开始创造世界"}}}catch(e){$("sbStatus").textContent="失败："+e}}
 (async()=>{try{TIERS=(await(await fetch("/api/packmeta")).json()).tiers||{}}catch(e){}tickState();refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();checkStandby();setupCanvas();setInterval(tickState,1600);setInterval(()=>{refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();checkStandby()},5000);setInterval(ambientThought,3200);
   // 新手引导: 首次访问 或 未填 API Key 时自动弹(随时点 ? 重看)
-  try{const s=await(await fetch("/api/settings")).json();if(!localStorage.getItem("novel_onboarded")||!s.hasKey)startTour()}catch(e){try{if(!localStorage.getItem("novel_onboarded"))startTour()}catch(_){}}})();
+  try{const st=await(await fetch("/api/standby")).json();const s=await(await fetch("/api/settings")).json();if(!st.standby&&(!localStorage.getItem("novel_onboarded")||!s.hasKey))startTour()}catch(e){try{if(!localStorage.getItem("novel_onboarded"))startTour()}catch(_){}}})();
 </script>
 </body>
 </html>
