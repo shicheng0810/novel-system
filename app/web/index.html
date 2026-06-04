@@ -188,6 +188,8 @@
   <div class="muted" style="font-size:12px;margin-bottom:8px">内核(引擎+八字+奇门)不变，仅据你的描述生成世界并起跑。</div>
   <div id="worldlist" class="muted">加载中…</div>
   <label class="setrow" style="margin-top:14px">世界描述（一句话）<textarea id="wPrompt" rows="2" placeholder="例：赛博朋克东京，黑客与巨企的暗战"></textarea></label>
+  <label class="setrow">体系 / 规则（可选）<textarea id="wRules" rows="2" placeholder="例：练气→筑基→金丹…境界；灵根决定资质" style="font-size:12.5px"></textarea></label>
+  <label class="setrow">主角（可选 · 名字与设定）<textarea id="wProtags" rows="2" placeholder="例：苏雪(冰灵根)、林焰(火灵根·宿敌)" style="font-size:12.5px"></textarea></label>
   <label class="setrow">英文短名（用作目录）<input id="wName" type="text" placeholder="tokyo" autocomplete="off"></label>
   <label class="setrow">成品大纲（可选 · 留空则只据上面一句话）<textarea id="wOutline" rows="7" placeholder="可把你的大纲（多个文件也可一起粘进来）整段贴入：世界观 / 主角 / 势力 / 分卷情节 / 关键转折。" style="font-size:12.5px"></textarea></label>
   <div id="omoderow" style="margin:2px 0 6px">
@@ -326,7 +328,7 @@ function closeDlg(){$("dlgbox").style.display="none";_dlgKey="";if(_dlgTimer){cl
 async function openWorlds(){$("worldmask").style.display="flex";await loadWorldList()}
 async function loadWorldList(){try{const ws=await(await fetch("/api/worlds")).json();$("worldlist").innerHTML=ws.length?ws.map(w=>`<div class="witem"><a href="${esc(w.url||('http://127.0.0.1:'+w.port))}" target="_blank">${esc(w.displayName)}</a> <span class="muted">· ${w.chapters||0}章 · 端口${w.port}</span></div>`).join(""):'<div class="muted">还没有自建世界（下面写一句开第一个）</div>'}catch(e){$("worldlist").innerHTML='<div class="muted">加载失败</div>'}}
 function toggleOutlineMode(){/* 模式开关常驻可见, 无需按大纲内容显隐(留此空函数以兼容 createWorld 重置调用) */}
-async function createWorld(){const prompt=$("wPrompt").value.trim(),name=$("wName").value.trim(),outline=$("wOutline").value.trim();const outlineMode=(document.querySelector('input[name="omode"]:checked')||{}).value||"loose";if(!prompt&&!outline){$("wStatus").textContent="请先写一句世界描述，或粘贴一份大纲";return}const slow=outline&&outlineMode==="follow";$("wStatus").textContent="◇ 生成世界中…（LLM 约 "+(slow?"60-100":outline?"30-60":"20-40")+" 秒"+(slow?"，正解析大纲主线":"")+"，请稍候）";try{const r=await(await fetch("/api/worlds/create",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt,name,outline,outlineMode})})).json();if(r.ok){$("wStatus").innerHTML=`✅ 「${esc(r.displayName)}」已开${slow?"（严格跟纲）":""} → <a href="${esc(r.url)}" target="_blank" style="color:#e8c87a">${esc(r.url)}</a>（首章约 2-3 分钟后出现）`;$("wPrompt").value="";$("wName").value="";$("wOutline").value="";toggleOutlineMode();loadWorldList()}else $("wStatus").textContent="失败："+(r.error||"未知")}catch(e){$("wStatus").textContent="失败："+e}}
+async function createWorld(){const prompt=$("wPrompt").value.trim(),name=$("wName").value.trim(),outline=$("wOutline").value.trim();const rules=($("wRules").value||"").trim(),protagonists=($("wProtags").value||"").trim();const outlineMode=(document.querySelector('input[name="omode"]:checked')||{}).value||"loose";if(!prompt&&!outline){$("wStatus").textContent="请先写一句世界描述，或粘贴一份大纲";return}const slow=outline&&outlineMode==="follow";$("wStatus").textContent="◇ 生成世界中…（LLM 约 "+(slow?"60-100":outline?"30-60":"20-40")+" 秒"+(slow?"，正解析大纲主线":"")+"，请稍候）";try{const r=await(await fetch("/api/worlds/create",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt,name,outline,outlineMode,rules,protagonists})})).json();if(r.ok){$("wStatus").innerHTML=`✅ 「${esc(r.displayName)}」已开${slow?"（严格跟纲）":""} → <a href="${esc(r.url)}" target="_blank" style="color:#e8c87a">${esc(r.url)}</a>（首章约 2-3 分钟后出现）`;$("wPrompt").value="";$("wName").value="";$("wOutline").value="";$("wRules").value="";$("wProtags").value="";toggleOutlineMode();loadWorldList()}else $("wStatus").textContent="失败："+(r.error||"未知")}catch(e){$("wStatus").textContent="失败："+e}}
 let _amb=0;
 function ambientThought(){const aml=document.getElementById("amblayer");if(!aml||$("svg").style.display==="none")return;const ids=Object.keys(MINDS).filter(id=>posCache[id]);if(!ids.length)return;const id=ids[_amb++%ids.length];const p=posCache[id];const raw=MINDS[id]||"";const seg=raw.split("。").find(x=>x.includes("所求"))||raw.split("。")[1]||raw.split("。")[0]||"";const m=seg.replace(/.*所求——/,"").slice(0,16);if(!m)return;const ns="http://www.w3.org/2000/svg";const t=document.createElementNS(ns,"text");t.setAttribute("x",p.x);t.setAttribute("y",p.y-24);t.setAttribute("class","ambient");t.textContent="“"+m+"…”";aml.appendChild(t);setTimeout(()=>t.remove(),4000)}
 async function togglePause(){try{const r=await(await fetch("/api/pause",{method:"POST"})).json();setRunState(r)}catch(e){alert("操作失败")}}
@@ -394,7 +396,11 @@ function renderStandby(){const cards=WORLD_TEMPLATES.map((t,i)=>`<div class="tpl
     <div class="tpl-grid">${cards}</div>
     <div class="sb-label">世界描述（一句话；选模板会自动填、可改）</div>
     <textarea id="sbPrompt" rows="2" placeholder="例：修仙世界，青云宗灵根试炼，四名少年命数交汇"></textarea>
-    <div class="sb-label">成品大纲（可选 · 留空则只据上面一句话）</div>
+    <div class="sb-label">体系 / 规则（可选 · 力量或修真阶梯与法则）</div>
+    <textarea id="sbRules" rows="2" placeholder="例：练气→筑基→金丹→元婴…九重境界；灵根决定资质，奇遇可逆天改命"></textarea>
+    <div class="sb-label">主角（可选 · 名字与设定，世界会据此定主角）</div>
+    <textarea id="sbProtags" rows="2" placeholder="例：苏雪(冰灵根·性冷傲)、林焰(火灵根·宿敌)、玄渊(幽冥脉)、白薇(阴脉之谜)"></textarea>
+    <div class="sb-label">成品大纲（可选 · 留空则只据上面）</div>
     <textarea id="sbOutline" rows="5" placeholder="可把你的大纲（多个文件也可一起粘进来）整段贴入；下面选用法。"></textarea>
     <div style="margin:8px 0 2px">
       <label style="display:flex;gap:7px;align-items:flex-start;font-size:12px;color:#c8bca8;cursor:pointer;margin-bottom:5px"><input type="radio" name="sbmode" value="loose" checked style="width:auto;margin-top:3px"><span><b>松散底座（涌现）</b> —— 大纲做设定底子，世界自行演化、情节会跑偏。要意外惊喜选这个。</span></label>
@@ -404,10 +410,10 @@ function renderStandby(){const cards=WORLD_TEMPLATES.map((t,i)=>`<div class="tpl
     <div id="sbStatus"></div>`;}
 function selectTpl(i){_sbSel=i;document.querySelectorAll(".tpl-card").forEach((c,j)=>c.classList.toggle("sel",j===i));const p=$("sbPrompt");if(p)p.value=WORLD_TEMPLATES[i].desc}
 function sbDefining(){const b=$("sbStart");if(b){b.disabled=true;b.textContent="⏳ 世界生成中…"}const s=$("sbStatus");if(s)s.textContent="正在据你的设定生成世界并起跑，约 1-3 分钟…首章落定后本页自动进入。"}
-async function defineWorld(){const prompt=($("sbPrompt").value||"").trim(),outline=($("sbOutline").value||"").trim();const mode=(document.querySelector('input[name="sbmode"]:checked')||{}).value||"loose";
+async function defineWorld(){const prompt=($("sbPrompt").value||"").trim(),outline=($("sbOutline").value||"").trim();const rules=($("sbRules").value||"").trim(),protagonists=($("sbProtags").value||"").trim();const mode=(document.querySelector('input[name="sbmode"]:checked')||{}).value||"loose";
   if(!prompt&&!outline){$("sbStatus").textContent="请先选个模板、或写一句描述 / 贴段大纲。";return}
   sbDefining();
-  try{const r=await(await fetch("/api/define-world",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt,outline,outlineMode:mode})})).json();
+  try{const r=await(await fetch("/api/define-world",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt,outline,outlineMode:mode,rules,protagonists})})).json();
     if(!r.ok){$("sbStatus").textContent="失败："+(r.error||"未知");const b=$("sbStart");if(b){b.disabled=false;b.textContent="🕯 开始创造世界"}}}catch(e){$("sbStatus").textContent="失败："+e}}
 (async()=>{try{TIERS=(await(await fetch("/api/packmeta")).json()).tiers||{}}catch(e){}tickState();refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();checkStandby();setupCanvas();setInterval(tickState,1600);setInterval(()=>{refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();checkStandby()},5000);setInterval(ambientThought,3200);
   // 新手引导: 首次访问 或 未填 API Key 时自动弹(随时点 ? 重看)

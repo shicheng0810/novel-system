@@ -226,11 +226,11 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     req.on("end", () => {
       void (async () => {
         try {
-          const p = JSON.parse(body || "{}") as { prompt?: string; outline?: string; outlineMode?: string };
+          const p = JSON.parse(body || "{}") as { prompt?: string; outline?: string; outlineMode?: string; rules?: string; protagonists?: string };
           const basePrompt = (p.prompt || "").trim() || ((p.outline || "").trim().split("\n").find((l) => l.trim()) || "").slice(0, 120);
           if (!basePrompt) { res.statusCode = 400; return json(res, { error: "缺少世界描述或大纲" }); }
           defining = true;
-          const cfg = await generateWorldConfig(basePrompt, llm, p.outline);
+          const cfg = await generateWorldConfig(basePrompt, llm, p.outline, { rules: p.rules, protagonists: p.protagonists });
           const cfgPath = join(OUT, "worlds", `${SAGA}.json`);
           mkdirSync(dirname(cfgPath), { recursive: true });
           writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
@@ -267,7 +267,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     req.on("end", () => {
       void (async () => {
         try {
-          const p = JSON.parse(body || "{}") as { prompt?: string; name?: string; outline?: string; outlineMode?: string };
+          const p = JSON.parse(body || "{}") as { prompt?: string; name?: string; outline?: string; outlineMode?: string; rules?: string; protagonists?: string };
           const basePrompt = (p.prompt || "").trim() || ((p.outline || "").trim().split("\n").find((l) => l.trim()) || "").slice(0, 120);
           if (!basePrompt) {
             res.statusCode = 400;
@@ -280,7 +280,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
             return json(res, { error: "同名世界已存在" });
           }
           const port = 9000 + reg.length;
-          const cfg = await generateWorldConfig(basePrompt, llm, p.outline); // ← LLM 据提示词(+可选成品大纲做设定底座)生成世界配置
+          const cfg = await generateWorldConfig(basePrompt, llm, p.outline, { rules: p.rules, protagonists: p.protagonists }); // ← LLM 据提示词(+大纲+体系/主角槽位)生成世界配置
           const cfgPath = join(OUT, "worlds", `${safe}.json`);
           mkdirSync(dirname(cfgPath), { recursive: true });
           writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
