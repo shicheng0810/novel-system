@@ -239,9 +239,11 @@ async function main(): Promise<void> {
       if (present < 16) { const k = present < 10 ? Math.min(4, 16 - present) : 1; for (let i = 0; i < k; i++) store.enqueueInput(xdb, `warmup-spawn-${t}-${i}`, worldId, "spawn-character", { character: PACK.spawnCharacter("预演化", 2000 + t * 4 + i) }, Date.now()); }
     };
     for (let t = 0; t < WARMUP; t++) { warmRefill(sdb, t); await step(sdb, worldId, PACK, sim); }
-    const pick = pickArcStart(store.readEvents(sdb, worldId));
+    const pick = pickArcStart(store.readEvents(sdb, worldId), GENTLE); // 温情向: 用温情情感弧权重(压暴烈、抬救赎)+放松起笔位置
     const T = Math.max(1, Math.min(pick ? pick.tick : Math.floor(WARMUP / 2), WARMUP - 1));
-    arcHint = pick ? `世界已暗中发展一段，眼下正值：${pick.arc.desc}。本章 in-medias-res 直接切入这个局面（读者一翻开就在矛盾/张力里），不从头交代，前情留待后文渐补。` : "";
+    arcHint = pick ? (GENTLE
+      ? `世界已暗中走过一程、结下些人情旧识。本章从眼下一个寻常而有人情味的当口徐徐写起（读者一翻开就在人情与气息里、不在冲突里），从容入场、不急着交代前情，前事留待后文细补。眼下牵系：${pick.arc.desc}`
+      : `世界已暗中发展一段，眼下正值：${pick.arc.desc}。本章 in-medias-res 直接切入这个局面（读者一翻开就在矛盾/张力里），不从头交代，前情留待后文渐补。`) : "";
     console.log(`  🌱 scout 完: ${pick ? `选「${pick.arc.pattern}」"${pick.arc.desc}"(分${pick.score}) → in-medias-res 起笔 tick${T}（峰值 tick${pick.arc.atTick} 是开篇要建向的目标）` : `未筛出弧线 → 取中点 tick${T} 起笔`}`);
     console.log(`  🌱 真世界快进到起笔点 tick${T}…`);
     for (let t = 0; t < T; t++) {
@@ -283,7 +285,7 @@ async function main(): Promise<void> {
       dramaHintText = await withLock(() => { // 与 step 互斥, 防快速裁决 step 交错覆盖本章 tuning/dramaFocus/simRules
         const spd = store.loadSnapshot(db, worldId);
         if (!spd) return "";
-        const dc = dramaControl(store.readRecentEvents(db, worldId, 300), spd.snapshot, loadSimFitness(ROOT), evoGenome.engine, drama); // 只需近窗事件算雪崩密度
+        const dc = dramaControl(store.readRecentEvents(db, worldId, 300), spd.snapshot, loadSimFitness(ROOT), evoGenome.engine, drama, GENTLE); // 只需近窗事件算雪崩密度; GENTLE=温情向: 冷不加注(否则每章顶高 conflictRate 绕过基因锚)
         drama = dc.ctrl; saveDrama(ROOT, drama);
         spd.snapshot.props["tuning"] = { ...dc.tuning };
         spd.snapshot.props["dramaFocus"] = dc.dramaFocus;

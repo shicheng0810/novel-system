@@ -39,6 +39,9 @@ const A_FILE = (d: string): string => join(d, "archive.json");
 const TONES = ["冷峻", "热血", "诙谐", "悲悯", "悬疑"];
 const CONFLICTS = ["动作", "权谋", "情感", "解谜", "生存"];
 const RHYTHMS = ["急促", "均衡", "绵长"];
+// 温情自进化: NOVEL_STYLE=温润 的世界, 自进化奖「温情质感」而非「戏剧密度」——fitness 不奖 simFit、变异守低冲突、simReflect「低张力=健康态」、critique 温情 rubric、pickTarget 只探温情语气。爽文世界 GENTLE=false → 全程逐字节同现状(向后兼容)。与 longrun 同进程同源(process.env)。
+const GENTLE = process.env["NOVEL_STYLE"] === "温润";
+const GENTLE_TONES = ["悲悯", "冷峻"]; // pickTarget 在温情向只在温情亲和语气里探索(排除热血/诙谐/悬疑)
 const RHYTHM_HINT: Record<string, string> = { "急促": "本卷明显多用短句与断句、节奏紧促有力", "均衡": "本卷句子明显拉长一档、适度多用复句，节奏放缓但不拖沓", "绵长": "本卷多用舒展长句与复句、从容铺陈" };
 
 export const DEFAULT_GENOME: Genome = {
@@ -184,7 +187,7 @@ export function pickTarget(archive: Cell[]): { tone: string; rhythm: string } | 
   const filled = new Set(archive.map((c) => c.key));
   const best = [...archive].sort((a, b) => b.fitness - a.fitness)[0]!;
   for (const r of RHYTHMS) if (!filled.has(`${best.tone}×${r}`)) return { tone: best.tone, rhythm: r }; // 锚定强格语气, 先扫节奏(最连贯)
-  for (const t of TONES) for (const r of RHYTHMS) if (!filled.has(`${t}×${r}`)) return { tone: t, rhythm: r }; // 该语气满→探索相邻语气
+  for (const t of (GENTLE ? GENTLE_TONES : TONES)) for (const r of RHYTHMS) if (!filled.has(`${t}×${r}`)) return { tone: t, rhythm: r }; // 该语气满→探索相邻语气(温情向只探温情亲和语气)
   return null; // 15 格全满
 }
 function styleDirective(t: { tone: string; rhythm: string }): string {
@@ -241,7 +244,7 @@ function rhythmBin(sentLenMean: number, hist: number[]): string {
 export async function critique(llm: LLMProvider, sys: string, chapters: Array<{ goal: string; text: string }>): Promise<{ rubric: Rubric; overused: string[]; wins: string[]; fixes: string[]; tone: string; conflict: string }> {
   const sample = chapters.map((c, i) => `【第${i + 1}章《${c.goal}》】\n${c.text.slice(0, 1300)}`).join("\n\n");
   const raw = await llm.complete(
-    `${sys}\n你现在是严格的文学编辑，审阅最近 ${chapters.length} 章。只输出 JSON(不要解释/代码块)：\n{\n "rubric": {"freshness":1-10,"pacing":1-10,"dialogue":1-10,"hook":1-10,"coherence":1-10,"character":1-10},\n "overused": [3-6 个被用滥的具体词/比喻/句式开头，原样摘录],\n "wins": [2-3 个有效写法],\n "fixes": [2-3 条下一卷可执行修正],\n "tone": 从[${TONES.join("/")}]里选最贴切的一个语气基调,\n "conflict": 从[${CONFLICTS.join("/")}]里选最主导的冲突类型\n}\n评分拉开差距、敢打低分。\n\n${sample}`,
+    `${sys}\n你现在是严格的文学编辑，审阅最近 ${chapters.length} 章。只输出 JSON(不要解释/代码块)：\n{\n "rubric": {"freshness":1-10,"pacing":1-10,"dialogue":1-10,"hook":1-10,"coherence":1-10,"character":1-10},\n "overused": [3-6 个被用滥的具体词/比喻/句式开头，原样摘录],\n "wins": [2-3 个有效写法],\n "fixes": [2-3 条下一卷可执行修正],\n "tone": 从[${TONES.join("/")}]里选最贴切的一个语气基调,\n "conflict": 从[${CONFLICTS.join("/")}]里选最主导的冲突类型\n}${GENTLE ? "\n【本作为温情/启发向，非爽文：按温情标准评分——freshness=新鲜真切的观察与意境(非情节新奇)、pacing=从容张弛与留白(慢而有味为佳、不催不赶)、hook=章节的余韵回味(非悬念钩子)、dialogue=对白的自然与言外之意、character=人物的真切与人情温度、coherence=气脉连贯。冲突强弱不计分；温润克制、能打动人、有余味者为上品，堆砌煽情或空灵辞藻者打低分。】" : ""}\n评分拉开差距、敢打低分。\n\n${sample}`,
     { thinking: false, temperature: 0.3 },
   );
   const j = JSON.parse((raw.match(/\{[\s\S]*\}/) ?? ["{}"])[0]) as Record<string, unknown>;
@@ -263,7 +266,7 @@ async function mutateGenome(llm: LLMProvider, parent: Genome, engineBase: Engine
   const e = child.engine;
   try {
     const raw = await llm.complete(
-      `你在为「小说世界模拟器」调参。两类基因：\n[文笔] temperature=${parent.gen.temperature}, frequencyPenalty=${parent.gen.frequencyPenalty}, presencePenalty=${parent.gen.presencePenalty}\n[模拟] priorWeight=${e.priorWeight}(命理先验引导强度) scarcity=${e.scarcity}(资源稀缺度: 0自由积累→1零和竞争, 催生派系生态/寄生分工) conflictRate=${e.conflictRate}(冲突张力增益) eventBias=${e.eventBias}(大事触发倾向) turnoverRate=${e.turnoverRate}(人物登场/陨落代谢, 偏低则人物更长寿、群像不易坍塌) nicheWeight=${e.nicheWeight}(生态位分工加分: 鼓励派系内角色职能互补) structureGrowth=${e.structureGrowth}(派系分裂/新生倾向)\n最近评审：${reflection}\n据反馈提议小幅调整(只动 1-3 个键；文笔每个幅度≤0.2、模拟每个≤0.25)，目标同时提升文笔质量与「世界涌现的戏剧性/丰富度/群像存活」。只回 JSON(只列你要改的键)：{"scarcity":数,"conflictRate":数,...}`,
+      `你在为「小说世界模拟器」调参。两类基因：\n[文笔] temperature=${parent.gen.temperature}, frequencyPenalty=${parent.gen.frequencyPenalty}, presencePenalty=${parent.gen.presencePenalty}\n[模拟] priorWeight=${e.priorWeight}(命理先验引导强度) scarcity=${e.scarcity}(资源稀缺度: 0自由积累→1零和竞争, 催生派系生态/寄生分工) conflictRate=${e.conflictRate}(冲突张力增益) eventBias=${e.eventBias}(大事触发倾向) turnoverRate=${e.turnoverRate}(人物登场/陨落代谢, 偏低则人物更长寿、群像不易坍塌) nicheWeight=${e.nicheWeight}(生态位分工加分: 鼓励派系内角色职能互补) structureGrowth=${e.structureGrowth}(派系分裂/新生倾向)\n最近评审：${reflection}\n${GENTLE ? "据反馈微调(只动 1-2 个键；每个幅度≤0.15)。本世界为温情/启发向：目标是温润质感、人情真切、克制与余韵；模拟旋钮务必守低冲突慢节奏——conflictRate/eventBias 宜偏低(≤0.7)、绝不为提戏剧而升, structureGrowth/scarcity 也宜低。" : "据反馈提议小幅调整(只动 1-3 个键；文笔每个幅度≤0.2、模拟每个≤0.25)，目标同时提升文笔质量与「世界涌现的戏剧性/丰富度/群像存活」。"}只回 JSON(只列你要改的键)：{"scarcity":数,"conflictRate":数,...}`,
       { thinking: false, temperature: 0.5 },
     );
     const j = JSON.parse((raw.match(/\{[\s\S]*\}/) ?? ["{}"])[0]) as Record<string, unknown>;
@@ -278,6 +281,13 @@ async function mutateGenome(llm: LLMProvider, parent: Genome, engineBase: Engine
     child.engine.turnoverRate = clamp(j["turnoverRate"], 0.4, 1.6, e.turnoverRate);
     child.engine.nicheWeight = clamp(j["nicheWeight"], 0, 1, e.nicheWeight);
     child.engine.structureGrowth = clamp(j["structureGrowth"], 0, 1, e.structureGrowth);
+    if (GENTLE) { // 温情向: engine 软上限压低 + 每代向温和锚收 10%(破「奖戏剧」棘轮, 即便误升也自然回落到温和)
+      const toward = (k: number, a: number, hi: number): number => +Math.min(hi, a + (k - a) * 0.9).toFixed(2);
+      child.engine.conflictRate = toward(child.engine.conflictRate, 0.6, 1.05);
+      child.engine.eventBias = toward(child.engine.eventBias, 0.7, 1.0);
+      child.engine.scarcity = +Math.min(0.4, child.engine.scarcity).toFixed(2);
+      child.engine.structureGrowth = +Math.min(0.4, child.engine.structureGrowth).toFixed(2);
+    }
   } catch {
     child.gen.temperature = Math.max(0.7, Math.min(1.5, +(parent.gen.temperature + 0.05).toFixed(2))); // 兜底微扰
   }
@@ -312,8 +322,8 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
   // 模拟层 fitness(longrun 在 evolveOnce 前算好存盘): 世界本身够不够有戏(story-sifting+派系张力+新颖度)。有则作主驱动之一, 无则退回纯作者层混合。
   const sf = loadSimFitness(dir);
   const simFit = sf ? sf.total : null;
-  if (simFit !== null && (!ledger.bestEngine || simFit > ledger.bestEngine.sim)) ledger.bestEngine = { engine: { ...cur.engine }, sim: simFit }; // engine 按 simFit 单独进化: 本卷模拟旋钮更优 → 记为世界级最优(下卷据此变异, 不被风格格干扰)
-  let fitness = simFit !== null
+  if (simFit !== null && !GENTLE && (!ledger.bestEngine || simFit > ledger.bestEngine.sim)) ledger.bestEngine = { engine: { ...cur.engine }, sim: simFit }; // engine 按 simFit 单独进化(温情向 GENTLE 不追戏剧最优 engine、不更新 bestEngine → 锚住温和基因, 破棘轮)
+  let fitness = (simFit !== null && !GENTLE) // 温情自进化: 温润世界不奖 simFit(戏剧密度), 走纯作者层 fitness → 进化不再把基因往戏剧推(评审「更简档」)
     ? +(0.42 * llmFit + 0.18 * objFit + 0.12 * consFit + 0.28 * simFit).toFixed(2) // 作者层(文笔+客观+一致) + 模拟层(simFit 28%)
     : +(0.6 * llmFit + 0.25 * objFit + 0.15 * consFit).toFixed(2);
   if (antiProxy) fitness = +(fitness * 0.8).toFixed(2);
@@ -337,7 +347,7 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
 
   // 选父 + 变异 → 下卷基因
   const simReflect = sf
-    ? ` 模拟层${sf.total}/10(故事链${sf.sift.score}·派系张力${sf.tension.score}·新颖${(sf.novelty * 10).toFixed(1)}；极化${sf.tension.polarization}/势均${sf.tension.balance}/交锋${sf.tension.directness}/化解${sf.tension.resolution}/在场派系${Object.keys(sf.sift.patterns).length}型戏)。${sf.tension.score < 4 ? "⚠世界张力低/疑人物坍塌→宜降 turnoverRate、升 structureGrowth/scarcity 让派系活起来；" : ""}${sf.sift.score < 4 ? "戏剧密度低→宜升 conflictRate/eventBias；" : ""}`
+    ? ` 模拟层${sf.total}/10(故事链${sf.sift.score}·派系张力${sf.tension.score}·新颖${(sf.novelty * 10).toFixed(1)}；极化${sf.tension.polarization}/势均${sf.tension.balance}/交锋${sf.tension.directness}/化解${sf.tension.resolution}/在场派系${Object.keys(sf.sift.patterns).length}型戏)。${GENTLE ? "本世界温情/启发向：低张力、戏剧密度低是【健康态】(不是病)——conflictRate/eventBias 宜守低(≤0.7)、绝勿为提戏剧而升；仅冲突/大事过密(张力>6)才略回降。人物自然生老病死即可、不硬造冲突。" : `${sf.tension.score < 4 ? "⚠世界张力低/疑人物坍塌→宜降 turnoverRate、升 structureGrowth/scarcity 让派系活起来；" : ""}${sf.sift.score < 4 ? "戏剧密度低→宜升 conflictRate/eventBias；" : ""}`}`
     : "";
   const reflection = `适应度${fitness}(LLM${llmFit}/客观${objFit})。修正：${c.fixes.join("；") || "无"}。客观：重复率${(m.repetition * 100).toFixed(1)}%、对白${(m.dialogueRatio * 100).toFixed(0)}%、词汇多样${(m.ttr * 100).toFixed(0)}%、命中避雷${m.avoidHits}。${simReflect}${antiProxy ? "⚠长度/重复疑似刷分(已打折)" : ""}`;
   const next = await mutateGenome(llm, selectParent(archive, cur), ledger.bestEngine?.engine ?? cur.engine, reflection); // gen 取风格父本、engine 取世界级最优(解耦)

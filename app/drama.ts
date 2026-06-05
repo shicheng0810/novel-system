@@ -22,7 +22,7 @@ export function saveDrama(d: string, c: DramaCtrl): void { try { writeFileSync(D
 
 export interface DramaOut { tuning: EngineGenes; dramaFocus: string[]; dramaHint: string; ctrl: DramaCtrl; log: string }
 
-export function dramaControl(events: WorldEventRecord[], snapshot: WorldSnapshot, sf: SimFitness | null, base: EngineGenes, ctrl: DramaCtrl): DramaOut {
+export function dramaControl(events: WorldEventRecord[], snapshot: WorldSnapshot, sf: SimFitness | null, base: EngineGenes, ctrl: DramaCtrl, gentle = false): DramaOut {
   const present = Object.values(snapshot.characters).filter((c) => c.present);
   const maxTick = events.reduce((m, e) => Math.max(m, e.tick ?? 0), 1);
   const recent = events.filter((e) => (e.tick ?? 0) >= maxTick - 18);
@@ -39,13 +39,13 @@ export function dramaControl(events: WorldEventRecord[], snapshot: WorldSnapshot
   if (cold && !hot) { coldStreak = Math.min(6, coldStreak + 1); hotStreak = 0; }
   else if (hot) { hotStreak = Math.min(6, hotStreak + 1); coldStreak = 0; }
   else { coldStreak = Math.max(0, coldStreak - 1); hotStreak = Math.max(0, hotStreak - 1); }
-  const heat = Math.min(0.6, coldStreak * 0.15); // 冷→加注(封顶0.6 防廉价刺激)
+  const heat = gentle ? 0 : Math.min(0.6, coldStreak * 0.15); // 冷→加注(封顶0.6 防廉价刺激); 温情向: 冷=健康态、不加注(评审逮的第五梯度——否则导演每章 ×1.36 顶高 conflictRate、绕过 genome 锚)
   const chill = Math.min(0.5, hotStreak * 0.18); // 热→收敛
 
   const tuning: EngineGenes = { ...base };
   tuning.eventBias = +Math.max(0.4, base.eventBias * (1 + heat - chill)).toFixed(2);
   tuning.conflictRate = +Math.max(0.5, base.conflictRate * (1 + heat * 0.6 - chill * 0.7)).toFixed(2);
-  if (coldStreak >= 2 && facChange === 0) tuning.structureGrowth = +Math.min(1, base.structureGrowth + 0.3 + heat * 0.3).toFixed(2); // 太静(版图无变动)→挑起派系分裂
+  if (!gentle && coldStreak >= 2 && facChange === 0) tuning.structureGrowth = +Math.min(1, base.structureGrowth + 0.3 + heat * 0.3).toFixed(2); // 太静(版图无变动)→挑起派系分裂(温情向不挑裂、由它静着)
   if (present.length < FLOOR) tuning.turnoverRate = +Math.min(base.turnoverRate, 0.6).toFixed(2); // 人口告急→压折损留住人
 
   // 戏剧导演: 顺水推舟未了的故事链(聚焦未了复仇者 → director 优先让其登场, 推动恩怨收束)
