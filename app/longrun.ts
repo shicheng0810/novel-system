@@ -66,7 +66,12 @@ process.on("SIGTERM", () => { releaseLock(); process.exit(0); });
 
 // 自进化: 默认开(设 NOVEL_EVOLVE=0 关)。基因(生成参数+引擎 priorWeight)与进化记忆(避雷/发扬/指引)落盘在世界目录。
 const EVOLVE = process.env["NOVEL_EVOLVE"] !== "0";
-let evoGenome = loadGenome(ROOT);
+// X4 传承闭环: 新世界(无本地 genome)可经 NOVEL_WORLD_INTENT 指定目标引擎策略 niche, 从全局 QD 存档取该 niche 精英起步(群像类世界取群像引擎而非全局文笔冠军)。别名「群像/爽文」→低代谢×生长; 或直接传「低代谢×生长」。已有本地 genome 的世界不受影响。
+const _intentRaw = (process.env["NOVEL_WORLD_INTENT"] ?? "").trim();
+const worldIntent: { turnover?: string; structure?: string } | undefined = _intentRaw
+  ? (_intentRaw === "群像" || _intentRaw === "爽文" ? { turnover: "低代谢", structure: "生长" } : (() => { const [t, s] = _intentRaw.split("×"); return { turnover: t || undefined, structure: s || undefined }; })())
+  : undefined;
+let evoGenome = loadGenome(ROOT, worldIntent);
 let evoGuidance = buildGuidance(loadLedger(ROOT), evoGenome, loadGlobal(ROOT).avoid);
 let drama = loadDrama(ROOT); // T4 临界控制器 + 戏剧导演状态(coldStreak/hotStreak), 跨重启持久
 const minds = loadMinds(ROOT); // M3 全员连续心智: pending_importance 队列 + 上次反思章, 跨重启持久
@@ -199,7 +204,7 @@ async function main(): Promise<void> {
     store.setSchedulerState(db, worldId, { gen: 0, nextTick: 0, status: "running" }, Date.now());
   }
   const s0 = store.loadSnapshot(db, worldId);
-  let bible = s0 && typeof s0.snapshot.props["bible"] === "string" ? (s0.snapshot.props["bible"] as string) : "青云宗灵根试炼，苏雪(冰)、林焰(火)、玄渊(幽)、白薇(阴脉之谜)四修命数交汇，各入门墙。";
+  let bible = s0 && typeof s0.snapshot.props["bible"] === "string" ? (s0.snapshot.props["bible"] as string) : (process.env["NOVEL_BIBLE"]?.trim() || "青云宗灵根试炼，苏雪(冰)、林焰(火)、玄渊(幽)、白薇(阴脉之谜)四修命数交汇，各入门墙。"); // 新世界(无快照)可经 NOVEL_BIBLE 注入自定义 premise; 已有世界续用快照 bible(不受影响)
   const recent: string[] = [];
   let prevHook = "";
   let evCursor = 0;

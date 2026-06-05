@@ -5,7 +5,7 @@
 //   · LLM 提议变异：变异 LLM 读分项反思自由调参(带边界裁剪与确定性兜底)，取代固定旋钮轮换。
 //   · 反自欺守门：长度暴涨/重复率飙升 → 适应度打折(抑制讨好评委的伪信号)。
 //   · 全局记忆账本：避雷(年龄衰减)/发扬/重点修正，注入下一卷生成。
-import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { LLMProvider } from "../core/services/llm";
@@ -50,9 +50,19 @@ export const DEFAULT_GENOME: Genome = {
 const cloneGenome = (g: Genome): Genome => ({ gen: { ...g.gen }, engine: { ...DEFAULT_GENOME.engine, ...g.engine }, generation: g.generation });
 const emptyLedger = (): Ledger => ({ avoid: [], amplify: [], directives: [], scores: [] });
 
-export function loadGenome(d: string): Genome {
+// 新世界(无本地 genome)起步基因。intent 给目标引擎策略 niche → 取该 niche 的全局精英(如群像类世界取群像引擎, 而非全局文笔冠军), 解「局部最优搁浅传不出」。无 intent = 现状(取全局最高 fitness 派生基因)。
+export function loadGenome(d: string, intent?: { turnover?: string; structure?: string }): Genome {
+  const bf = (g: Genome): Genome => ({ gen: { ...DEFAULT_GENOME.gen, ...g.gen }, engine: { ...DEFAULT_GENOME.engine, ...g.engine }, generation: 0 });
   try {
-    if (!existsSync(G_FILE(d))) { const g = loadGlobal(d).genome; return g ? { gen: { ...DEFAULT_GENOME.gen, ...g.gen }, engine: { ...DEFAULT_GENOME.engine, ...g.engine }, generation: 0 } : cloneGenome(DEFAULT_GENOME); } // 新世界用全局最优基因起步
+    if (!existsSync(G_FILE(d))) {
+      const gl = loadGlobal(d); const cells = gl.cells ?? {};
+      if (intent && Object.keys(cells).length) { // 按意图取目标 niche 种
+        const want = `${intent.turnover ?? ""}×${intent.structure ?? ""}`;
+        const hit = cells[want] ?? Object.values(cells).find((c) => !!intent.turnover && c.turnoverBin === intent.turnover) ?? null;
+        if (hit?.genome) return bf(hit.genome);
+      }
+      return gl.genome ? bf(gl.genome) : cloneGenome(DEFAULT_GENOME); // 无意图 = 全局最优(现状行为, 安全退化)
+    }
     const p = JSON.parse(readFileSync(G_FILE(d), "utf8")) as Partial<Genome>;
     return { gen: { ...DEFAULT_GENOME.gen, ...(p.gen ?? {}) }, engine: { ...DEFAULT_GENOME.engine, ...(p.engine ?? {}) }, generation: typeof p.generation === "number" ? p.generation : 0 };
   } catch { return cloneGenome(DEFAULT_GENOME); }
@@ -68,40 +78,85 @@ export function saveLedger(d: string, l: Ledger): void { writeFileSync(L_FILE(d)
 export function loadArchive(d: string): Cell[] { try { return existsSync(A_FILE(d)) ? (JSON.parse(readFileSync(A_FILE(d), "utf8")).cells ?? []) : []; } catch { return []; } }
 export function saveArchive(d: string, cells: Cell[]): void { writeFileSync(A_FILE(d), JSON.stringify({ cells }, null, 2), "utf8"); }
 
-// ── 全局传承层: 跨世界通用避雷 + 最优基因, 提升整个引擎(播种新世界 + 回馈在跑世界)。core/ 不涉, 纯 app 层。 ──
-export interface GlobalEvo { avoid: string[]; genome: Genome | null; from: string[]; bestFitness: number }
+// ── 全局传承层: 跨世界通用避雷 + 跨世界 QD 引擎策略存档(按引擎旋钮分 niche, 每 niche 各留最优, 让局部最优如群像引擎不被单一适应度冠军淹没)。core/ 不涉, 纯 app 层。 ──
+// 全局 niche cell: 按引擎策略分格(genotype niching, 零新持久化、不依赖未落盘的表型描述符)。
+export interface GlobalCell { key: string; turnoverBin: string; structureBin: string; genome: Genome; fitness: number; from: string; at: string }
+export interface GlobalEvo { avoid: string[]; genome: Genome | null; from: string[]; bestFitness: number; cells?: Record<string, GlobalCell> }
 const GLOBAL_FILE = (root: string): string => join(root, "global-evolution.json");
 const isLiveWorldDir = (n: string): boolean => !/-killed-|-raced$|-archive/.test(n) && n !== "worlds";
 export function loadGlobal(worldDir: string): GlobalEvo {
-  try { const f = GLOBAL_FILE(join(worldDir, "..")); return existsSync(f) ? { avoid: [], genome: null, from: [], bestFitness: 0, ...JSON.parse(readFileSync(f, "utf8")) } : { avoid: [], genome: null, from: [], bestFitness: 0 }; }
-  catch { return { avoid: [], genome: null, from: [], bestFitness: 0 }; }
+  try { const f = GLOBAL_FILE(join(worldDir, "..")); return existsSync(f) ? { avoid: [], genome: null, from: [], bestFitness: 0, cells: {}, ...JSON.parse(readFileSync(f, "utf8")) } : { avoid: [], genome: null, from: [], bestFitness: 0, cells: {} }; }
+  catch { return { avoid: [], genome: null, from: [], bestFitness: 0, cells: {} }; }
 }
-// 扫所有在跑世界: ≥2 世界都点过的避雷=跨题材通用套话→全局; 各世界 archive 最高格的基因→全局最优。
+// 全局引擎策略 niche: 按定义「群像 vs 文笔」分野的两个引擎旋钮分桶。turnoverRate(人物代谢): 低=人物长寿群像不坍塌; structureGrowth(派系生长): 生长=派系分裂新生。两旋钮已在基因里, 零新持久化、保证不同策略落不同格(文笔冠军 turnover≈1/structG≈0 → 高代谢×平; 群像引擎 turnover0.5/structG0.7 → 低代谢×生长)。
+function engineNiche(g: Genome): { key: string; turnoverBin: string; structureBin: string } {
+  const e = { ...DEFAULT_GENOME.engine, ...g.engine };
+  const turnoverBin = e.turnoverRate <= 0.75 ? "低代谢" : "高代谢";
+  const structureBin = e.structureGrowth >= 0.35 ? "生长" : "平";
+  return { key: `${turnoverBin}×${structureBin}`, turnoverBin, structureBin };
+}
+// 把某世界 archive 最优格的基因, 按其引擎策略沉积进全局 cells(逐 niche 取 fitness max, C1 单调)。
+function depositWorldArchive(root: string, d: string, cells: Record<string, GlobalCell>): void {
+  try {
+    const A = A_FILE(join(root, d));
+    if (!existsSync(A)) return;
+    const wc = ((JSON.parse(readFileSync(A, "utf8")).cells ?? []) as Cell[]);
+    const champ = wc.reduce<Cell | null>((a, c) => (c.genome && (!a || c.fitness > a.fitness) ? c : a), null);
+    if (!champ?.genome) return;
+    const n = engineNiche(champ.genome); const ex = cells[n.key];
+    if (!ex || champ.fitness > ex.fitness) cells[n.key] = { key: n.key, turnoverBin: n.turnoverBin, structureBin: n.structureBin, genome: { ...cloneGenome(champ.genome), generation: 0 }, fitness: champ.fitness, from: d, at: champ.at };
+  } catch { /* ignore */ }
+}
+// 把单冠军 genome 按其引擎策略归格(旧格式升级 / 兼容投影)。
+function depositGenome(cells: Record<string, GlobalCell>, g: Genome | null, fit: number, from: string): void {
+  if (!g) return; const n = engineNiche(g); const ex = cells[n.key];
+  if (!ex || fit > ex.fitness) cells[n.key] = { key: n.key, turnoverBin: n.turnoverBin, structureBin: n.structureBin, genome: { ...cloneGenome(g), generation: 0 }, fitness: fit, from, at: "v0" };
+}
+// 落盘: X3 末读合并(压缩 read-modify-write 竞态窗口到几 ms)→ 派生向后兼容 genome/bestFitness → X0 原子写(tmp+rename)。
+function writeGlobal(root: string, worldDir: string, avoid: string[], from: string[], cells: Record<string, GlobalCell>): void {
+  try { const fresh = loadGlobal(worldDir).cells ?? {}; for (const [k, c] of Object.entries(fresh)) { const ex = cells[k]; if (c.genome && (!ex || c.fitness > ex.fitness)) cells[k] = c; } } catch { /* ignore */ } // X3: 合并别写者刚落的 niche
+  let bestGenome: Genome | null = null; let bestFit = -1; // 派生: cells 里 fitness 最高那格(向后兼容旧 reader)
+  for (const c of Object.values(cells)) if (c.fitness > bestFit && c.genome) { bestFit = c.fitness; bestGenome = { ...cloneGenome(c.genome), generation: 0 }; }
+  try {
+    const out = JSON.stringify({ avoid, genome: bestGenome, bestFitness: +Math.max(0, bestFit).toFixed(2), from, cells }, null, 2);
+    const tmp = GLOBAL_FILE(root) + ".tmp." + process.pid;
+    writeFileSync(tmp, out, "utf8"); renameSync(tmp, GLOBAL_FILE(root)); // X0: 同目录 rename 原子, 消灭半截读 + 并发互覆盖退化
+  } catch { /* ignore */ }
+}
+// 扫所有在跑世界: ≥2 世界都点过的避雷=跨题材通用套话→全局; 各世界 archive 最优格的基因按引擎策略沉进全局 niche(每 niche 单调留最优)。
 export function promoteToGlobal(worldDir: string): void {
   const root = join(worldDir, "..");
   let dirs: string[];
   try { dirs = readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory() && isLiveWorldDir(e.name)).map((e) => e.name); } catch { return; }
-  const prev = loadGlobal(worldDir); // 单调: 既有全局最优基因/避雷不被"无格世界"清空(清世界后重开仍继承)
+  const prev = loadGlobal(worldDir); // 单调基底: 既有 cells/avoid 不被无数据世界清空(清世界后重开仍继承)
+  const cells: Record<string, GlobalCell> = { ...(prev.cells ?? {}) }; // ★ C2: 以 prev.cells 为基底
+  depositGenome(cells, prev.genome, prev.bestFitness ?? 0, "(global)"); // 旧格式平滑升级: 既有单冠军按引擎策略归格(只在该格空或更优时)
   const counts = new Map<string, number>(); const from: string[] = [];
   for (const p of prev.avoid) counts.set(p, 1);
-  let bestFit = prev.bestFitness ?? -1; let bestGenome: Genome | null = prev.genome ? cloneGenome(prev.genome) : null; // backfill: 单调保底的旧形状全局基因也补齐 7 旋钮默认, 保证落盘 global 恒规范
   for (const d of dirs) {
-    const D = join(root, d);
     try {
-      if (existsSync(join(D, "evolution.json"))) {
-        const l = JSON.parse(readFileSync(join(D, "evolution.json"), "utf8")) as Ledger;
+      if (existsSync(L_FILE(join(root, d)))) {
+        const l = JSON.parse(readFileSync(L_FILE(join(root, d)), "utf8")) as Ledger;
         if (Array.isArray(l.avoid) && l.avoid.length) { from.push(d); for (const a of l.avoid) counts.set(a.p, (counts.get(a.p) ?? 0) + 1); }
       }
     } catch { /* ignore */ }
-    try {
-      if (existsSync(join(D, "archive.json"))) {
-        const cells = ((JSON.parse(readFileSync(join(D, "archive.json"), "utf8")).cells ?? []) as Cell[]);
-        for (const c of cells) if (c.fitness > bestFit && c.genome) { bestFit = c.fitness; bestGenome = { ...cloneGenome(c.genome), generation: 0 }; } // cloneGenome 已 backfill 新旋钮默认
-      }
-    } catch { /* ignore */ }
+    depositWorldArchive(root, d, cells); // ★ C1: 该世界 archive 最优格基因 → 按引擎策略沉进全局 niche, 逐 niche max
   }
   const avoid = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([p]) => p).slice(0, 60); // 各世界并集, 跨世界频次高者优先(≥2=真通用排最前)
-  try { writeFileSync(GLOBAL_FILE(root), JSON.stringify({ avoid, genome: bestGenome, from, bestFitness: +bestFit.toFixed(2) }, null, 2), "utf8"); } catch { /* ignore */ }
+  writeGlobal(root, worldDir, avoid, from, cells);
+}
+// 一次性引种: 扫【所有】世界目录(含 -killed/-raced 归档)的 archive → 沉进全局 cells。用于升级时把被 kill 世界(如 arcsaga-killed 的群像配方)的精英补进全局, 之后 promoteToGlobal 只扫在跑世界、靠 prev.cells 基底留住引种结果。幂等。
+export function bootstrapGlobalCells(worldDir: string): { added: number; cells: string[] } {
+  const root = join(worldDir, "..");
+  let dirs: string[];
+  try { dirs = readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory() && e.name !== "worlds").map((e) => e.name); } catch { return { added: 0, cells: [] }; }
+  const prev = loadGlobal(worldDir);
+  const cells: Record<string, GlobalCell> = { ...(prev.cells ?? {}) };
+  const before = Object.keys(cells).length;
+  depositGenome(cells, prev.genome, prev.bestFitness ?? 0, "(global)");
+  for (const d of dirs) depositWorldArchive(root, d, cells);
+  writeGlobal(root, worldDir, prev.avoid ?? [], prev.from ?? [], cells);
+  return { added: Object.keys(cells).length - before, cells: Object.keys(cells) };
 }
 
 // ── novelty 探索: 选一个未点亮的风格格作目标(优先沿最强格的语气扫节奏轴→再branch相邻语气), 逼 archive 多样化 ──
