@@ -32,6 +32,10 @@ const TARGET = Number(process.env["NOVEL_TARGET"] ?? 1000);
 const MINLEN = Number(process.env["NOVEL_MINLEN"] ?? 3000);
 const SECTIONS = Number(process.env["NOVEL_SECTIONS"] ?? 4);
 const WARMUP = Number(process.env["NOVEL_WARMUP"] ?? 0); // 世界预演化: 起跑前静默推演 N tick(不出章)再写第 1 章, 让关系/恩怨/派系成形(StoryBox 实证: 先模拟提升人物/冲突)。0=快起笔(创世即写)
+// 笔法风格: 默认爽文向(明快短句); NOVEL_STYLE=温润 切到温情/文学向(留白、舒缓、重内心与余味) —— 温情向/启发向世界用, 不被默认的明快爽利指令带跑。
+const PENMANSHIP = process.env["NOVEL_STYLE"] === "温润"
+  ? `【笔法·要紧】笔调温润、克制、有留白与回味：容得下环境、细节与内心的细腻铺陈，不必处处明快短促；以具体的人间烟火细节承载情感、不喊口号、不滥煽情；对白自然，可有寒暄、欲言又止与言外之意；节奏舒缓有韵、重在触动余味与启发，而非爽利推进。仍须干净、不无谓注水，避免"仿佛/似乎/宛如"之类空泛模糊词。`
+  : `【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。`;
 const VOL = 25;
 const sys = PACK.composeProfile?.systemPrompt ?? "你是一位修仙小说作者。";
 const tierName = (id: string | undefined): string => PACK.progression.tiers.find((t) => t.id === id)?.name ?? id ?? "练气初期";
@@ -179,7 +183,7 @@ async function writeChapter(n: number, vol: number, scene: string, crisis: strin
   let prev = "";
   for (let i = 0; i < beats.length; i++) {
     const last = i === beats.length - 1;
-    const secPrompt = `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。${canonHard ? "\n" + canonHard : ""}${loreBlock ? "\n" + loreBlock : ""}${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
+    const secPrompt = `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n${PENMANSHIP}${canonHard ? "\n" + canonHard : ""}${loreBlock ? "\n" + loreBlock : ""}${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? "段末留一个引向下一章的悬念钩子。" : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
     let sec = "";
     for (let attempt = 0; attempt < 4; attempt++) { // 每段守门: 正常数百字; <120 字多半是 DeepSeek 抽风回退 mock 占位 → 等 15s 重试本段, 扛持续抽风、防部分垃圾混入
       sec = await llm.complete(secPrompt, { thinking: false, temperature: evoGenome.gen.temperature, topP: evoGenome.gen.topP, frequencyPenalty: evoGenome.gen.frequencyPenalty, presencePenalty: evoGenome.gen.presencePenalty }); // 进化基因控制采样
