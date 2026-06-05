@@ -81,7 +81,7 @@
   </div>
   <div class="rail">
     <h3>人 物 · 实 时</h3><div id="pcs"></div>
-    <div style="display:flex;align-items:center;margin-top:20px;margin-bottom:6px"><h3 style="margin:0;flex:1" title="世界遇到关键抉择时在此请你定夺。「依准」＝顺其自然，「另议」＝逆转走向。不理它约三章后自动定夺。">议 事 <span style="cursor:help;color:#bfa86a;font-size:11px">ⓘ</span></h3><label id="autovwrap" title="开启后，之后所有议事都由世界自动定夺，不再弹窗请你" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-soft);cursor:pointer"><input type="checkbox" id="autov" onchange="toggleAutoVerdict()" style="width:auto;cursor:pointer">全自动裁决</label></div><div id="council"><div class="muted">暂无待裁 · 世界自行推演，遇抉择会请你定夺</div></div>
+    <div style="display:flex;align-items:center;margin-top:20px;margin-bottom:6px"><h3 style="margin:0;flex:1" title="世界遇到关键抉择时在此请你定夺。「依准」＝顺其自然，「另议」＝逆转走向。不理它约三章后自动定夺。另有「⚖ 铁律提案」——世界想改自己一条根本规则（＝改故事可能性边界），必须人工点「准·改空间/驳」，全自动也不代办。">议 事 <span style="cursor:help;color:#bfa86a;font-size:11px">ⓘ</span></h3><label id="autovwrap" title="开启后，之后所有议事都由世界自动定夺，不再弹窗请你" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-soft);cursor:pointer"><input type="checkbox" id="autov" onchange="toggleAutoVerdict()" style="width:auto;cursor:pointer">全自动裁决</label></div><div id="council"><div class="muted">暂无待裁 · 世界自行推演，遇抉择会请你定夺</div></div>
     <h3 style="margin-top:20px">伏 笔 · 未 收</h3><div id="foreshadow"><div class="muted">尚无</div></div>
     <h3 style="margin-top:20px">世 界 演 化 · 模 拟 层</h3><div id="simevo"><div class="muted">推演中…</div></div>
     <h3 style="margin-top:20px">回 响</h3><div id="echoes"></div>
@@ -369,9 +369,9 @@ const TOUR=[
   {sel:"#tSet",title:"① 先递一把钥匙",body:"本系统用 DeepSeek 把世界发生的事写成文字。填入你自己的 API Key（只存你本机、不回传）。**没有它，世界只会生成占位的废话文。**",isKey:true},
   {sel:"#pulse",title:"② 一炷香 · 世界自己在跑",body:"右上这点余烬每跳一下，世界就推演一拍。它按自己的节奏燃，你不用盯着——章节会自然产出。"},
   {sel:"#tWorld",title:"③ 世界 · 一张活地图",body:"默认这页是世界地图：谁在哪、谁和谁结盟（绿线）或结仇（红线）。**鼠标悬在角色上**看他此刻的心声，**点两个人**还能偷听他们当场对话。"},
-  {sel:"#tMs",title:"④ 手稿 · 在这读小说",body:"点「手稿」看世界写出的章节：左边章目、右边正文。这才是成品小说。"},
-  {sel:"#council",title:"⑤ 议事 · 偶尔请你拍板",body:"遇到关键抉择，世界会弹卡片请你「依准（顺其自然）」或「另议（逆转走向）」。**懒得管？勾上「全自动裁决」，往后全交给世界、不再打扰你。**"},
-  {sel:"#tWorlds",title:"⑥ 开你自己的世界",body:"点 ✦：**一句话**就能生成一个全新题材的世界；也可以贴一份**成品大纲**，再选「松散底座（世界自由发挥）」或「严格跟纲（逐章照你的大纲写）」。"},
+  {sel:"#tMs",title:"④ 手稿 · 在这读小说",body:"点「手稿」看世界写出的章节：左边章目、右边正文，这才是成品小说。读累了点顶栏 **⬇ 可一键导出全本**（TXT 给手机/阅读器，Markdown 带章节结构）。"},
+  {sel:"#council",title:"⑤ 议事 · 偶尔请你拍板",body:"遇到关键抉择，世界会弹卡片请你「依准（顺其自然）」或「另议（逆转走向）」。懒得管？勾上「**全自动裁决**」往后全交给世界。**唯独「⚖ 铁律提案」例外**——世界偶尔想改自己的一条根本规则（改规则＝改这个故事的可能性边界），这种大事全自动也不代办，**必须你点「准·改空间」或「驳」**。"},
+  {sel:"#tWorlds",title:"⑥ 开你自己的世界",body:"点 ✦：**一句话**就能生成一个全新题材的世界；也可以贴一份**成品大纲**，选「松散底座（自由发挥）」或「严格跟纲（逐章照写）」。新世界默认**预热起笔**——先自己悄悄演化一阵、从最有戏的一刻切进去，开篇更抓人。而且**你开的世界越多、新世界起跑线越高**：一个世界练出的好「打法」会自动传给下个同类世界。"},
 ];
 let _tourI=0;
 function startTour(){_tourI=0;$("tourmask").style.display="flex";renderTour()}
@@ -391,6 +391,7 @@ const WORLD_TEMPLATES=[
   {name:"都市·重生九零",tag:"🏙 年代商战",desc:"九十年代重生，主角带着记忆重走正道，从摆地摊到缔造商业帝国；亲情、爱情与家国变迁。"},
   {name:"科幻·赛博东京",tag:"🌃 赛博朋克",desc:"赛博朋克东京，黑客、义体改造与巨型企业的暗战；底层少年在霓虹与数据洪流中逆袭。"},
   {name:"玄幻·万族争雄",tag:"⚡ 史诗玄幻",desc:"上古洪荒，万族林立、神魔并起；少年觉醒上古血脉，在诸族争霸的乱世中崛起为一族之主。"},
+  {name:"都市·娱乐圈重生",tag:"🎬 娱乐圈爽文",desc:"现代人穿越回2006平行世界的娱乐圈边缘人，凭未来记忆（哪首歌会爆、哪部剧会火、谁会塌房）抢爆款资源、捧人踩人、打脸逆袭；星光与厮杀并存。"},
 ];
 let _sbShown=false,_sbSel=-1,_definingSince=0;
 async function checkStandby(){try{const s=await(await fetch("/api/standby")).json();
