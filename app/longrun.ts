@@ -191,6 +191,7 @@ async function writeChapter(n: number, vol: number, scene: string, crisis: strin
       if (attempt < 3) await new Promise((r) => setTimeout(r, 15000));
     }
     const clean = sec.trim()
+      .replace(/^第\s*[零〇一二三四五六七八九十百千两\d]+\s*[\/／]\s*[零〇一二三四五六七八九十百千两\d]+\s*段[：:．.、]?\s*\n*/, "") // 去掉 LLM 抄进正文的「第1/4段：」分段标记(只匹配带/的 prompt 分段格式, 不误伤「第三段路…」类正文)
       .replace(/^(#{1,6}\s*)?第[零〇一二三四五六七八九十百千两\d]+[章回][^\n]*\n+/, "") // 去掉混进正文的章标题行
       .replace(/^#{1,6}\s+[^\n]*\n+/, ""); // 去掉任何残留 markdown 标题行
     text += (text ? "\n\n" : "") + clean;
