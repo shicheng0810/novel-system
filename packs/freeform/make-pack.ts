@@ -115,10 +115,14 @@ export function makePack(cfg: WorldConfig) {
     };
   }
 
+  // P0-1: 组合生成「姓+名」时排除已在显式 spawnNames 里用过的姓 → 杜绝「萧曦」撞显式「萧斩」这类近重名(LLM 易混写, 致正文漂离引擎硬事实、一致性掉分)。剩姓太少(<2)才回退全集。
+  const _usedSur = new Set((cfg.surnames ?? []).filter((s) => s && cfg.spawnNames.some((nm) => nm.startsWith(s))));
+  const _genSur = (cfg.surnames ?? []).filter((s) => !_usedSur.has(s));
+  const genSurnames = _genSur.length >= 2 ? _genSur : (cfg.surnames ?? []);
   // 名字池用尽后用「姓+名」组合生成干净互异名(身份靠 id 唯一; 无姓名池则干净循环、不加「·N」后缀污染正文)
   function spawnName(index: number): string {
     if (index < cfg.spawnNames.length) return cfg.spawnNames[index] ?? "路人";
-    const sur = cfg.surnames, giv = cfg.givenNames;
+    const sur = genSurnames, giv = cfg.givenNames;
     if (sur && sur.length && giv && giv.length) {
       const k = index - cfg.spawnNames.length;
       return (sur[k % sur.length] ?? "") + (giv[Math.floor(k / sur.length) % giv.length] ?? "");

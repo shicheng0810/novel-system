@@ -39,7 +39,7 @@ export function derivedBlock(derived: Record<string, Derived>): string {
     const seasoned = d.seasoning >= 15 ? "·历经百劫" : d.seasoning >= 6 ? "·略有阅历" : "";
     return `${d.name}：境界=${d.tier}${seasoned}${d.faction ? "、属" + d.faction : ""}${d.bonds.length ? "、" + d.bonds.join("、") : ""}${d.avenge ? "、誓复「" + d.avenge + "」之仇" : ""}`;
   });
-  return `【权威设定·引擎确定值, 须严格一致(写错任一角色的境界/派系/生死/恩怨即出戏, 不得擅自给人升境或改派)】\n${lines.join("；")}`;
+  return `【权威设定·引擎确定值, 须严格一致(写错任一角色的境界/派系/生死/恩怨即出戏, 不得擅自给人升境或改派)】\n${lines.join("；")}\n※ 正文只准用上列在场角色的【原名】, 严禁写未列出的名字、或与上列仅一字之差的近似名(如把「${present[0]?.name ?? "某甲"}」写成形近的别名); 已退场/逝去者不得再出场行动。`;
 }
 
 // 喂一致性校验的"硬事实"对照表: 让 LLM 据此判 prose 有无写错境界/派系, 而非自己再抽取(消除抽取漂移)

@@ -31,6 +31,7 @@ if (viewSaga) { try { mkdirSync(join(here, "..", ".novel-output", SAGA), { recur
 const db = viewSaga ? openDb(join(here, "..", ".novel-output", SAGA, "world.db")) : openDb(":memory:");
 const pack = PACK;
 let defining = false; // 待机→「定义中/起跑中」标志: spawn 写者后置 true, 网页据此显示「世界生成中」直到首章落盘
+let definingSince = 0; // P1-4: 置 defining=true 的时刻, 供 /api/standby 在写者撞锁自爆时及时复位(不靠客户端 6 分钟超时)
 
 // provider 由 llm-factory 据网页设置/环境变量装配(网页 /api/settings 可改)
 const llm = makeLLM();
@@ -233,6 +234,12 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   }
   if (url === "/api/standby") { // 待机状态 + 当前世界用的模式(涌现/均衡/照写): 网页据此显示落地页或模式标
     const has = chapterCount(SAGA) > 0; // 待机落地页停留到「首章落定」才切走(预演化/生成期都显示「世界生成中」)
+    // P1-4: 定义中且超 25s 宽限(写者启动+建锁足够)、longrun.lock 无活进程 → 写者撞锁/自爆, 复位 defining, 免待机页黑洞至客户端 6 分钟超时
+    if (defining && !has && Date.now() - definingSince > 25000) {
+      let writerAlive = false;
+      try { const lf = join(here, "..", ".novel-output", SAGA, "longrun.lock"); if (existsSync(lf)) { const pid = Number(readFileSync(lf, "utf8").trim()); if (pid > 0) { process.kill(pid, 0); writerAlive = true; } } } catch { writerAlive = false; }
+      if (!writerAlive) defining = false;
+    }
     const plan = loadOutlinePlan(join(here, "..", ".novel-output", SAGA));
     const mode = !plan ? "emergent" : plan.obedience === "balanced" ? "balanced" : "strict"; // 无大纲计划=涌现; 有则按 obedience(缺省 strict)
     return json(res, { standby: STANDBY, hasWorld: has, defining, mode });
@@ -247,7 +254,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           const basePrompt = (p.prompt || "").trim() || ((p.outline || "").trim().split("\n").find((l) => l.trim()) || "").slice(0, 120);
           if (!basePrompt) { res.statusCode = 400; return json(res, { error: "缺少世界描述或大纲" }); }
           const warmup = typeof p.warmup === "number" ? Math.max(0, Math.min(200, Math.floor(p.warmup))) : 0; // 预演化 tick(0=快起笔)
-          defining = true;
+          defining = true; definingSince = Date.now();
           const cfg = await generateWorldConfig(basePrompt, llm, p.outline, { rules: p.rules, protagonists: p.protagonists });
           const cfgPath = join(OUT, "worlds", `${SAGA}.json`);
           mkdirSync(dirname(cfgPath), { recursive: true });

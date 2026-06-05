@@ -5,7 +5,7 @@
 //   · LLM 提议变异：变异 LLM 读分项反思自由调参(带边界裁剪与确定性兜底)，取代固定旋钮轮换。
 //   · 反自欺守门：长度暴涨/重复率飙升 → 适应度打折(抑制讨好评委的伪信号)。
 //   · 全局记忆账本：避雷(年龄衰减)/发扬/重点修正，注入下一卷生成。
-import { readFileSync, writeFileSync, existsSync, readdirSync, renameSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, renameSync, openSync, closeSync, unlinkSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { LLMProvider } from "../core/services/llm";
@@ -95,7 +95,9 @@ function engineNiche(g: Genome): { key: string; turnoverBin: string; structureBi
   const structureBin = e.structureGrowth >= 0.35 ? "生长" : "平";
   return { key: `${turnoverBin}×${structureBin}`, turnoverBin, structureBin };
 }
-// 把某世界 archive 最优格的基因, 按其引擎策略沉积进全局 cells(逐 niche 取 fitness max, C1 单调)。
+// 把某世界 archive 最优格的基因, 按其【引擎策略】沉积进全局 cells(逐 niche 取 fitness max, C1 单调)。
+// engine 取世界级最优 ledger.bestEngine(与 evolveOnce L243 解耦语义对齐: gen 取风格冠军、engine 取按 simFit 单独进化的模拟最优), 回退风格 engine。
+// 修 P0-2: 旧实现按 champ.genome.engine(风格父本冻结 engine)归格 → 归错 niche + 世界级 bestEngine 永不进全局, 世界内的 engine 解耦在跨世界层前功尽弃。
 function depositWorldArchive(root: string, d: string, cells: Record<string, GlobalCell>): void {
   try {
     const A = A_FILE(join(root, d));
@@ -103,8 +105,10 @@ function depositWorldArchive(root: string, d: string, cells: Record<string, Glob
     const wc = ((JSON.parse(readFileSync(A, "utf8")).cells ?? []) as Cell[]);
     const champ = wc.reduce<Cell | null>((a, c) => (c.genome && (!a || c.fitness > a.fitness) ? c : a), null);
     if (!champ?.genome) return;
-    const n = engineNiche(champ.genome); const ex = cells[n.key];
-    if (!ex || champ.fitness > ex.fitness) cells[n.key] = { key: n.key, turnoverBin: n.turnoverBin, structureBin: n.structureBin, genome: { ...cloneGenome(champ.genome), generation: 0 }, fitness: champ.fitness, from: d, at: champ.at };
+    const bestEng = loadLedger(join(root, d)).bestEngine?.engine; // 世界级模拟最优引擎(解耦)
+    const g: Genome = { gen: { ...champ.genome.gen }, engine: { ...DEFAULT_GENOME.engine, ...(bestEng ?? champ.genome.engine) }, generation: 0 };
+    const n = engineNiche(g); const ex = cells[n.key];
+    if (!ex || champ.fitness > ex.fitness) cells[n.key] = { key: n.key, turnoverBin: n.turnoverBin, structureBin: n.structureBin, genome: g, fitness: champ.fitness, from: d, at: champ.at };
   } catch { /* ignore */ }
 }
 // 把单冠军 genome 按其引擎策略归格(旧格式升级 / 兼容投影)。
@@ -112,16 +116,31 @@ function depositGenome(cells: Record<string, GlobalCell>, g: Genome | null, fit:
   if (!g) return; const n = engineNiche(g); const ex = cells[n.key];
   if (!ex || fit > ex.fitness) cells[n.key] = { key: n.key, turnoverBin: n.turnoverBin, structureBin: n.structureBin, genome: { ...cloneGenome(g), generation: 0 }, fitness: fit, from, at: "v0" };
 }
-// 落盘: X3 末读合并(压缩 read-modify-write 竞态窗口到几 ms)→ 派生向后兼容 genome/bestFitness → X0 原子写(tmp+rename)。
+// 跨世界互斥锁(P1-3): .novel-output/ 是多世界共享上级, global-evolution.json 是全系统唯一多写者落盘点(各世界 longrun.lock 只锁自己目录)。O_EXCL 独占 + mtime 陈旧清理 + 短忙等 + 兜底兜底直接做。
+function withGlobalLock(root: string, fn: () => void): void {
+  const LK = join(root, "global-evolution.lock");
+  const deadline = Date.now() + 400; // 至多争用 ~400ms(writeGlobal 仅 load-merge-rename 几 ms, 每世界每 8 章一次, 罕争)
+  for (;;) {
+    let fd: number | null = null;
+    try { fd = openSync(LK, "wx"); } catch { fd = null; } // wx=O_CREAT|O_EXCL, 已被持有则抛
+    if (fd !== null) { try { fn(); } finally { try { closeSync(fd); unlinkSync(LK); } catch { /* ignore */ } } return; }
+    try { if (Date.now() - statSync(LK).mtimeMs > 10000) { unlinkSync(LK); continue; } } catch { /* 锁刚被释放 → 重试 */ } // 清陈旧锁(持有者崩溃)
+    if (Date.now() > deadline) { fn(); return; } // 等不到别死等: 兜底直接做(末读合并+原子写仍最终一致)
+    const spin = Date.now() + 5; while (Date.now() < spin) { /* 极短忙等, 单线程 sync, 争用罕见且短 */ }
+  }
+}
+// 落盘: 锁内 X3 末读合并(真互斥, 杜绝丢更新)→ 派生向后兼容 genome/bestFitness → X0 原子写(tmp+rename)。
 function writeGlobal(root: string, worldDir: string, avoid: string[], from: string[], cells: Record<string, GlobalCell>): void {
-  try { const fresh = loadGlobal(worldDir).cells ?? {}; for (const [k, c] of Object.entries(fresh)) { const ex = cells[k]; if (c.genome && (!ex || c.fitness > ex.fitness)) cells[k] = c; } } catch { /* ignore */ } // X3: 合并别写者刚落的 niche
-  let bestGenome: Genome | null = null; let bestFit = -1; // 派生: cells 里 fitness 最高那格(向后兼容旧 reader)
-  for (const c of Object.values(cells)) if (c.fitness > bestFit && c.genome) { bestFit = c.fitness; bestGenome = { ...cloneGenome(c.genome), generation: 0 }; }
-  try {
-    const out = JSON.stringify({ avoid, genome: bestGenome, bestFitness: +Math.max(0, bestFit).toFixed(2), from, cells }, null, 2);
-    const tmp = GLOBAL_FILE(root) + ".tmp." + process.pid;
-    writeFileSync(tmp, out, "utf8"); renameSync(tmp, GLOBAL_FILE(root)); // X0: 同目录 rename 原子, 消灭半截读 + 并发互覆盖退化
-  } catch { /* ignore */ }
+  withGlobalLock(root, () => {
+    try { const fresh = loadGlobal(worldDir).cells ?? {}; for (const [k, c] of Object.entries(fresh)) { const ex = cells[k]; if (c.genome && (!ex || c.fitness > ex.fitness)) cells[k] = c; } } catch { /* ignore */ } // X3: 合并别写者刚落的 niche(锁内读)
+    let bestGenome: Genome | null = null; let bestFit = -1; // 派生: cells 里 fitness 最高那格(向后兼容旧 reader)
+    for (const c of Object.values(cells)) if (c.fitness > bestFit && c.genome) { bestFit = c.fitness; bestGenome = { ...cloneGenome(c.genome), generation: 0 }; }
+    try {
+      const out = JSON.stringify({ avoid, genome: bestGenome, bestFitness: +Math.max(0, bestFit).toFixed(2), from, cells }, null, 2);
+      const tmp = GLOBAL_FILE(root) + ".tmp." + process.pid;
+      writeFileSync(tmp, out, "utf8"); renameSync(tmp, GLOBAL_FILE(root)); // X0: 同目录 rename 原子
+    } catch { /* ignore */ }
+  });
 }
 // 扫所有在跑世界: ≥2 世界都点过的避雷=跨题材通用套话→全局; 各世界 archive 最优格的基因按引擎策略沉进全局 niche(每 niche 单调留最优)。
 export function promoteToGlobal(worldDir: string): void {

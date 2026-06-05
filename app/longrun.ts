@@ -207,7 +207,7 @@ async function main(): Promise<void> {
   let bible = s0 && typeof s0.snapshot.props["bible"] === "string" ? (s0.snapshot.props["bible"] as string) : (process.env["NOVEL_BIBLE"]?.trim() || "青云宗灵根试炼，苏雪(冰)、林焰(火)、玄渊(幽)、白薇(阴脉之谜)四修命数交汇，各入门墙。"); // 新世界(无快照)可经 NOVEL_BIBLE 注入自定义 premise; 已有世界续用快照 bible(不受影响)
   const recent: string[] = [];
   let prevHook = "";
-  let evCursor = 0;
+  let evCursor = n > 0 ? store.maxSeq(db, worldId) : 0; // P1-2 resume 安全: 已有章节(重启)则游标设当前 maxSeq(已落盘章对应事件视为已叙述), 免首章把全史兴亡当近时变故重灌 LLM; 新世界(含预演化)从 0 起、首章 in-medias-res 叙述预演化建起的局面。
   let revivals: Array<{ faction: string; at: number }> = [];
   const outlinePlan = loadOutlinePlan(ROOT); // 严格跟纲模式: 有计划则逐章 steer 情节(松散底座模式为 null)
   if (outlinePlan?.beats.length) console.log(`  📑 跟纲模式(${outlinePlan.obedience === "balanced" ? "均衡·软建议、世界可偏离" : "照写·硬遵循"}): ${outlinePlan.beats.length} 段大纲主线`);
