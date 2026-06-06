@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import type { LLMProvider } from "../core/services/llm";
 import { loadCanon } from "./canon";
 import { loadSimFitness } from "./sim-fitness";
+import { loadWarmFit } from "./warm-fitness"; // T3 温情专属 fitness(GENTLE 折进基因, 破坍塌; 爽文不读)
 
 // engine = 模拟层旋钮(core 从 props.tuning.* 通用读取; 默认值 = 现状行为, 进化才拨动)。
 //   priorWeight 八字/奇门引导强度 · scarcity 资源稀缺度(0自由积累→1零和竞争) · conflictRate 冲突/张力增益
@@ -322,10 +323,13 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
   // 模拟层 fitness(longrun 在 evolveOnce 前算好存盘): 世界本身够不够有戏(story-sifting+派系张力+新颖度)。有则作主驱动之一, 无则退回纯作者层混合。
   const sf = loadSimFitness(dir);
   const simFit = sf ? sf.total : null;
+  const wf = GENTLE ? loadWarmFit(dir) : null; // T3: 温情专属 fitness(场景多样/关系暖/人情/善了), longrun 每 8 章算好存盘
   if (simFit !== null && !GENTLE && (!ledger.bestEngine || simFit > ledger.bestEngine.sim)) ledger.bestEngine = { engine: { ...cur.engine }, sim: simFit }; // engine 按 simFit 单独进化(温情向 GENTLE 不追戏剧最优 engine、不更新 bestEngine → 锚住温和基因, 破棘轮)
-  let fitness = (simFit !== null && !GENTLE) // 温情自进化: 温润世界不奖 simFit(戏剧密度), 走纯作者层 fitness → 进化不再把基因往戏剧推(评审「更简档」)
+  let fitness = (simFit !== null && !GENTLE) // 温情自进化: 温润世界不奖 simFit(戏剧密度), 改奖 warmFit(温情专属) → 进化长期偏好多样/暖, 把 T2 逐章纠偏沉淀进基因
     ? +(0.42 * llmFit + 0.18 * objFit + 0.12 * consFit + 0.28 * simFit).toFixed(2) // 作者层(文笔+客观+一致) + 模拟层(simFit 28%)
-    : +(0.6 * llmFit + 0.25 * objFit + 0.15 * consFit).toFixed(2);
+    : (GENTLE && wf) // 温情向且有 warmFit: 把 simFit 的位置让给 warmFit·30%(W_var 权重最高 → 直接对坍塌施压)
+      ? +(0.45 * llmFit + 0.15 * objFit + 0.10 * consFit + 0.30 * wf.total).toFixed(2)
+      : +(0.6 * llmFit + 0.25 * objFit + 0.15 * consFit).toFixed(2);
   if (antiProxy) fitness = +(fitness * 0.8).toFixed(2);
 
   const rhythm = rhythmBin(m.sentLenMean, ledger.scores.map((s) => s.slm).filter((n): n is number => typeof n === "number" && n > 0));

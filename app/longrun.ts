@@ -19,6 +19,8 @@ import { loadLore, recallLore } from "./lore-lib";
 import { pickArcStart } from "./arc-select";
 import { loadGenome, loadLedger, buildGuidance, evolveOnce, loadGlobal } from "./evolve";
 import { computeSimFitness, saveSimFitness, loadSimFitness } from "./sim-fitness";
+import { loadGD, saveGD, gentleDirect, motifSig, type SceneShift } from "./gentle-director"; // T2 温情变化驱动器(纯符号场景轮换)。classifyMotif 在 gentle-director 内部用、longrun 直接读 sh.avoidClass, 故不导入
+import { computeWarmFit, saveWarmFit } from "./warm-fitness"; // T3 温情专属 fitness(loadWarmFit 在 evolve.ts 折进基因, longrun 只算+存)
 import { dramaControl, loadDrama, saveDrama } from "./drama";
 import { evolveSimRules, loadSimRules } from "./sim-rules";
 import { personaBlock, recallShared, INNER_CN } from "./persona";
@@ -49,6 +51,8 @@ const CH_DIR = join(ROOT, "chapters");
 mkdirSync(CH_DIR, { recursive: true });
 const loreLib = loadLore(ROOT); // T3 触发式设定库(freeform 世界由 server 据配置写 lore.json; 无则 null, 不召回)
 let arcHint = ""; // C方案: 预演化挑出的最佳弧线 → 注入第1章开篇做 in-medias-res 框定(无预演化则空)
+let gdir = GENTLE ? loadGD(ROOT) : null; // T2 温情变化驱动器状态(sameStreak/lastMotifs/lastDomain/turn), 跨重启持久; 爽文为 null
+let gdLastMotifs: string[] = []; // T1-①: 近章 2-gram 静物指纹, 喂 rollSummary 钝化 bible 自反馈
 
 // 单写者锁: 同一世界目录只许一个 longrun 写。防多进程赛跑串台(历史教训: 失败重开堆叠僵尸写者→同一章号被写两遍→标题/正文互相覆盖)。
 const LOCK = join(ROOT, "longrun.lock");
@@ -155,18 +159,22 @@ function roster(snap: WorldSnapshot): string {
     .join("、");
 }
 
-async function rollSummary(prev: string, recentGoals: string[]): Promise<string> {
-  const p = `${sys}\n长篇连载【前情纲要】(保住人物关系/势力/未了伏笔/当前境界/已发生的大事)：\n${prev}\n新增：${recentGoals.join("；")}\n压缩重写为不超过200字的新纲要，只留对后续连贯最关键的线索，只输出纲要。`;
+async function rollSummary(prev: string, recentGoals: string[], dropMotifs: string[] = []): Promise<string> {
+  // T1-①[C3]: 温情向钝化 bible 自反馈——剔除近章反复静物词, 只留结构线索, 防器物特写回灌后续每章导致镜头锁死(主因)。
+  const drop = GENTLE && dropMotifs.length
+    ? `\n【压缩须剔除】近章反复出现的具体静物/场景词(${dropMotifs.slice(0, 8).join("、")})——只保留人物关系/势力/未了伏笔/境界/恩怨等结构性线索，勿把器物特写写进纲要(它们会回灌后续每章导致镜头锁死)。`
+    : "";
+  const p = `${sys}\n长篇连载【前情纲要】(保住人物关系/势力/未了伏笔/当前境界/已发生的大事)：\n${prev}\n新增：${recentGoals.join("；")}${drop}\n压缩重写为不超过200字的新纲要，只留对后续连贯最关键的线索，只输出纲要。`;
   return (await llm.complete(p, { thinking: false, temperature: 0.6 })).replace(/\s+/g, " ").slice(0, 320);
 }
 
-async function writeChapter(n: number, vol: number, scene: string, crisis: string, bible: string, ros: string, recent: string[], prevHook: string, weave: string, outlineBeat: string, obedience: string): Promise<{ goal: string; text: string; hook: string }> {
+async function writeChapter(n: number, vol: number, scene: string, crisis: string, bible: string, ros: string, recent: string[], prevHook: string, weave: string, outlineBeat: string, obedience: string, ambience = "", sceneAvoid = "", gdDomain = ""): Promise<{ goal: string; text: string; hook: string }> {
   const forbid = recent.slice(-6).join("、") || "无";
   const beatSpec = GENTLE
-    ? `列出本章 ${SECTIONS} 个叙事节拍(每个≤20字)：首拍由上章余韵自然承接；节拍可是同一场景的流连、一次相遇或对话的展开、一段心境或回忆的流转，前后气脉相承、连贯不跳，不必每拍生新冲突或硬跳时间地点；多写人情、观察与细微的触动；${outlineBeat ? "顺着上述主线、" : ""}末拍以一个安静的画面或一点余味收束、不必留悬念。只列 ${SECTIONS} 行节拍。`
+    ? `列出本章 ${SECTIONS} 个叙事节拍(每个≤20字)：首拍由上章余韵自然承接；节拍可是一次相遇或对话的展开、一段心境或回忆的流转、一程行脚或一桩寻常事的经过，前后气脉相承、连贯不跳，不必每拍生新冲突；但全章不可困守一处一物——须有人事、场景或时令的自然流动（一次出门、一个来客、一段路、一场天时之变都好），少让主角独对同一件旧物反复出神；多写人来人往与世态人情、观察与细微的触动；${outlineBeat ? "顺着上述主线、" : ""}末拍以一个安静的画面或一点余味收束、不必留悬念。只列 ${SECTIONS} 行节拍。`
     : `列出本章 ${SECTIONS} 个情节节拍(每个≤20字)：首拍由上章钩子直接引发；每拍须是前一拍的直接后果(因果相承"因→果→再生变"，不得并列罗列)；${outlineBeat ? "在推进上述大纲主线的前提下" : `在"当前情境"内`}生新事件/冲突/转折；末拍留引向下章的悬念。只列 ${SECTIONS} 行节拍。`;
   const outline = await llm.complete(
-    `${sys}\n【连载第${n}章·第${vol}卷】\n【当前情境】${scene}\n【当前世界大事】${crisis || "暂无"}\n【前情纲要】${bible}\n【在场(含亲疏)】${ros}\n【上章末钩子】${prevHook || "（开篇）"}\n【最近章节标题——严禁雷同、严禁重演开篇灵根试炼】${forbid}${weave ? `\n【本章叙事任务·须落实】${weave}` : ""}${outlineBeat ? (obedience === "balanced" ? `\n【本章大纲主线·建议方向】${outlineBeat} —— 优先顺势推进这条主线；但世界若自发涌现变数/冲突，可顺其自然地偏离，不必硬贴。` : `\n【本章须遵循的大纲主线·最要紧】${outlineBeat} —— 你列的 ${SECTIONS} 个节拍必须服务于推进这条主线、顺着它走，不可跑偏到别处情节。`) : ""}${n === 1 && arcHint ? "\n【开篇·in-medias-res·要紧】" + arcHint : ""}\n${beatSpec}`,
+    `${sys}\n【连载第${n}章·第${vol}卷】\n【当前情境】${scene}\n【当前世界大事】${crisis || "暂无"}\n【前情纲要】${bible}\n【在场(含亲疏)】${ros}\n【上章末钩子】${prevHook || "（开篇）"}\n【最近章节标题——严禁雷同、严禁重演开篇灵根试炼】${forbid}${GENTLE ? (gdDomain ? `\n【本章场景·须切换·要紧】本章主场景须离开【${sceneAvoid}】(同一处室内/同一旧物特写)，转到【${gdDomain}】：把镜头挪到那里的人事往来与世态人情。节拍仍温润连贯、章末留余味，只换舞台不跳冲突。` : `\n【温情·场景须流动·要紧】温情绝不等于停滞。审视上面近几章标题：若总绕在同一处（如灶房、院中、同一只碗/灶火/旧物旁），本章必须把镜头挪开——换一处地点（出门赶集、访友、上山下山、渡口、田间水边、别人家、远行途中、市集庙会），或推进季候天时（晴雨更替、节气流转、晨昏交接），或让一个新面孔自然进入（行脚僧、求医人、孩童、归乡客、远来故人）。宁可写人来人往、世态流动，也不要让主角又一次独对同一件旧物出神。`) : ""}${weave ? `\n【本章叙事任务·须落实】${weave}` : ""}${outlineBeat ? (obedience === "balanced" ? `\n【本章大纲主线·建议方向】${outlineBeat} —— 优先顺势推进这条主线；但世界若自发涌现变数/冲突，可顺其自然地偏离，不必硬贴。` : `\n【本章须遵循的大纲主线·最要紧】${outlineBeat} —— 你列的 ${SECTIONS} 个节拍必须服务于推进这条主线、顺着它走，不可跑偏到别处情节。`) : ""}${n === 1 && arcHint ? "\n【开篇·in-medias-res·要紧】" + arcHint : ""}\n${beatSpec}`,
     { temperature: 0.9 },
   );
   const beats = outline.split("\n").map((s) => s.replace(/^[\d.、)\-—•·*\s]+/, "").replace(/^节拍[零〇一二三四五六七八九十\d]+[：:、.\s]*/, "").trim()).filter(Boolean).slice(0, SECTIONS);
@@ -187,7 +195,7 @@ async function writeChapter(n: number, vol: number, scene: string, crisis: strin
   let prev = "";
   for (let i = 0; i < beats.length; i++) {
     const last = i === beats.length - 1;
-    const secPrompt = `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。\n${PENMANSHIP}${canonHard ? "\n" + canonHard : ""}${loreBlock ? "\n" + loreBlock : ""}${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? (GENTLE ? "段末以一个安静的画面或一点余味自然收束，不必强留悬念。" : "段末留一个引向下一章的悬念钩子。") : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
+    const secPrompt = `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】${GENTLE && ambience ? `\n【本章风物背景】${ambience}` : ""}\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。${GENTLE && sceneAvoid ? `\n本段须把镜头放在新场景里的人来人往，勿回到【${sceneAvoid}】。` : ""}\n${PENMANSHIP}${canonHard ? "\n" + canonHard : ""}${loreBlock ? "\n" + loreBlock : ""}${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? (GENTLE ? "段末以一点余味自然收束、不必强留悬念；但余味不要总落在静物停寂或一声渐息上，可以是一点暖意、一句寻常的人语、一个将启的明天、或一处微微敞开引人向往的画面——换着来，别每章都收在同一种静止里。" : "段末留一个引向下一章的悬念钩子。") : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
     let sec = "";
     for (let attempt = 0; attempt < 4; attempt++) { // 每段守门: 正常数百字; <120 字多半是 DeepSeek 抽风回退 mock 占位 → 等 15s 重试本段, 扛持续抽风、防部分垃圾混入
       sec = await llm.complete(secPrompt, { thinking: false, temperature: evoGenome.gen.temperature, topP: evoGenome.gen.topP, frequencyPenalty: evoGenome.gen.frequencyPenalty, presencePenalty: evoGenome.gen.presencePenalty }); // 进化基因控制采样
@@ -268,7 +276,10 @@ async function main(): Promise<void> {
     n++;
     heartbeat(); // 刷新单写者锁 mtime(心跳): 让本写者的锁保持"新鲜", 防被误判为陈旧锁接管
     const vol = Math.floor((n - 1) / VOL) + 1;
-    const scene = sceneFor(n);
+    let scene = sceneFor(n);          // T1-②: 可被 T2 的 sceneShift 覆盖为「时令·新舞台」
+    let ambience = "";                // T2 写入: 时令/风物背景(独立于 crisis)[C1 C6]
+    let sceneAvoid = "";              // T2 写入: 须避开的场景「类」(非字面词)[C5]
+    let gdDomain = "";                // T2 写入: 须切换到的场景域(驱动 outline 硬指令)[C5]
     // 世代更替 + 群像稳态: 每 5 章补血, 维持在场 ~16; 跌破下限 10 → 批量补(防坍塌, 已验证旧世界减员快于补员→塌到 2 人)。turnoverRate 旋钮另在引擎侧调折损节律。
     if (n % 5 === 0 && PACK.spawnCharacter) {
       const sp0 = store.loadSnapshot(db, worldId);
@@ -294,6 +305,20 @@ async function main(): Promise<void> {
         const cur = Array.isArray(spd.snapshot.props["simRules"]) ? (spd.snapshot.props["simRules"] as Array<{ id: string; lastFired?: number }>) : [];
         const lastById = new Map(cur.map((r) => [r.id, r.lastFired]));
         spd.snapshot.props["simRules"] = fileRules.map((r) => ({ ...r, lastFired: lastById.get(r.id) ?? r.lastFired ?? -99999 }));
+        // T2 温情变化驱动器: 读落盘近章(标题+正文, resume 安全)→ 2-gram 名词指纹测坍塌 → 为【下一章 n+1】派 sceneShift(forCh=n+1, 下轮 :scene-read 守门消费)。
+        // 与 step 互斥(在本 withLock 内)防竞态; sceneShift 写进同一 spd.snapshot, 随下面 saveSnapshot 一次落盘(不新增写)。纯符号、不碰 tuning/crisis。[C2 C4 C11]
+        if (GENTLE && gdir) {
+          const rc = store.readRecentChapters(db, worldId, 4);
+          const occupied = !!beatForChapter(outlinePlan, n + 1) || readFs().some((f) => !f.paid && f.dueCh <= n + 1); // 下一章被大纲/伏笔占用 → 让位(weave 此处尚未算, 用同义的 outline+伏笔到期判定)[C11]
+          const present = Object.values(spd.snapshot.characters).filter((c) => c.present);
+          const locCount: Record<string, number> = {};
+          for (const c of present) { const ln = spd.snapshot.locations[c.locationId ?? ""]?.name; if (ln) locCount[ln] = (locCount[ln] ?? 0) + 1; }
+          const curLocation = Object.entries(locCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? ""; // 在场众数 location, 供候选可达过滤
+          const gd = gentleDirect(n + 1, rc.map((c) => c.goal), rc.map((c) => c.text), gdir, occupied, curLocation, present.map((c) => c.name));
+          gdir = gd.ctrl; saveGD(ROOT, gdir); gdLastMotifs = gd.motifs;
+          if (gd.sceneShift) spd.snapshot.props["sceneShift"] = gd.sceneShift;
+          if (gd.sceneShift && n % 2 === 0) console.log(`  ${gd.log}`);
+        }
         store.saveSnapshot(db, worldId, spd.snapshot, spd.lastSeq, Date.now());
         if (n % 4 === 0) console.log(`  🎭 ${dc.log}`);
         return dc.dramaHint;
@@ -321,6 +346,10 @@ async function main(): Promise<void> {
 
     const snap = store.loadSnapshot(db, worldId);
     if (!snap) throw new Error("no snapshot");
+    if (GENTLE) { // T2: 消费上一轮为本章 n 派的 sceneShift(forCh===n 守门, 防 resume 串旧章)→ 覆盖 scene/ambience/sceneAvoid/gdDomain
+      const sh = snap.snapshot.props["sceneShift"] as SceneShift | undefined;
+      if (sh && sh.forCh === n) { gdDomain = sh.domain.startsWith("(原处") ? "" : sh.domain; scene = `${sh.timeShift}。${sceneFor(n)}`; ambience = sh.ambience; sceneAvoid = sh.avoidClass; } // 仅真换域才驱动 outline 硬指令; 软调(只推时令/新面孔)gdDomain 空、走泛提示
+    }
     const ros = roster(snap.snapshot);
     canonHard = derivedBlock(deriveCanon(snap.snapshot, tierName)); // 权威硬事实(境界/派系/生死/恩怨)从快照确定性派生, 本章强注入
     const t0 = Date.now();
@@ -372,7 +401,7 @@ async function main(): Promise<void> {
       }
     }
     conBlock = constraintsBlock(loadConstraints(ROOT).active); // 拾取议事已批准的铁律变更(规则层概念空间)
-    const ch = await writeChapter(n, vol, scene, crisis, bibleEcho, ros, recent, prevHook, weave, beatForChapter(outlinePlan, n), outlinePlan?.obedience ?? "strict");
+    const ch = await writeChapter(n, vol, scene, crisis, bibleEcho, ros, recent, prevHook, weave, beatForChapter(outlinePlan, n), outlinePlan?.obedience ?? "strict", ambience, sceneAvoid, gdDomain);
 
     if (ch.text.replace(/\s/g, "").length < MINLEN * 0.4) { // 守门: 疑似 LLM 失败回退占位(正常≥3000字)→ 不落盘、退避重试本章, 不推进(防垃圾入正文/污染进化)
       console.log(`  ⚠ 第${n}章疑似生成失败(仅${ch.text.length}字, 多半 DeepSeek 瞬时故障回退占位)→ 弃, 30s 后重试本章`);
@@ -432,7 +461,8 @@ async function main(): Promise<void> {
       } catch (e) { console.log("  📜 canon 跳过:", String(e).slice(0, 60)); }
     }
     if (n % 8 === 0) {
-      bible = await rollSummary(bible, recent.slice(-8));
+      if (GENTLE) { const rc = store.readRecentChapters(db, worldId, 4); gdLastMotifs = motifSig(rc.map((c) => c.goal), rc.map((c) => c.text)); } // T1-①[C3]: 由近章正文算 2-gram 静物指纹, 喂 rollSummary 剔除→断 bible 自反馈(主因)
+      bible = await rollSummary(bible, recent.slice(-8), GENTLE ? gdLastMotifs : []);
       if (EVOLVE) {
         try {
           const recentCh = store.readRecentChapters(db, worldId, 48).map((c) => ({ goal: c.goal, text: c.text })); // 近 48 章(novelty 对照窗口; 不再读全量千章正文)
@@ -442,6 +472,11 @@ async function main(): Promise<void> {
             const sf = computeSimFitness(store.readRecentEvents(db, worldId, 800), spf.snapshot, recentCh, vol, n); // 近 800 事件(recency 加权下足够; sift/张力按近窗算)
             saveSimFitness(ROOT, sf);
             console.log(`  🌍 模拟层${sf.total}/10 · 故事链${sf.sift.score}(${sf.sift.chains}条:${Object.entries(sf.sift.patterns).map(([k, v]) => k + v).join(",")}) · 派系张力${sf.tension.score}(势均${sf.tension.balance}/交锋${sf.tension.directness}/化解${sf.tension.resolution}) · 新颖${(sf.novelty * 10).toFixed(1)}${sf.sift.dangling.length ? " · 悬而未决:" + sf.sift.dangling.length : ""}`);
+            if (GENTLE) { // T3: 温情专属 fitness 平行 slot(零冲突项, W_var 用 2-gram 名词指纹 → 测 novelty 看不见的坍塌)。evolveOnce GENTLE 分支折进基因。
+              const wf = computeWarmFit(store.readRecentEvents(db, worldId, 800), spf.snapshot, recentCh);
+              saveWarmFit(ROOT, wf);
+              console.log(`  🌿 温情层${wf.total}/10 · 场景多样${wf.var} · 关系暖${wf.bond} · 人情${wf.social} · 善了${wf.arc}`);
+            }
           }
           const evo = await evolveOnce(llm, sys, ROOT, vol, recentCh.slice(-8));
           evoGenome = evo.genome; evoGuidance = evo.guidance; // 下一卷据此生成

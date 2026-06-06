@@ -186,7 +186,7 @@ function gramSig(text: string, n = 4, cap = 400): Set<string> {
   for (let i = 0; i + n <= chars.length; i += stride) s.add(chars.slice(i, i + n).join(""));
   return s;
 }
-function jaccard(a: Set<string>, b: Set<string>): number {
+export function jaccard(a: Set<string>, b: Set<string>): number {
   if (!a.size || !b.size) return 0;
   let inter = 0; for (const x of a) if (b.has(x)) inter++;
   return inter / (a.size + b.size - inter);
