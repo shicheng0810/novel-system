@@ -20,12 +20,16 @@ export function gentleEmergence(
       if (p.faction && !seenFactions.has(p.faction)) { newcomers.push(p.faction); seenFactions.add(p.faction); }
     } else if (e.kind === "StageCommitted") {
       const id = (e.payload as { chosenCandidateId?: string }).chosenCandidateId ?? "";
-      const m = id.match(/^(\w+)-ally-(\w+)$/);
-      if (m) { // 新颖闸: 仅"首次结识"的对子才入(关系对此前未出现)
-        const pair = [m[1], m[2]].sort().join("~");
+      // ally 事件真实 id = `${char.id}-t${tick}-ally-${other.id}`(character-actor.ts:85), 如 c1-t99-ally-s37。
+      // 旧锚定正则 /^(\w+)-ally-(\w+)$/ 跨不过中段 -t{tick}- 故永不匹配(死特性)→ 改 indexOf+slice, 稳健到 id 含连字符。
+      const ai = id.indexOf("-ally-");
+      if (ai > 0) { // 新颖闸: 仅"首次结识"的对子才入(关系对此前未出现)
+        const aId = id.slice(0, ai).replace(/-t\d+$/, ""); // 剥 -t{tick} 还原 char.id
+        const bId = id.slice(ai + 6); // "-ally-".length === 6
+        const pair = [aId, bId].sort().join("~");
         if (!seenPairs.has(pair)) {
           seenPairs.add(pair);
-          const a = snap.characters[m[1]!]?.name, b = snap.characters[m[2]!]?.name;
+          const a = snap.characters[aId]?.name, b = snap.characters[bId]?.name;
           if (a && b) firstBonds.push(`${a}与${b}`); // 只给"谁与谁初识", 措辞留给 LLM
         }
       } else if (/-move\b/.test(id)) { // S2 启用后 move 才有事件; 移动=遭遇契机(非作别/非兴亡)

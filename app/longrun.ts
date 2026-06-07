@@ -516,7 +516,7 @@ async function main(): Promise<void> {
             if (GENTLE) { // T3: 温情专属 fitness 平行 slot(零冲突项, W_var 用 2-gram 名词指纹 → 测 novelty 看不见的坍塌)。evolveOnce GENTLE 分支折进基因。
               const wf = computeWarmFit(store.readRecentEvents(db, worldId, 800), spf.snapshot, recentCh, ROOT); // [T3] 补 ROOT 入参: progressMomentum 读 progression-ledger.json 算 W_progress
               saveWarmFit(ROOT, wf);
-              console.log(`  🌿 温情层${wf.total}/10 · 场景多样${wf.var} · 关系暖${wf.bond} · 人情${wf.social} · 善了${wf.arc} · 推进${wf.progress}`);
+              console.log(`  🌿 温情层${wf.total}/10 · 场景多样${wf.var} · 关系暖${wf.bond} · 人情${wf.social} · 善了${wf.arc} · 推进${wf.progress} · 涌现${wf.emerge}`);
             }
           }
           const evo = await evolveOnce(llm, sys, ROOT, vol, recentCh.slice(-8));

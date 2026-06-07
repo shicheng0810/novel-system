@@ -8,6 +8,7 @@
 //   ④ W_arc(0.15): StageCommitted summary 文本匹配温情完成词(团聚/和解/抵达/释怀), 剔负向项。
 //   ⑤ W_progress(0.10, T3): 读 progression-ledger.json 累计里程碑达成 + 近窗处境净位移 = 人生脊梁推进度。纯进度、绝不测冲突。
 //   ⑥ W_emerge(0.05, T2'): 读事件层涌现多样性(ally 措辞多样/faction 首现广度/move 占比/tier 跨越频次) → 接进化(sim 层一改即反映)。与 social 正交: social 测暖, emerge 测新。
+//      [诚实化·审计L-4] 但 emerge 与 ⑤progress 在 move/tier 维度【弱正相关、非完全正交】: 一次 -move 或 ProgressionAdvanced 会同向抬 emerge 与 progress 两路。二者合计仅 0.15 权重、且 progress 经 LLM 处境判定解耦(move 不直接写 lastAdvanceCh), 重叠影响小、可接受; 勿为去耦砍 emerge 的 move/tier(会削其对 sim 层 S2/tier 改动的敏感度)。
 //      var 由 0.40→0.30(匀 0.10 给 progress)→ 0.25(再匀 0.05 给 emerge); var 仍并列最高、绝对值不变、不破场景施压主力。
 // 落盘镜像 sim-fitness.ts(warm-fitness.json); longrun 每 8 章算好存盘, evolve.ts GENTLE 分支折进基因适应度。
 // core/ 不涉, 纯 app 层。
