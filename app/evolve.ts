@@ -98,7 +98,10 @@ function engineNiche(g: Genome): { key: string; turnoverBin: string; structureBi
   const e = { ...DEFAULT_GENOME.engine, ...g.engine };
   const turnoverBin = e.turnoverRate <= 0.75 ? "低代谢" : "高代谢";
   const structureBin = e.structureGrowth >= 0.35 ? "生长" : "平";
-  return { key: `${turnoverBin}×${structureBin}`, turnoverBin, structureBin };
+  // move 节奏维(Y): 仅温情(moveBias>0)世界按自发位移频率再分格 → 全局存档策展保存「安步/缓行/游历」各自冠军、不被收敛成单节奏。
+  // moveBias=0(爽文/arcsaga/未进化温情)→ 空后缀 → 键与改前逐字符不变 = 零迁移扰动、既有 cells 不孤儿。
+  const moveBin = e.moveBias <= 0 ? "" : e.moveBias < 0.13 ? "×安步" : e.moveBias <= 0.18 ? "×缓行" : "×游历";
+  return { key: `${turnoverBin}×${structureBin}${moveBin}`, turnoverBin, structureBin };
 }
 // 把某世界 archive 最优格的基因, 按其【引擎策略】沉积进全局 cells(逐 niche 取 fitness max, C1 单调)。
 // engine 取世界级最优 ledger.bestEngine(与 evolveOnce L243 解耦语义对齐: gen 取风格冠军、engine 取按 simFit 单独进化的模拟最优), 回退风格 engine。
@@ -268,7 +271,7 @@ async function mutateGenome(llm: LLMProvider, parent: Genome, engineBase: Engine
   const e = child.engine;
   try {
     const raw = await llm.complete(
-      `你在为「小说世界模拟器」调参。两类基因：\n[文笔] temperature=${parent.gen.temperature}, frequencyPenalty=${parent.gen.frequencyPenalty}, presencePenalty=${parent.gen.presencePenalty}\n[模拟] priorWeight=${e.priorWeight}(命理先验引导强度) scarcity=${e.scarcity}(资源稀缺度: 0自由积累→1零和竞争, 催生派系生态/寄生分工) conflictRate=${e.conflictRate}(冲突张力增益) eventBias=${e.eventBias}(大事触发倾向) turnoverRate=${e.turnoverRate}(人物登场/陨落代谢, 偏低则人物更长寿、群像不易坍塌) nicheWeight=${e.nicheWeight}(生态位分工加分: 鼓励派系内角色职能互补) structureGrowth=${e.structureGrowth}(派系分裂/新生倾向)\n最近评审：${reflection}\n${GENTLE ? "据反馈微调(只动 1-2 个键；每个幅度≤0.15)。本世界为温情/启发向：目标是温润质感、人情真切、克制与余韵；模拟旋钮务必守低冲突慢节奏——conflictRate/eventBias 宜偏低(≤0.7)、绝不为提戏剧而升, structureGrowth/scarcity 也宜低。" : "据反馈提议小幅调整(只动 1-3 个键；文笔每个幅度≤0.2、模拟每个≤0.25)，目标同时提升文笔质量与「世界涌现的戏剧性/丰富度/群像存活」。"}只回 JSON(只列你要改的键)：{"scarcity":数,"conflictRate":数,...}`,
+      `你在为「小说世界模拟器」调参。两类基因：\n[文笔] temperature=${parent.gen.temperature}, frequencyPenalty=${parent.gen.frequencyPenalty}, presencePenalty=${parent.gen.presencePenalty}\n[模拟] priorWeight=${e.priorWeight}(命理先验引导强度) scarcity=${e.scarcity}(资源稀缺度: 0自由积累→1零和竞争, 催生派系生态/寄生分工) conflictRate=${e.conflictRate}(冲突张力增益) eventBias=${e.eventBias}(大事触发倾向) turnoverRate=${e.turnoverRate}(人物登场/陨落代谢, 偏低则人物更长寿、群像不易坍塌) nicheWeight=${e.nicheWeight}(生态位分工加分: 鼓励派系内角色职能互补) structureGrowth=${e.structureGrowth}(派系分裂/新生倾向)${GENTLE ? ` moveBias=${e.moveBias}(角色自发迁徙/换地频率: 高→多游历、换景遇新人, 低→安土重迁、人来人往)` : ""}\n最近评审：${reflection}\n${GENTLE ? "据反馈微调(只动 1-2 个键；每个幅度≤0.15)。本世界为温情/启发向：目标是温润质感、人情真切、克制与余韵；模拟旋钮务必守低冲突慢节奏——conflictRate/eventBias 宜偏低(≤0.7)、绝不为提戏剧而升, structureGrowth/scarcity 也宜低。moveBias(自发位移)据场景流动感微调: 久黏同一处可略升、角色乱跑失了温情留白则略降, 守 [0.05,0.22]。" : "据反馈提议小幅调整(只动 1-3 个键；文笔每个幅度≤0.2、模拟每个≤0.25)，目标同时提升文笔质量与「世界涌现的戏剧性/丰富度/群像存活」。"}只回 JSON(只列你要改的键)：{"scarcity":数,"conflictRate":数,...}`,
       { thinking: false, temperature: 0.5 },
     );
     const j = JSON.parse((raw.match(/\{[\s\S]*\}/) ?? ["{}"])[0]) as Record<string, unknown>;
@@ -289,6 +292,7 @@ async function mutateGenome(llm: LLMProvider, parent: Genome, engineBase: Engine
       child.engine.eventBias = toward(child.engine.eventBias, 0.7, 1.0);
       child.engine.scarcity = +Math.min(0.4, child.engine.scarcity).toFixed(2);
       child.engine.structureGrowth = +Math.min(0.4, child.engine.structureGrowth).toFixed(2);
+      child.engine.moveBias = clamp(j["moveBias"], 0.05, 0.22, e.moveBias > 0 ? e.moveBias : 0.15); // Y: move 节奏自进化(未进化→0.15 floor 起跑); clamp[0.05,0.22] 防回归 move=0 bug & 防过量稀释关系; 经 engineNiche 落安步/缓行/游历 niche → 跨世界策展多样节奏。爽文 !GENTLE 不进此块→moveBias 保持 0→逐字节不变。
     }
   } catch {
     child.gen.temperature = Math.max(0.7, Math.min(1.5, +(parent.gen.temperature + 0.05).toFixed(2))); // 兜底微扰
@@ -363,7 +367,7 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
   const tstr = next.targetStyle ? ` · 探索→${next.targetStyle.tone}×${next.targetStyle.rhythm}` : "";
   return {
     genome: next, ledger, guidance: buildGuidance(ledger, next, loadGlobal(dir).avoid),
-    report: `适应度${fitness}(LLM${llmFit}+客观${objFit}+一致${consFit}${simFit !== null ? "+模拟" + simFit : ""}${antiProxy ? "·打折" : ""}) · ${placed} · 存档${archive.length}/${TONES.length * RHYTHMS.length}格${tstr} · 下卷 temp${next.gen.temperature}/prior${next.engine.priorWeight}/稀缺${next.engine.scarcity}/冲突${next.engine.conflictRate}/代谢${next.engine.turnoverRate}/生态位${next.engine.nicheWeight}/结构${next.engine.structureGrowth} · 避雷${ledger.avoid.length}`,
+    report: `适应度${fitness}(LLM${llmFit}+客观${objFit}+一致${consFit}${simFit !== null ? "+模拟" + simFit : ""}${antiProxy ? "·打折" : ""}) · ${placed} · 存档${archive.length}/${TONES.length * RHYTHMS.length}格${tstr} · 下卷 temp${next.gen.temperature}/prior${next.engine.priorWeight}/稀缺${next.engine.scarcity}/冲突${next.engine.conflictRate}/代谢${next.engine.turnoverRate}/生态位${next.engine.nicheWeight}/结构${next.engine.structureGrowth}${GENTLE ? "/位移" + next.engine.moveBias : ""} · 避雷${ledger.avoid.length}`,
   };
 }
 

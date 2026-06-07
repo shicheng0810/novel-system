@@ -43,7 +43,7 @@ export function dramaControl(events: WorldEventRecord[], snapshot: WorldSnapshot
   const chill = Math.min(0.5, hotStreak * 0.18); // 热→收敛
 
   const tuning: EngineGenes = { ...base };
-  if (gentle) tuning.moveBias = 0.15; // 温情专属: 破 move=0(move 无 targetIds 拿不到互动红利、恒选不中→sim 级自发位移断流)。每章重设→抗基因变异漂移; 爽文 gentle=false 不设→tuning.moveBias 沿用 base 的 0、world-actor if 不进、逐字节不变。钉死 0.15(缺口中点)落 move 比 5-15%、防过量稀释关系。
+  if (gentle && !(base.moveBias > 0)) tuning.moveBias = 0.15; // 温情·floor-only(Y): 仅未进化出 moveBias 的世界给 0.15 起跑 floor(破 move=0); 一旦基因进化出值(base.moveBias>0)即沿用基因值(已由上面 {...base} 带入 tuning)→ 不盖掉自进化、让 engineNiche 按真实节奏分格。爽文 gentle=false 不设→tuning.moveBias 沿用 base 的 0→world-actor if 不进、逐字节不变。
   tuning.eventBias = +Math.max(0.4, base.eventBias * (1 + heat - chill)).toFixed(2);
   tuning.conflictRate = +Math.max(0.5, base.conflictRate * (1 + heat * 0.6 - chill * 0.7)).toFixed(2);
   if (!gentle && coldStreak >= 2 && facChange === 0) tuning.structureGrowth = +Math.min(1, base.structureGrowth + 0.3 + heat * 0.3).toFixed(2); // 太静(版图无变动)→挑起派系分裂(温情向不挑裂、由它静着)
