@@ -343,7 +343,7 @@ async function main(): Promise<void> {
       const sp = store.loadSnapshot(db, worldId);
       const pend = sp && Array.isArray(sp.snapshot.props["pendingDecisions"]) ? (sp.snapshot.props["pendingDecisions"] as Array<{ decisionId: string; valence?: number }>) : [];
       const curTick = sp?.snapshot.tick ?? 0;
-      const GRACE_TICKS = existsSync(join(ROOT, "autoverdict")) ? 0 : 3 * 3; // 宽限约 3 章(给作者插手窗口); 网页开「全自动裁决」则归零→立即据奇门吉凶自动定夺
+      const GRACE_TICKS = existsSync(join(ROOT, "manualverdict")) ? 3 * 3 : 0; // 默认全自动裁决(作者后参与→世界起步无人值守, 议事立即据奇门吉凶定夺: 吉/平依准、凶另议)。作者到场可经网页关「全自动」→建 manualverdict 文件 → 恢复约3章宽限、亲自裁(重启亦记得该选择)
       let auto = false;
       for (const p of pend) {
         const m = p.decisionId.match(/t(\d+)$/);

@@ -233,11 +233,11 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     let alive = false; try { const lf = join(dir, "longrun.lock"); if (existsSync(lf)) { const pid = Number(readFileSync(lf, "utf8").trim()); process.kill(pid, 0); alive = pid > 0; } } catch { alive = false; }
     return json(res, { paused: existsSync(pf), alive });
   }
-  if (url === "/api/autoverdict") { // 全自动裁决开关(写者 longrun 轮询此文件: 存在=之后议事宽限归零、立即据奇门吉凶自动定夺、不再请作者)
+  if (url === "/api/autoverdict") { // 全自动裁决开关(默认开: longrun 默认 GRACE=0、议事立即据奇门定夺。作者关闭 = 建 manualverdict 文件 → 恢复约3章宽限请作者亲裁; 写者每章轮询此文件)
     const dir = join(here, "..", ".novel-output", SAGA);
-    const af = join(dir, "autoverdict");
-    if (req.method === "POST") { try { if (existsSync(af)) unlinkSync(af); else writeFileSync(af, String(Date.now()), "utf8"); } catch { /* ignore */ } }
-    return json(res, { auto: existsSync(af) });
+    const mf = join(dir, "manualverdict"); // 存在=作者要亲自参与裁决(关自动); 不存在=默认全自动(作者后参与)
+    if (req.method === "POST") { try { if (existsSync(mf)) unlinkSync(mf); else writeFileSync(mf, String(Date.now()), "utf8"); } catch { /* ignore */ } }
+    return json(res, { auto: !existsSync(mf) }); // 前端 {auto} 语义不变: 默认 true(全自动开)
   }
   if (url === "/api/standby") { // 待机状态 + 当前世界用的模式(涌现/均衡/照写): 网页据此显示落地页或模式标
     const has = chapterCount(SAGA) > 0; // 待机落地页停留到「首章落定」才切走(预演化/生成期都显示「世界生成中」)
