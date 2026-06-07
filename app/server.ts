@@ -49,13 +49,58 @@ if (!viewSaga) {
   store.setSchedulerState(db, worldId, { gen: 0, nextTick: 0, status: "running" }, ts0);
 }
 
+// 世事流转解说(诉求②): 把世界事件渲染成一句中文给用户看。零 LLM——纯读事件已有的 summary/payload + 模板。
+// 与 gentle-emergence(写者侧, 渲染进正文 prompt)同思路、不同去向(此处进网页 DOM, 温情/爽文都跑)。
+let _tierMap: Record<string, string> | null = null;
+function tierName(tid: string): string { // tier id(t0..t7) → 境界名。优先读世界自身配置 tierNames(写者权威源); 观察器 pack 可能是默认题材(无 NOVEL_WORLD_CONFIG 时)故不优先信它。
+  if (!_tierMap) {
+    _tierMap = {};
+    try { // 世界配置 tierNames 数组按序对应 t0..tN
+      const cfgP = join(OUT, "worlds", `${SAGA}.json`);
+      if (existsSync(cfgP)) { const tn = (JSON.parse(readFileSync(cfgP, "utf8")) as { tierNames?: string[] }).tierNames; if (Array.isArray(tn)) tn.forEach((nm, i) => { _tierMap![`t${i}`] = nm; }); }
+    } catch { /* ignore */ }
+    if (Object.keys(_tierMap).length === 0) { try { for (const t of pack.progression.tiers) _tierMap[t.id] = t.name; } catch { /* ignore */ } } // 回退 pack
+  }
+  return _tierMap[tid] ?? tid;
+}
+function narrate(e: { kind: string; summary?: string; payload?: unknown }, nameOf: (id: string) => string): string | null {
+  const p = (e.payload ?? {}) as Record<string, unknown>;
+  const s = (k: string): string => String(p[k] ?? "");
+  switch (e.kind) {
+    // summary 已是好中文(登场·/出局·/并吞·/分立·/归隐·/风云·/落定·)的, 直接用
+    case "ChapterInscribed":     // 「第N章《X》落成」
+    case "StoryEventTriggered":  // 「风云·X」世界大事
+    case "CharacterEntered":     // 「登场·X（派）」
+    case "CharacterFell":        // 「出局·X — 因」
+    case "CharacterTranscended": // 「归隐·X 登顶、功成身退」
+    case "FactionDissolved":     // 「并吞·X一脉为Y所并」
+    case "FactionSplit":         // 「分立·X另开Y」
+    case "StageCommitted":       // 「落定·X与Y结善/道争/移动」世界社交动静(实时感来源)
+      return e.summary || null;
+    // 这两条 summary 含原始 id/tier 码, 润色成名字+境界名
+    case "ProgressionAdvanced":
+      return `晋阶 · ${nameOf(s("characterId"))} ${tierName(s("fromTier"))}→${tierName(s("toTier"))}`;
+    case "VengeanceResolved":
+      return `了断 · ${nameOf(s("characterId"))}为${s("avenged")}${s("outcome") ? "，" + s("outcome") : ""}`;
+    case "DecisionRequired":
+      return `⌜待裁⌟ ${String(p["summary"] ?? e.summary ?? "一桩抉择")} · 右栏「议事」定夺`;
+    case "AuthorRuled":
+      return `议事已裁 · ${p["verdict"] === "accept" ? "依准" : p["verdict"] === "reject" ? "另议" : s("verdict")}`;
+    default:
+      return null; // 噪声不进解说区: MemoryRecorded/RunStarted/RunCompleted/GateEvaluated/FrameDerived/DirectorPlanned/CandidatesScored/AgentThought/Branch*
+  }
+}
+
 const sseClients = new Set<ServerResponse>();
 let lastSeqBroadcast = 0;
 function broadcastNew(): void {
   const evs = store.readEvents(db, worldId).filter((e) => (e.seq ?? 0) > lastSeqBroadcast);
+  if (evs.length === 0) return;
+  const chars = store.loadSnapshot(db, worldId)?.snapshot.characters ?? {}; // id→名 解析(每批一次, 仅有新事件时)
+  const nameOf = (id: string): string => chars[id]?.name ?? id;
   for (const e of evs) {
     lastSeqBroadcast = Math.max(lastSeqBroadcast, e.seq ?? 0);
-    const line = `data: ${JSON.stringify({ tick: e.tick, subsystem: e.subsystem, severity: e.severity, verb: e.verb, summary: e.summary, kind: e.kind })}\n\n`;
+    const line = `data: ${JSON.stringify({ tick: e.tick, subsystem: e.subsystem, severity: e.severity, verb: e.verb, summary: e.summary, kind: e.kind, narration: narrate(e, nameOf) })}\n\n`;
     for (const c of sseClients) c.write(line);
   }
 }
@@ -151,6 +196,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     return res.end(doc);
   }
   if (url.startsWith("/api/mind?")) {
+    if (process.env["NOVEL_LIVE_VOICE"] !== "1") return json(res, { disabled: true }); // 默认关: LLM 实时心声=按悬停时长无界烧 token、纯 UI 装饰(不进正文/记忆/进化)。设 NOVEL_LIVE_VOICE=1 复原 demo。悬停仍有 describeMind 符号「所思」。
     const id = new URLSearchParams(url.split("?")[1] ?? "").get("id") ?? "";
     const snap = store.loadSnapshot(db, worldId)?.snapshot;
     const c = snap?.characters[id];
@@ -167,6 +213,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     return;
   }
   if (url.startsWith("/api/dialogue?")) {
+    if (process.env["NOVEL_LIVE_VOICE"] !== "1") return json(res, { disabled: true }); // 默认关: LLM 实时对话=按对话框开启时长无界烧 token、纯 UI 装饰。设 NOVEL_LIVE_VOICE=1 复原 demo。
     const q = new URLSearchParams(url.split("?")[1] ?? "");
     const aid = q.get("a") ?? "", bid = q.get("b") ?? "", prev = (q.get("prev") ?? "").slice(0, 420);
     const snap = store.loadSnapshot(db, worldId)?.snapshot;
