@@ -16,6 +16,7 @@ import { step } from "../core/runtime/world-actor";
 import { PACK, natalLabel, goalLabel, plateLabel } from "./pack-select";
 import { loadOutlinePlan, beatForChapter, beatObjForChapter } from "./outline-plan";
 import { loadPL, savePL, nextProgressTask, beatSig, advanceStep, arcMilestonesFromPlan, type ProgressLedger } from "./progression-ledger"; // T2 温情进展账本+防拍子循环(处境维 ground truth; 仅 GENTLE, 爽文 null 零变更)
+import { gentleEmergence, renderEmergence } from "./gentle-emergence"; // T2' 涌现际遇摄入(抽结构事实, 邀请式注入 weave; 仅 GENTLE)
 import { loadLore, recallLore } from "./lore-lib";
 import { pickArcStart } from "./arc-select";
 import { loadGenome, loadLedger, buildGuidance, evolveOnce, loadGlobal } from "./evolve";
@@ -144,7 +145,8 @@ function sceneFor(n: number): string {
   return cycle === 0 ? arc : `${arc}（第${cycle + 1}重天地，势力更巨、对手更强、修为更高）`;
 }
 
-function roster(snap: WorldSnapshot): string {
+// [E3] arrivedIds(可选): 本章新到在场者 → 缀「·新到此地」纯标注(仅作素材, 不单独施压)。爽文不传 → 零变更。
+function roster(snap: WorldSnapshot, arrivedIds?: Set<string>): string {
   return Object.values(snap.characters)
     .filter((c) => c.present)
     .map((c) => {
@@ -156,7 +158,8 @@ function roster(snap: WorldSnapshot): string {
       const loc = snap.locations[c.locationId ?? ""]?.name;
       const gl = goalLabel(c);
       const inner = INNER_CN[String(c.props["innerDrive"] ?? "")] ?? "";
-      return `${c.name}(${natalLabel(c)}·${tierName(c.progressionTier)}${gl ? "·" + gl : ""}${inner ? "·" + inner : ""}${fac}${loc ? "@" + loc : ""}${bonds ? "，" + bonds : ""})`;
+      const fresh = arrivedIds?.has(c.id) ? "·新到此地" : "";
+      return `${c.name}(${natalLabel(c)}·${tierName(c.progressionTier)}${gl ? "·" + gl : ""}${inner ? "·" + inner : ""}${fac}${loc ? "@" + loc : ""}${bonds ? "，" + bonds : ""}${fresh})`;
     })
     .join("、");
 }
@@ -226,6 +229,9 @@ async function main(): Promise<void> {
   let bible = s0 && typeof s0.snapshot.props["bible"] === "string" ? (s0.snapshot.props["bible"] as string) : (process.env["NOVEL_BIBLE"]?.trim() || "青云宗灵根试炼，苏雪(冰)、林焰(火)、玄渊(幽)、白薇(阴脉之谜)四修命数交汇，各入门墙。"); // 新世界(无快照)可经 NOVEL_BIBLE 注入自定义 premise; 已有世界续用快照 bible(不受影响)
   const recent: string[] = [];
   let prevHook = "";
+  // [E2/E3 T2'] 涌现际遇跨章状态(仅 GENTLE): 新颖闸(faction/对子首现) + 在场差分基准。重启重建(轻微首章重复, 可接受; 不落盘)。
+  let prevPresent = new Set<string>();
+  const seenFactions = new Set<string>(); const seenPairs = new Set<string>();
   let evCursor = n > 0 ? store.maxSeq(db, worldId) : 0; // P1-2 resume 安全: 已有章节(重启)则游标设当前 maxSeq(已落盘章对应事件视为已叙述), 免首章把全史兴亡当近时变故重灌 LLM; 新世界(含预演化)从 0 起、首章 in-medias-res 叙述预演化建起的局面。
   let revivals: Array<{ faction: string; at: number }> = [];
   const outlinePlan = loadOutlinePlan(ROOT); // 严格跟纲模式: 有计划则逐章 steer 情节(松散底座模式为 null)
@@ -356,7 +362,11 @@ async function main(): Promise<void> {
       const sh = snap.snapshot.props["sceneShift"] as SceneShift | undefined;
       if (sh && sh.forCh === n) { gdDomain = sh.domain.startsWith("(原处") ? "" : sh.domain; scene = `${sh.timeShift}。${sceneFor(n)}`; ambience = sh.ambience; sceneAvoid = sh.avoidClass; } // 仅真换域才驱动 outline 硬指令; 软调(只推时令/新面孔)gdDomain 空、走泛提示
     }
-    const ros = roster(snap.snapshot);
+    // [E3] 本章新到在场者差分(仅 GENTLE, 仅作 roster 素材标注、不单独施压)。爽文 arrived=undefined → roster 零变更。
+    const presentIds = new Set(Object.values(snap.snapshot.characters).filter((c) => c.present).map((c) => c.id));
+    const arrived = (GENTLE && prevPresent.size > 0) ? new Set([...presentIds].filter((id) => !prevPresent.has(id))) : undefined;
+    const ros = roster(snap.snapshot, arrived);
+    prevPresent = presentIds;
     canonHard = derivedBlock(deriveCanon(snap.snapshot, tierName)); // 权威硬事实(境界/派系/生死/恩怨)从快照确定性派生, 本章强注入
     const t0 = Date.now();
     const crisisBase = typeof snap.snapshot.props["crisis"] === "string" ? (snap.snapshot.props["crisis"] as string) : "";
@@ -411,7 +421,9 @@ async function main(): Promise<void> {
       const stageGoal = beatForChapter(outlinePlan, n);
       const curBeat = beatObjForChapter(outlinePlan, n);
       const prevStage = curBeat ? beatForChapter(outlinePlan, curBeat.from - 1) : ""; // 上一阶段落点(取不到给"")
-      if (stageGoal) weave = nextProgressTask(pledger, n, stageGoal, prevStage);
+      // [E2 T2'] 涌现际遇结构事实 → 作 nextProgressTask 第5参附带(单路: 只此一处入 weave, 由 gap<8 节流; 同份 newEvs 零额外读库)。
+      const emerge = renderEmergence(gentleEmergence(newEvs, snap.snapshot, seenFactions, seenPairs));
+      if (stageGoal) weave = nextProgressTask(pledger, n, stageGoal, prevStage, emerge);
     }
     conBlock = constraintsBlock(loadConstraints(ROOT).active); // 拾取议事已批准的铁律变更(规则层概念空间)
     const ch = await writeChapter(n, vol, scene, crisis, bibleEcho, ros, recent, prevHook, weave, beatForChapter(outlinePlan, n), outlinePlan?.obedience ?? "strict", ambience, sceneAvoid, gdDomain);

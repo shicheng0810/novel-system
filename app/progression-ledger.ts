@@ -47,9 +47,19 @@ export function beatSig(title: string, hook: string): string[] {
   return Object.entries(freq).filter(([, v]) => v >= 1).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([g]) => g);
 }
 
+// [C1] 处境语义 2-gram 集(复用 beatSig 的内容字过滤): advanceStep 处境差分用。从任意短句抽内容 2-gram, 供 Jaccard 比对新旧处境是否真变。
+export function grams2(s: string): Set<string> {
+  const t = (s ?? "").replace(/\s+/g, "");
+  const out = new Set<string>();
+  for (let i = 0; i + 2 <= t.length; i++) { const g = t.slice(i, i + 2); if (/^[一-龥]{2}$/.test(g) && isContentGram(g)) out.add(g); }
+  return out;
+}
+
 // 核心: weave 空窗时产一句温润推进任务 + 防循环改写。
 // 入参: ledger, 本章 n, 当前阶段 goal(来自 outline-plan), 上一阶段落点(给「已从…起步」承接语)。
-export function nextProgressTask(pl: ProgressLedger, n: number, stageGoal: string, prevStageGoal: string): string {
+// [C2] emerge(可选第5参): sim 层涌现的结构事实("世间近来有这些动静"), 作 stageGoal 的素材补充(非替代)。
+//   保留 stageGoal(outline 软脊梁方向锚) + emerge(素材)分工; 措辞邀请式「可拾一二/不必奔结局」(守批评④⑤防 prose 逃逸)。单路: emerge 只此一处入 prompt。
+export function nextProgressTask(pl: ProgressLedger, n: number, stageGoal: string, prevStageGoal: string, emerge = ""): string {
   const gap = n - pl.lastAdvanceCh;
   // 间隔太短(刚推过, gap < 8) → 不施压, 让日常呼吸[吸收批评四/七: 锚阶段容呼吸]。
   if (gap < 8) return "";
@@ -59,9 +69,13 @@ export function nextProgressTask(pl: ProgressLedger, n: number, stageGoal: strin
   const history = new Set(recent.flatMap((b) => b.sig));
   const stale = candidate.size > 0 && jaccard(candidate, history) > 0.5;
   const fromTo = prevStageGoal ? `已从「${prevStageGoal}」起步，` : "";
+  // emerge 素材作"邀请式"补充: "世间有这些动静, 可拾一二自然融入", 非"必须写谁"。无 emerge 时回退到原泛提示。
+  const seed = emerge
+    ? `——世间近来有这些动静，可拾一二自然融入：${emerge}（与新来的人结识、送一程远行者、应一桩寻常求助、把一段交情推近都好，由眼前情形自然生发，不必奔向什么结局）`
+    : `（识一个从未出现的人、走一段没去过的路、把那桩牵念再推近一步）`;
   return stale
-    ? `${fromTo}近来情形与前几章太相似了——本章宜有一处**新的**人生进展(识一个从未出现的人、走一段没去过的路、把那桩牵念再推近一步)，朝「${stageGoal}」缓缓挪动；仍温润、不靠冲突。`
-    : `${fromTo}本章宜让主角处境朝「${stageGoal}」缓缓挪一小步(多识一人/多走一程/心境长进一分/近一桩牵念)；温润收束、不靠冲突。`;
+    ? `${fromTo}近来情形与前几章太相似了——本章宜有一处**新的**人生际遇自然涌现${seed}，朝「${stageGoal}」缓缓挪动；仍温润、不靠冲突。`
+    : `${fromTo}本章宜让主角处境朝「${stageGoal}」缓缓挪一小步${seed}；温润收束、不靠冲突。`;
 }
 
 // 每 8 章: 搭 canonStep 同班 LLM 读近 8 章判里程碑达成、写回处境(真 ground truth)[吸收批评五]。
@@ -78,16 +92,23 @@ export async function advanceStep(
       recentChapters.map((c, i) => `【${i + 1}】${c.goal}\n${(c.text ?? "").slice(0, 600)}`).join("\n\n"),
       { thinking: false, temperature: 0.2 });
     const j = JSON.parse((raw.match(/\{[\s\S]*\}/) ?? ["{}"])[0]) as { place?: unknown; role?: unknown; nearPerson?: unknown; reached?: unknown };
+    // [C1·处境真挪移] 处境语义差分: 新报 place/role/nearPerson 与旧值 2-gram Jaccard<0.6 → 处境真变(去新地/换身份/识新人)。
+    //   增量加于里程碑判定之上(非替代) → 剧本耗尽后处境仍能因"识新人/去新地"刷 lastAdvanceCh, progress 不锁死、随真实涌现起伏。
+    const moved = (["place", "role", "nearPerson"] as const).some((k) => {
+      const nv = (j as Record<string, unknown>)[k], ov = (out.situation as Record<string, string>)[k];
+      if (typeof nv !== "string" || !nv.trim()) return false;
+      return !ov || jaccard(grams2(nv), grams2(ov)) < 0.6;
+    });
     // 写回处境(仅当非空, 不抹掉旧值)
     if (typeof j.place === "string" && j.place.trim()) out.situation.place = j.place.slice(0, 60);
     if (typeof j.role === "string" && j.role.trim()) out.situation.role = j.role.slice(0, 60);
     if (typeof j.nearPerson === "string" && j.nearPerson.trim()) out.situation.nearPerson = j.nearPerson.slice(0, 60);
-    // 新达成的里程碑进账(去重, 仅采纳 arcMilestones 里真实存在的 id)
+    // 新达成的里程碑进账(去重, 仅采纳 arcMilestones 里真实存在的 id; 保留里程碑判定)
     const validIds = new Set(arcMilestones.map((m) => m.id));
     const reached = Array.isArray(j.reached) ? j.reached.filter((x): x is string => typeof x === "string" && validIds.has(x)) : [];
     let gotNew = false;
     for (const id of reached) if (!out.reachedMilestones.includes(id)) { out.reachedMilestones.push(id); gotNew = true; }
-    if (gotNew) out.lastAdvanceCh = n;  // 有新里程碑达成 → 处境真挪移过, 刷新间隔基准
+    if (gotNew || moved) out.lastAdvanceCh = n;  // 里程碑达成 OR 处境语义真变 → 都算处境真挪移, 刷新间隔基准
   } catch { /* LLM/解析失败 → 处境保持原样, 不阻断写章 */ }
   out.turn++;                            // 计数器自增(禁 random/Date.now, resume 确定性)
   return out;

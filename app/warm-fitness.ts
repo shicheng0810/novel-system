@@ -1,13 +1,14 @@
 // app/warm-fitness.ts — 温情专属 fitness(T3)。与 sim-fitness.ts(戏剧层)彻底分开:
 //   绝不复用 siftStories 的戏剧链(复仇/陨落/巨变), 零 valence<0 / 兴亡 / 张力项。
-// 五信号(0..10), 度量「温情世界够不够暖、够不够流动、够不够推进」:
+// 六信号(0..10), 度量「温情世界够不够暖、够不够流动、够不够推进、够不够新」:
 //   ① W_var(0.30): 近窗章正文 2-gram 名词指纹的逐章两两 Jaccard 均值之补 = 场景/意象多样性。
 //      [C4] 这才是现有 novelty(4-gram, renjian 0.992 却坍塌)看不见的维度 → 直接惩罚 motif 坍塌。
 //   ② W_bond(0.25): 快照 c.props["bond:*"] 正向累计 / 在场人数(关系网越暖越高)。
 //   ③ W_social(0.20): StageCommitted 的 chosenCandidateId 含 ally/相聚(论道结善)占比 + 新面孔(CharacterEntered)频次。
 //   ④ W_arc(0.15): StageCommitted summary 文本匹配温情完成词(团聚/和解/抵达/释怀), 剔负向项。
 //   ⑤ W_progress(0.10, T3): 读 progression-ledger.json 累计里程碑达成 + 近窗处境净位移 = 人生脊梁推进度。纯进度、绝不测冲突。
-//      var 由 0.40 匀 0.10 给 progress(var 仍最高、不破场景施压主力) → 爬山在 var 持平时偏好「会推进」的基因。
+//   ⑥ W_emerge(0.05, T2'): 读事件层涌现多样性(ally 措辞多样/faction 首现广度/move 占比/tier 跨越频次) → 接进化(sim 层一改即反映)。与 social 正交: social 测暖, emerge 测新。
+//      var 由 0.40→0.30(匀 0.10 给 progress)→ 0.25(再匀 0.05 给 emerge); var 仍并列最高、绝对值不变、不破场景施压主力。
 // 落盘镜像 sim-fitness.ts(warm-fitness.json); longrun 每 8 章算好存盘, evolve.ts GENTLE 分支折进基因适应度。
 // core/ 不涉, 纯 app 层。
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -18,8 +19,8 @@ import { motifSig, nameGrams } from "./gentle-director"; // 复用 2-gram 名词
 import { jaccard } from "./sim-fitness";      // 复用 Jaccard(gentle-director 自己也从这里取, 不转出)
 import { loadPL } from "./progression-ledger"; // [T3] 读进展账本算 W_progress(无循环: progression-ledger 不 import warm-fitness, 仅依赖 sim-fitness)
 
-export interface WarmFitness { total: number; var: number; bond: number; social: number; arc: number; progress: number; atCh: number }
-export interface WarmHistory { history: Array<{ atCh: number; total: number; var: number; bond: number; social: number; arc: number; progress: number }> }
+export interface WarmFitness { total: number; var: number; bond: number; social: number; arc: number; progress: number; emerge: number; atCh: number }
+export interface WarmHistory { history: Array<{ atCh: number; total: number; var: number; bond: number; social: number; arc: number; progress: number; emerge: number }> }
 
 const WF_FILE = (d: string): string => join(d, "warm-fitness.json");
 const WH_FILE = (d: string): string => join(d, "warm-fitness-history.json");
@@ -31,7 +32,7 @@ export function saveWarmFit(d: string, wf: WarmFitness): void {
   try {
     writeFileSync(WF_FILE(d), JSON.stringify(wf, null, 2), "utf8");
     const h: WarmHistory = (() => { try { return existsSync(WH_FILE(d)) ? (JSON.parse(readFileSync(WH_FILE(d), "utf8")) as WarmHistory) : { history: [] }; } catch { return { history: [] }; } })();
-    h.history.push({ atCh: wf.atCh, total: wf.total, var: wf.var, bond: wf.bond, social: wf.social, arc: wf.arc, progress: wf.progress });
+    h.history.push({ atCh: wf.atCh, total: wf.total, var: wf.var, bond: wf.bond, social: wf.social, arc: wf.arc, progress: wf.progress, emerge: wf.emerge });
     if (h.history.length > 400) h.history = h.history.slice(-400);
     writeFileSync(WH_FILE(d), JSON.stringify(h, null, 2), "utf8");
   } catch { /* 非关键 */ }
@@ -75,7 +76,8 @@ function socialWarmth(events: WorldEventRecord[]): number {
 
 // ④ 宁静弧完成度 W_arc: StageCommitted summary 匹配温情完成词, 剔除负向项。
 //    StageCommitted payload 无 valence 字段(events.ts:24)→ 退化: 用负向语义词(陨/亡/殁/覆灭/仇/杀/夺/争)代替 valence<0 排除, 注释标注。[C9]
-const WARM_DONE = /团聚|重逢|相聚|和解|和好|化解|抵达|归来|归乡|释怀|了却|了结|结善|论道|相托|相守|安顿|安居|寻常/;
+// [F1 附带] 扩入 S1 ally 措辞库新动词(煮茶/夜话/结伴/对弈/切磋/援手/闲话/消闲/互赠/托付/共渡) → 防新措辞被误判非温情完成。
+const WARM_DONE = /团聚|重逢|相聚|和解|和好|化解|抵达|归来|归乡|释怀|了却|了结|结善|论道|相托|相守|安顿|安居|寻常|煮茶|夜话|结伴|对弈|切磋|援手|闲话|消闲|互赠|托付|共渡/;
 const NEG_MARK = /陨|亡|殁|死|覆灭|灭门|仇|杀|斩|夺|劫|争|交锋|问罪|追杀|裂/;
 function arcWarmth(events: WorldEventRecord[]): number {
   let warm = 0; let total = 0;
@@ -94,17 +96,44 @@ function arcWarmth(events: WorldEventRecord[]): number {
 // ⑤ 进展动量 W_progress(0..10): 读 progression-ledger.json 的累计里程碑达成数 + 近窗处境净位移。[T3]
 //    纯进度信号, 绝不测冲突 → 与 bond/social/arc 并列、不与 var(场景多样)语义重叠。无账本 → 中性 5。
 //    合成 = 0.6·里程碑达成进度分(reached 越多越高) + 0.4·近窗新鲜分(lastAdvanceCh 距当前 atCh 越近越高)。
-function progressMomentum(dir: string, recentCh: Array<{ goal: string; text: string }>): number {
+function progressMomentum(dir: string): number {
   const pl = loadPL(dir);
   // 无账本 / 从未写过任何拍子 → 尚无进度可测, 给中性(不误判停滞、也不送分)。
   if (!pl || (pl.reachedMilestones.length === 0 && pl.writtenBeats.length === 0 && pl.lastAdvanceCh === 0)) return 5;
   // 达成分: 每达成 1 个里程碑 +2.5, 封顶 10(4 个里程碑即满 → 与温情慢燃节奏匹配)。
   const reachedScore = Math.min(10, pl.reachedMilestones.length * 2.5);
-  // 新鲜分: 当前章号(取近窗最末拍子 ch, 无则用 lastAdvanceCh)与上次真挪移章的间距; 越近越高。≥80 章未挪移 → 0。
+  // [F2 真实化] 新鲜分: 当前章号(取近窗最末拍子 ch, 无则用 lastAdvanceCh)与上次真挪移章的间距; 越近越高。≥60 章未挪移 → 0(收紧 80→60, 更敏感)。
   const lastBeatCh = pl.writtenBeats.length ? pl.writtenBeats[pl.writtenBeats.length - 1]!.ch : pl.lastAdvanceCh;
   const sinceAdvance = Math.max(0, lastBeatCh - pl.lastAdvanceCh);
-  const freshScore = pl.lastAdvanceCh > 0 ? Math.max(0, 10 - (sinceAdvance / 80) * 10) : 0;
-  return +Math.max(0, Math.min(10, 0.6 * reachedScore + 0.4 * freshScore)).toFixed(2);
+  const freshScore = pl.lastAdvanceCh > 0 ? Math.max(0, 10 - (sinceAdvance / 60) * 10) : 3;
+  // [F2] 权重翻转: 0.35·达成(脊梁在走) + 0.65·新鲜(近期真挪移) → 剧本耗尽不再锁高(旧 0.6·达成封顶锁 9.2), 须持续长新才高。真正的真实化靠 C1 刷新 lastAdvanceCh。
+  return +Math.max(0, Math.min(10, 0.35 * reachedScore + 0.65 * freshScore)).toFixed(2);
+}
+
+// ⑥ 涌现多样性 W_emerge(0..10): 读【事件层】——ally summary 措辞多样性 + faction 首现广度 + move 占比 + tier 跨越频次。[T2']
+//    纯事件度量(非 prose), 故 sim 层措辞库化(S1)/命名多样(S3)/move 可选(S2)一改即反映 → 进化可见(修死穴: prose 通道改不动 socialWarmth 的 sim 度量→进化看不见)。
+//    与 W_social(测 ally 比/暖度)正交: social 测"暖不暖", emerge 测"新不新"。
+function emergeDiversity(events: WorldEventRecord[]): number {
+  const allySummaries: string[] = []; const factions = new Set<string>(); let moves = 0; let engage = 0; let tierJumps = 0;
+  for (const e of events) {
+    if (e.kind === "StageCommitted") {
+      const id = (e.payload as { chosenCandidateId?: string }).chosenCandidateId ?? "";
+      const s = (e.payload as { summary?: string }).summary ?? "";
+      if (/-ally-/.test(id)) { allySummaries.push(s.replace(/[一-龥]{2,4}与[一-龥]{2,4}/, "")); engage++; } // 去人名, 留动词
+      else if (/-clash-|-avenge-/.test(id)) engage++;
+      else if (/-move\b/.test(id)) { moves++; engage++; }
+    } else if (e.kind === "CharacterEntered") { const f = (e.payload as { faction?: string }).faction; if (f) factions.add(f); }
+    else if (e.kind === "ProgressionAdvanced") tierJumps++;
+  }
+  // ① ally 措辞多样: 不同动词种类 / ally 总数(单模板→趋 0; 10 词轮替→趋 1)
+  const verbVariety = allySummaries.length ? new Set(allySummaries).size / Math.min(allySummaries.length, 10) : 0.5;
+  // ② faction 首现广度: 窗内出现的不同 faction 数 / 6(目标多样)
+  const facVariety = Math.min(1, factions.size / 6);
+  // ③ move 占比: 有移动=处境真挪(0→趋 0; 越多越高, 封顶在 ~15% 即满, 不鼓励满世界乱跑)
+  const moveRatio = engage ? Math.min(1, (moves / engage) / 0.15) : 0;
+  // ④ tier 跨越频次: 窗内 ProgressionAdvanced 数 / 4
+  const tierFreq = Math.min(1, tierJumps / 4);
+  return +Math.max(0, Math.min(10, 10 * (0.4 * verbVariety + 0.25 * facVariety + 0.2 * moveRatio + 0.15 * tierFreq))).toFixed(2);
 }
 
 export function computeWarmFit(events: WorldEventRecord[], snapshot: WorldSnapshot, recentCh: Array<{ goal: string; text: string }>, dir: string): WarmFitness {
@@ -112,7 +141,9 @@ export function computeWarmFit(events: WorldEventRecord[], snapshot: WorldSnapsh
   const wBond = bondWarmth(snapshot);
   const wSocial = socialWarmth(events);
   const wArc = arcWarmth(events);
-  const wProg = progressMomentum(dir, recentCh); // [T3] 读账本, 纯进度
-  const total = +(0.30 * wVar + 0.25 * wBond + 0.20 * wSocial + 0.15 * wArc + 0.10 * wProg).toFixed(2); // var 0.40→0.30 匀 0.10 给 progress(var 仍最高、不破场景施压主力)
-  return { total, var: wVar, bond: wBond, social: wSocial, arc: wArc, progress: wProg, atCh: snapshot.tick ?? 0 };
+  const wProg = progressMomentum(dir); // [T3] 读账本, 纯进度
+  const wEmerge = emergeDiversity(events); // [T2'] 读事件层涌现多样性, 接进化
+  // var 0.30→0.25 匀 0.05 给 emerge(var 仍 0.25 并列最高、不破场景施压主力; var 绝对值不变, 9.84≫9.4 命门安全)。绝不动 W_social/W_progress 语义。
+  const total = +(0.25 * wVar + 0.25 * wBond + 0.20 * wSocial + 0.15 * wArc + 0.10 * wProg + 0.05 * wEmerge).toFixed(2);
+  return { total, var: wVar, bond: wBond, social: wSocial, arc: wArc, progress: wProg, emerge: wEmerge, atCh: snapshot.tick ?? 0 };
 }

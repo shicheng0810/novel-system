@@ -9,6 +9,15 @@ function num(v: unknown): number {
   return typeof v === "number" ? v : 0;
 }
 
+// [S1·治本] ally summary 措辞库: 破 character-actor 旧硬编码单模板「论道结善」(对照旧世界 545 条 100% 全同 → 换皮循环本体)。
+// 10 词皆温情中性(戏剧世界亦适用, clash/avenge 措辞不动); 按双方 id + 漂移源 hash 确定性选词(禁 random/Date.now → resume 完全复现)。
+const ALLY_VERBS = ["论道结善", "煮茶夜话", "结伴同行", "互赠所学", "对弈消闲", "共渡一程", "援手解困", "闲话桑麻", "切磋印证", "托付一事"];
+function allyVerb(aId: string, bId: string, drift: number): string {
+  // drift = tick>>3: 每 ~8 tick 可换措辞, 同一对短期内稳定(避免每 tick 抖动); 纯 char-sum hash, 与 rng 无关。
+  const h = `${aId}|${bId}|${drift}`.split("").reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 7);
+  return ALLY_VERBS[h % ALLY_VERBS.length]!;
+}
+
 function genericPrompt(char: CharacterState, tick: number): string {
   return `角色「${char.name}」(阶=${char.progressionTier ?? "?"}, 张力=${char.narrativeStress.toFixed(2)})。第${tick}回合，用不超过20字写此刻心境与下一步意图，只回一句。`;
 }
@@ -76,7 +85,7 @@ export async function reflectAndPlan(
       id: `${base}-ally-${other.id}`,
       characterId: char.id,
       kind: "engage",
-      summary: `${char.name}与${other.name}论道结善`,
+      summary: `${char.name}与${other.name}${allyVerb(char.id, other.id, tick >> 3)}`,
       axisHints: { harmony: 1, discord: -1 },
       targetIds: [other.id],
       payload: {
@@ -130,13 +139,17 @@ export async function reflectAndPlan(
     const yieldOf = (l: string): number => (typeof snapshot.locations[l]?.props["yield"] === "number" ? (snapshot.locations[l]!.props["yield"] as number) : 0.3);
     const ranked = locIds.slice().sort((a, b) => (yieldOf(b) !== yieldOf(a) ? yieldOf(b) - yieldOf(a) : a.localeCompare(b)));
     const dest = ranked[Math.floor(rng() * Math.min(2, ranked.length))]!;
+    // [S2·治本] 久居思动: 角色久未移动 → 渐抬 move 的 initiative, 使其偶能被 prior 选中(旧 0.4 恒敌不过 ally harmony:1 → 347 commit 选中 0 次 → 永远原地)。
+    // 制造「真去新地遇新人」的物理来源, 喂 E1 newcomer/faction-首现。move 只加 harmony(去结新缘)+initiative, 零 discord → 守 conflictRate(不推高 clash)。确定性: 用 acts 计数, 无 random。
+    const sinceMove = acts - num(char.props["lastMoveAct"]);
+    const restless = sinceMove > 6 ? Math.min(0.8, (sinceMove - 6) * 0.1) : 0;
     candidates.push({
       id: `${base}-move`,
       characterId: char.id,
       kind: "move",
       summary: `${char.name}转往${snapshot.locations[dest]?.name ?? dest}`,
-      axisHints: { initiative: 0.4 },
-      payload: { deltas: [{ characterId: char.id, set: { locationId: dest } }] as StateDelta[], reflection },
+      axisHints: { initiative: 0.4 + restless, harmony: 0.2 },
+      payload: { deltas: [{ characterId: char.id, set: { locationId: dest, lastMoveAct: acts + 1 } }] as StateDelta[], reflection },
     });
   }
 
