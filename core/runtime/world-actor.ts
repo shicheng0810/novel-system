@@ -271,10 +271,12 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
   const turnoverRate = tnum(tune, "turnoverRate", 1);
   const nicheWeight = clamp01(tnum(tune, "nicheWeight", 0));
   const structureGrowth = clamp01(tnum(tune, "structureGrowth", 0));
+  const moveBias = clamp01(tnum(tune, "moveBias", 0)); // 自发位移偏置(默认0=现状; move 无 targetIds 拿不到互动 flat 红利→恒选不中, 偏置破 move=0)。温情专属经 drama 注入, 默认0 时下方 if 不进、逐字节不变。
   // branches: 打分 → argmax(确定性, id 平手)。priorWeight 放大/抑制先验引导; nicheWeight 奖励"填补本派系空白生态位"(职能分工涌现, 借 Project Sid)。
   const scored: ScoredCandidate[] = candidates.map((c) => {
     const s = frame && pack.priorSystem ? pack.priorSystem.scoreCandidate(c, frame) : uniformScore(c);
     let w = pw === 1 ? s.weight : Math.max(0, Math.min(1, s.weight + (pw - 1) * s.breakdown.influence));
+    if (moveBias > 0 && c.kind === "move") w = Math.min(1, w + moveBias); // 自发位移偏置(在 pw 调整后、niche/argmax 前; move 不属 risky-kind 故不触发裁决)。两条 return 路径都承接此 w。
     if (nicheWeight > 0) {
       const actor = snapshot.characters[c.characterId];
       const fac = actor ? facOf(actor) : "";
