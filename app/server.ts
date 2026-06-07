@@ -12,7 +12,7 @@ import * as store from "../core/services/store";
 import { step } from "../core/runtime/world-actor";
 import { PACK, describeMind, natalLabel, plateLabel } from "./pack-select";
 import { generateWorldConfig } from "./world-gen";
-import { generateOutlinePlan, saveOutlinePlan, loadOutlinePlan } from "./outline-plan";
+import { generateOutlinePlan, saveOutlinePlan, loadOutlinePlan, generateGentleArcPlan, deriveArcFromPremise } from "./outline-plan";
 import { normalizeLore, saveLore } from "./lore-lib";
 import { loadGenome, loadLedger, loadArchive, loadGlobal } from "./evolve";
 import { loadConstraints, applyConstraintVerdict } from "./constraints";
@@ -32,6 +32,13 @@ const db = viewSaga ? openDb(join(here, "..", ".novel-output", SAGA, "world.db")
 const pack = PACK;
 let defining = false; // 待机→「定义中/起跑中」标志: spawn 写者后置 true, 网页据此显示「世界生成中」直到首章落盘
 let definingSince = 0; // P1-4: 置 defining=true 的时刻, 供 /api/standby 在写者撞锁自爆时及时复位(不靠客户端 6 分钟超时)
+
+// 温情判定[P0-a]: 建世界请求显式 style 参数优先, 否则 premise/bible 关键词命中 → "温润"。server 据此写 cfg.style, 不污染 LLM SPEC。
+function isGentleRequest(p: { style?: string; prompt?: string }, cfg: { bible?: string }): boolean {
+  if (p.style) return p.style === "温润";
+  const t = `${p.prompt ?? ""} ${cfg.bible ?? ""}`;
+  return /温情|治愈|启发|日常|烟火|寻常|相望相渡|微光|慢|淡/.test(t);
+}
 
 // provider 由 llm-factory 据网页设置/环境变量装配(网页 /api/settings 可改)
 const llm = makeLLM();
@@ -250,20 +257,32 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     req.on("end", () => {
       void (async () => {
         try {
-          const p = JSON.parse(body || "{}") as { prompt?: string; outline?: string; outlineMode?: string; rules?: string; protagonists?: string; warmup?: number };
+          const p = JSON.parse(body || "{}") as { prompt?: string; outline?: string; outlineMode?: string; rules?: string; protagonists?: string; warmup?: number; style?: string; lifeArc?: string };
           const basePrompt = (p.prompt || "").trim() || ((p.outline || "").trim().split("\n").find((l) => l.trim()) || "").slice(0, 120);
           if (!basePrompt) { res.statusCode = 400; return json(res, { error: "缺少世界描述或大纲" }); }
           const warmup = typeof p.warmup === "number" ? Math.max(0, Math.min(200, Math.floor(p.warmup))) : 0; // 预演化 tick(0=快起笔)
           defining = true; definingSince = Date.now();
           const cfg = await generateWorldConfig(basePrompt, llm, p.outline, { rules: p.rules, protagonists: p.protagonists });
+          (cfg as { style?: string }).style = isGentleRequest(p, cfg as { bible?: string }) ? "温润" : "爽文"; // [P0-a] server 附加, 非 LLM 产出
+          const cfgStyle = (cfg as { style?: string }).style;
           const cfgPath = join(OUT, "worlds", `${SAGA}.json`);
           mkdirSync(dirname(cfgPath), { recursive: true });
           writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
+          const WDIR = join(here, "..", ".novel-output", SAGA);
           if ((p.outlineMode === "balanced" || p.outlineMode === "strict") && p.outline && p.outline.trim()) {
-            try { const plan = await generateOutlinePlan(p.outline, llm, 1000); plan.obedience = p.outlineMode; if (plan.beats.length) saveOutlinePlan(join(here, "..", ".novel-output", SAGA), plan); } catch { /* 退化涌现, 不阻断 */ }
+            try { const plan = await generateOutlinePlan(p.outline, llm, 1000); plan.obedience = p.outlineMode; if (plan.beats.length) saveOutlinePlan(WDIR, plan); } catch { /* 退化涌现, 不阻断 */ }
+          }
+          // [T1-3] 温情世界且无成品大纲 → 自动派生 balanced/soft「人生阶段」软脊梁(退化纯涌现不阻断)
+          else if (cfgStyle === "温润" && !loadOutlinePlan(WDIR)) {
+            try {
+              const premise = String((cfg as { bible?: unknown }).bible ?? "");
+              const arcSeed = (p.lifeArc?.trim()) || await deriveArcFromPremise(premise, llm); // 删 cfg.lifeArc[批评三]
+              const plan = await generateGentleArcPlan(premise, arcSeed, llm, 1000);
+              if (plan.beats.length) saveOutlinePlan(WDIR, plan);
+            } catch { /* 退化纯涌现, 不阻断 */ }
           }
           try { const lore = normalizeLore((cfg as { lore?: unknown }).lore); if (lore.entries.length) saveLore(join(here, "..", ".novel-output", SAGA), lore); } catch { /* lore 非关键 */ }
-          const child = spawn("npx", ["tsx", "app/longrun.ts"], { cwd: join(here, ".."), env: { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: SAGA, NOVEL_STANDBY: "0", NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4", NOVEL_WARMUP: String(warmup) }, detached: true, stdio: "ignore" });
+          const child = spawn("npx", ["tsx", "app/longrun.ts"], { cwd: join(here, ".."), env: { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: SAGA, NOVEL_STANDBY: "0", NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4", NOVEL_WARMUP: String(warmup), NOVEL_STYLE: cfgStyle === "温润" ? "温润" : "" }, detached: true, stdio: "ignore" }); // [P0-b] NOVEL_STYLE 由 cfg 同源
           child.on("error", () => { defining = false; }); // spawn 失败(npx/tsx 起不来)→ 复位标志, 防网页永卡「世界生成中」(客户端另有超时兜底)
           child.unref();
           json(res, { ok: true, displayName: String((cfg as { displayName?: unknown }).displayName ?? SAGA) });
@@ -295,7 +314,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     req.on("end", () => {
       void (async () => {
         try {
-          const p = JSON.parse(body || "{}") as { prompt?: string; name?: string; outline?: string; outlineMode?: string; rules?: string; protagonists?: string; warmup?: number };
+          const p = JSON.parse(body || "{}") as { prompt?: string; name?: string; outline?: string; outlineMode?: string; rules?: string; protagonists?: string; warmup?: number; style?: string; lifeArc?: string };
           const basePrompt = (p.prompt || "").trim() || ((p.outline || "").trim().split("\n").find((l) => l.trim()) || "").slice(0, 120);
           if (!basePrompt) {
             res.statusCode = 400;
@@ -309,16 +328,28 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           }
           const port = 9000 + reg.length;
           const cfg = await generateWorldConfig(basePrompt, llm, p.outline, { rules: p.rules, protagonists: p.protagonists }); // ← LLM 据提示词(+大纲+体系/主角槽位)生成世界配置
+          (cfg as { style?: string }).style = isGentleRequest(p, cfg as { bible?: string }) ? "温润" : "爽文"; // [P0-a] server 附加, 非 LLM 产出
+          const cfgStyle = (cfg as { style?: string }).style;
           const cfgPath = join(OUT, "worlds", `${safe}.json`);
           mkdirSync(dirname(cfgPath), { recursive: true });
           writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
+          const wdir = join(OUT, safe); mkdirSync(wdir, { recursive: true });
           // 严格跟纲模式: 解析大纲 → 章节节拍主线, 落到世界目录, longrun 读到则逐章跟纲(松散底座模式不生成)
           if ((p.outlineMode === "balanced" || p.outlineMode === "strict") && p.outline && p.outline.trim()) {
-            try { const wdir = join(OUT, safe); mkdirSync(wdir, { recursive: true }); const plan = await generateOutlinePlan(p.outline, llm, 1000); plan.obedience = p.outlineMode; if (plan.beats.length) saveOutlinePlan(wdir, plan); } catch { /* 跟纲计划失败 → 退化涌现, 不阻断 */ }
+            try { const plan = await generateOutlinePlan(p.outline, llm, 1000); plan.obedience = p.outlineMode; if (plan.beats.length) saveOutlinePlan(wdir, plan); } catch { /* 跟纲计划失败 → 退化涌现, 不阻断 */ }
           }
-          try { const wdir = join(OUT, safe); mkdirSync(wdir, { recursive: true }); const lore = normalizeLore((cfg as { lore?: unknown }).lore); if (lore.entries.length) saveLore(wdir, lore); } catch { /* lore 非关键 */ }
+          // [T1-3] 温情世界且无成品大纲 → 自动派生 balanced/soft「人生阶段」软脊梁(退化纯涌现不阻断)
+          else if (cfgStyle === "温润" && !loadOutlinePlan(wdir)) {
+            try {
+              const premise = String((cfg as { bible?: unknown }).bible ?? "");
+              const arcSeed = (p.lifeArc?.trim()) || await deriveArcFromPremise(premise, llm); // 删 cfg.lifeArc[批评三]
+              const plan = await generateGentleArcPlan(premise, arcSeed, llm, 1000);
+              if (plan.beats.length) saveOutlinePlan(wdir, plan);
+            } catch { /* 退化纯涌现, 不阻断 */ }
+          }
+          try { const lore = normalizeLore((cfg as { lore?: unknown }).lore); if (lore.entries.length) saveLore(wdir, lore); } catch { /* lore 非关键 */ }
           const root = join(here, "..");
-          const baseEnv = { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: safe, NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4", NOVEL_WARMUP: String(typeof p.warmup === "number" ? Math.max(0, Math.min(200, Math.floor(p.warmup))) : 0) };
+          const baseEnv = { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: safe, NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4", NOVEL_WARMUP: String(typeof p.warmup === "number" ? Math.max(0, Math.min(200, Math.floor(p.warmup))) : 0), NOVEL_STYLE: cfgStyle === "温润" ? "温润" : "" }; // [P0-b] NOVEL_STYLE 由 cfg 同源(观察器 server 继承 ...baseEnv 自动带上)
           spawn("npx", ["tsx", "app/longrun.ts"], { cwd: root, env: baseEnv, detached: true, stdio: "ignore" }).unref(); // 起长跑
           spawn("npx", ["tsx", "app/server.ts"], { cwd: root, env: { ...baseEnv, NOVEL_VIEW: "saga", PORT: String(port) }, detached: true, stdio: "ignore" }).unref(); // 起观察器
           const entry: WorldEntry = { name: safe, displayName: String((cfg as { displayName?: unknown }).displayName ?? safe), port, prompt: basePrompt };

@@ -1,11 +1,13 @@
 // app/warm-fitness.ts — 温情专属 fitness(T3)。与 sim-fitness.ts(戏剧层)彻底分开:
 //   绝不复用 siftStories 的戏剧链(复仇/陨落/巨变), 零 valence<0 / 兴亡 / 张力项。
-// 四信号(0..10), 度量「温情世界够不够暖、够不够流动」:
-//   ① W_var(权重最高 0.40): 近窗章正文 2-gram 名词指纹的逐章两两 Jaccard 均值之补 = 场景/意象多样性。
+// 五信号(0..10), 度量「温情世界够不够暖、够不够流动、够不够推进」:
+//   ① W_var(0.30): 近窗章正文 2-gram 名词指纹的逐章两两 Jaccard 均值之补 = 场景/意象多样性。
 //      [C4] 这才是现有 novelty(4-gram, renjian 0.992 却坍塌)看不见的维度 → 直接惩罚 motif 坍塌。
 //   ② W_bond(0.25): 快照 c.props["bond:*"] 正向累计 / 在场人数(关系网越暖越高)。
 //   ③ W_social(0.20): StageCommitted 的 chosenCandidateId 含 ally/相聚(论道结善)占比 + 新面孔(CharacterEntered)频次。
 //   ④ W_arc(0.15): StageCommitted summary 文本匹配温情完成词(团聚/和解/抵达/释怀), 剔负向项。
+//   ⑤ W_progress(0.10, T3): 读 progression-ledger.json 累计里程碑达成 + 近窗处境净位移 = 人生脊梁推进度。纯进度、绝不测冲突。
+//      var 由 0.40 匀 0.10 给 progress(var 仍最高、不破场景施压主力) → 爬山在 var 持平时偏好「会推进」的基因。
 // 落盘镜像 sim-fitness.ts(warm-fitness.json); longrun 每 8 章算好存盘, evolve.ts GENTLE 分支折进基因适应度。
 // core/ 不涉, 纯 app 层。
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -14,9 +16,10 @@ import type { WorldEventRecord } from "../core/domain/events";
 import type { WorldSnapshot, CharacterState } from "../core/domain/world";
 import { motifSig, nameGrams } from "./gentle-director"; // 复用 2-gram 名词指纹 + 人名停用集(避免重写)
 import { jaccard } from "./sim-fitness";      // 复用 Jaccard(gentle-director 自己也从这里取, 不转出)
+import { loadPL } from "./progression-ledger"; // [T3] 读进展账本算 W_progress(无循环: progression-ledger 不 import warm-fitness, 仅依赖 sim-fitness)
 
-export interface WarmFitness { total: number; var: number; bond: number; social: number; arc: number; atCh: number }
-export interface WarmHistory { history: Array<{ atCh: number; total: number; var: number; bond: number; social: number; arc: number }> }
+export interface WarmFitness { total: number; var: number; bond: number; social: number; arc: number; progress: number; atCh: number }
+export interface WarmHistory { history: Array<{ atCh: number; total: number; var: number; bond: number; social: number; arc: number; progress: number }> }
 
 const WF_FILE = (d: string): string => join(d, "warm-fitness.json");
 const WH_FILE = (d: string): string => join(d, "warm-fitness-history.json");
@@ -28,7 +31,7 @@ export function saveWarmFit(d: string, wf: WarmFitness): void {
   try {
     writeFileSync(WF_FILE(d), JSON.stringify(wf, null, 2), "utf8");
     const h: WarmHistory = (() => { try { return existsSync(WH_FILE(d)) ? (JSON.parse(readFileSync(WH_FILE(d), "utf8")) as WarmHistory) : { history: [] }; } catch { return { history: [] }; } })();
-    h.history.push({ atCh: wf.atCh, total: wf.total, var: wf.var, bond: wf.bond, social: wf.social, arc: wf.arc });
+    h.history.push({ atCh: wf.atCh, total: wf.total, var: wf.var, bond: wf.bond, social: wf.social, arc: wf.arc, progress: wf.progress });
     if (h.history.length > 400) h.history = h.history.slice(-400);
     writeFileSync(WH_FILE(d), JSON.stringify(h, null, 2), "utf8");
   } catch { /* 非关键 */ }
@@ -88,11 +91,28 @@ function arcWarmth(events: WorldEventRecord[]): number {
   return +Math.max(0, Math.min(10, (warm / total) * 10)).toFixed(2);
 }
 
-export function computeWarmFit(events: WorldEventRecord[], snapshot: WorldSnapshot, recentCh: Array<{ goal: string; text: string }>): WarmFitness {
+// ⑤ 进展动量 W_progress(0..10): 读 progression-ledger.json 的累计里程碑达成数 + 近窗处境净位移。[T3]
+//    纯进度信号, 绝不测冲突 → 与 bond/social/arc 并列、不与 var(场景多样)语义重叠。无账本 → 中性 5。
+//    合成 = 0.6·里程碑达成进度分(reached 越多越高) + 0.4·近窗新鲜分(lastAdvanceCh 距当前 atCh 越近越高)。
+function progressMomentum(dir: string, recentCh: Array<{ goal: string; text: string }>): number {
+  const pl = loadPL(dir);
+  // 无账本 / 从未写过任何拍子 → 尚无进度可测, 给中性(不误判停滞、也不送分)。
+  if (!pl || (pl.reachedMilestones.length === 0 && pl.writtenBeats.length === 0 && pl.lastAdvanceCh === 0)) return 5;
+  // 达成分: 每达成 1 个里程碑 +2.5, 封顶 10(4 个里程碑即满 → 与温情慢燃节奏匹配)。
+  const reachedScore = Math.min(10, pl.reachedMilestones.length * 2.5);
+  // 新鲜分: 当前章号(取近窗最末拍子 ch, 无则用 lastAdvanceCh)与上次真挪移章的间距; 越近越高。≥80 章未挪移 → 0。
+  const lastBeatCh = pl.writtenBeats.length ? pl.writtenBeats[pl.writtenBeats.length - 1]!.ch : pl.lastAdvanceCh;
+  const sinceAdvance = Math.max(0, lastBeatCh - pl.lastAdvanceCh);
+  const freshScore = pl.lastAdvanceCh > 0 ? Math.max(0, 10 - (sinceAdvance / 80) * 10) : 0;
+  return +Math.max(0, Math.min(10, 0.6 * reachedScore + 0.4 * freshScore)).toFixed(2);
+}
+
+export function computeWarmFit(events: WorldEventRecord[], snapshot: WorldSnapshot, recentCh: Array<{ goal: string; text: string }>, dir: string): WarmFitness {
   const wVar = sceneDiversity(recentCh, nameGrams(Object.values(snapshot.characters).map((c) => c.name)));
   const wBond = bondWarmth(snapshot);
   const wSocial = socialWarmth(events);
   const wArc = arcWarmth(events);
-  const total = +(0.40 * wVar + 0.25 * wBond + 0.20 * wSocial + 0.15 * wArc).toFixed(2);
-  return { total, var: wVar, bond: wBond, social: wSocial, arc: wArc, atCh: snapshot.tick ?? 0 };
+  const wProg = progressMomentum(dir, recentCh); // [T3] 读账本, 纯进度
+  const total = +(0.30 * wVar + 0.25 * wBond + 0.20 * wSocial + 0.15 * wArc + 0.10 * wProg).toFixed(2); // var 0.40→0.30 匀 0.10 给 progress(var 仍最高、不破场景施压主力)
+  return { total, var: wVar, bond: wBond, social: wSocial, arc: wArc, progress: wProg, atCh: snapshot.tick ?? 0 };
 }

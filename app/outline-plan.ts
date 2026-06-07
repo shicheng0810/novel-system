@@ -6,7 +6,8 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import type { LLMProvider } from "../core/services/llm";
 
-export interface OutlineBeat { vol: number; from: number; to: number; goal: string }
+// steer(转向力度): "hard"=硬转向(节拍必须服务推进、不可跑偏, 旧 strict 跟纲行为) / "soft"=软方向(世界可自然偏离、不抢 T2 场景轮换)。缺省视为 hard(向后兼容旧 strict 计划; 仅 generateGentleArcPlan 显式标 soft)。
+export interface OutlineBeat { vol: number; from: number; to: number; goal: string; steer?: "soft" | "hard" }
 // obedience(服从度): "balanced"=均衡(软建议、世界可偏离) / "strict"=照写(硬遵循、不可跑偏); 缺省按 strict(向后兼容旧 follow 计划)。"emergent"(涌现)不生成本文件。
 export interface OutlinePlan { beats: OutlineBeat[]; source: string; generation: number; obedience?: "balanced" | "strict" }
 
@@ -28,6 +29,14 @@ export function beatForChapter(plan: OutlinePlan | null, n: number): string {
   return last && n > last.to ? last.goal : "";
 }
 
+// 同 beatForChapter 区间查表, 但返回 beat 对象(供读 steer 判 soft/hard); 不改 beatForChapter 以免破现有调用。
+export function beatObjForChapter(plan: OutlinePlan | null, n: number): OutlineBeat | null {
+  if (!plan || !plan.beats.length) return null;
+  for (const b of plan.beats) if (n >= b.from && n <= b.to) return b;
+  const last = plan.beats[plan.beats.length - 1];
+  return last && n > last.to ? last : null;
+}
+
 // 解析大纲 → 有序节拍主线(LLM)。大纲常含「第1-12章」式章号 → 直接采用; 没标则按篇幅分配。
 export async function generateOutlinePlan(outline: string, llm: LLMProvider, targetCh = 1000): Promise<OutlinePlan> {
   const ol = outline.trim().slice(0, 32000);
@@ -45,4 +54,43 @@ export async function generateOutlinePlan(outline: string, llm: LLMProvider, tar
       .sort((a, b) => a.from - b.from);
   } catch { /* 解析失败 → 空计划(退化为松散涌现) */ }
   return { beats, source: ol.slice(0, 200), generation: 1 };
+}
+
+// 温情世界专用: 从 premise + 人生意图弧派生「人生阶段」软脊梁(obedience 恒 balanced, steer 恒 soft)。
+// 与 generateOutlinePlan 区别: 输入 premise+arcSeed(非成品大纲); goal=人生境地(非情节事件); 措辞强制温润零冲突;
+// 落点须命中 WARM_DONE 词(团聚/和解/抵达/释怀/了却/相托/安顿…)以接 arc 度量闭环[吸收批评五]。
+export async function generateGentleArcPlan(
+  premise: string, arcSeed: string, llm: LLMProvider, targetCh = 1000,
+): Promise<OutlinePlan> {
+  const raw = await llm.complete(
+    `你是"温情长篇的人生阶段规划师"。下面是一部温情/启发向小说的设定与主角的人生意图弧。\n` +
+    `把这条人生弧拆成 5~7 个**缓慢推进的人生阶段**, 供引擎逐章作【软方向】(世界可自然偏离)。要求:\n` +
+    `· 每段覆盖一个连续章节区间(from~to), 段间跨度≥120章、覆盖到约第 ${Math.min(targetCh, 1000)} 章, 让日常充分呼吸;\n` +
+    `· 每段一句"本阶段主角该走到的人生境地"(≤40字): 写【处境/身份/心境的挪移】, 并尽量落在「了却/相托/安顿/抵达/释怀/接纳/被托付」这类**安稳完成感**的词上(如"从旁观者被乡邻接纳为可托付的人");\n` +
+    `· 【铁律】绝不写冲突/争斗/生死/反派/夺宝/危机——推进靠"多识一人/多走一程/道行长进/被人当作不凡/了却一桩牵念", 不靠事件冲突;\n` +
+    `· 至少 1~2 段须写【与第二主角的关系该走到哪】(防第二主角原地)[吸收批评五];\n· 段间顺人生弧缓缓递进, 不跳。\n` +
+    `只回 JSON:\n{"beats":[{"vol":卷号,"from":起章,"to":止章,"goal":"本阶段人生境地一句"}]}\n\n` +
+    `【设定 premise】${premise}\n【人生意图弧】${arcSeed}`,
+    { thinking: false, temperature: 0.4 },
+  );
+  let beats: OutlineBeat[] = [];
+  try {
+    const j = JSON.parse((raw.match(/\{[\s\S]*\}/) ?? ["{}"])[0]) as { beats?: Array<Record<string, unknown>> };
+    beats = (j.beats ?? [])
+      .map((b) => ({ vol: Number(b["vol"]) || 1, from: Math.floor(Number(b["from"])) || 0,
+                     to: Math.floor(Number(b["to"])) || 0,
+                     goal: typeof b["goal"] === "string" ? (b["goal"] as string).slice(0, 60) : "",
+                     steer: "soft" as const }))            // ← 恒 soft: 不抢 T2[吸收批评二]
+      .filter((b) => b.goal && b.from > 0 && b.to >= b.from)
+      .sort((a, b) => a.from - b.from);
+  } catch { /* 退化涌现, 不阻断 */ }
+  return { beats, source: arcSeed.slice(0, 200), generation: 1, obedience: "balanced" }; // ← 恒 balanced
+}
+
+// arcSeed 唯一来源: 从 premise 兜底推一句人生意图弧(删 cfg.lifeArc 依赖, 它不存在)[吸收批评三]。
+export async function deriveArcFromPremise(premise: string, llm: LLMProvider): Promise<string> {
+  const raw = await llm.complete(
+    `下面是一部温情小说的设定。用一句话(≤60字)概括主角贯穿全书的【人生意图弧】——他的处境/身份会缓缓走向哪里(写境地挪移, 不写冲突):\n${premise}`,
+    { thinking: false, temperature: 0.3 });
+  return raw.trim().slice(0, 120);
 }
