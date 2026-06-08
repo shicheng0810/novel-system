@@ -137,10 +137,8 @@ function emergeDiversity(events: WorldEventRecord[]): number {
   return +Math.max(0, Math.min(10, 10 * (0.4 * verbVariety + 0.25 * facVariety + 0.2 * moveRatio + 0.15 * tierFreq))).toFixed(2);
 }
 
-// 物象/感官 lexicon(粗·相对信号, 仿 info-density 研究): 器物/自然/草药/身体感官常见字。每百字命中越多=画面越塞。
-const OBJ_LEX = /灯|炉|灶|柴|炭|火|碗|壶|盏|碟|勺|筷|桌|椅|凳|床|榻|被|褥|枕|帘|门|窗|墙|壁|梁|柱|瓦|檐|阶|砖|石|井|缸|桶|绳|篮|筐|担|伞|帕|巾|衣|袖|襟|衫|鞋|袜|帽|簪|铃|镯|纸|笔|书|卷|包|袋|罐|瓶|锅|风|月|云|雾|烟|雨|雪|霜|露|溪|河|山|树|竹|松|槐|草|叶|花|苔|泥|土|沙|星|光|影|药|茶|粥|饼|枣|姜|米|汤|糖|果|菜|手|指|腕|眼|眉|发|鬓|脸|腮|唇|牙|喉|胸|肩|背|脚|声|香|味|气/g;
-// ⑦ 留白节奏 W_breath(0..10): 段内信息密度【反向】项——【物象/感官密度】+【对话密度】高=读着累、低=耐留白。[M3·降密度·info-density 研究 .audit/20260607-info-density]
-//    实测此二维最能区分好章 vs 高密度章(对话/千字: 好 3.7-5.9 vs 高 9.2-13.1=情报播报; 物象/百字 好低高高); 句法短句率/段起伏区分不开温情好坏故弃用。与 W_var 正交: var 测章间换景, breath 测段内塞不塞。
+// ⑦ 留白节奏 W_breath(0..10): 对白信息密度的【反向】项——对话/千字 低=寡淡留白(言外之意)、高=情报播报(读着累)。[M3·降密度·info-density 研究 .audit/20260607-info-density]
+//    ⚠实测教训(2caf8ae→本次修): 物象/感官密度三种测法(总命中/去重种类/重复度)都【区分不开】温情好/坏章——因"一两件物反复回扣"(降密度想要的)会重复同一物→物象总命中也高、且高密度章重复度反而最高(sj136=11.3)→物象 lexicon 是噪声、还反向罚回扣, 故【弃用 obj 项】。唯一干净的密度判别=对话/千字(好章 3.7-5.9 寡淡 vs 高密度 9.2-13.1 情报播报)。与 W_var 正交。
 function breathRhythm(recentCh: Array<{ goal: string; text: string }>): number {
   const texts = recentCh.filter((c) => (c.text ?? "").replace(/\s/g, "").length > 200).map((c) => c.text ?? "");
   if (!texts.length) return 6; // 样本不足 → 中性偏高(不误判)
@@ -148,11 +146,9 @@ function breathRhythm(recentCh: Array<{ goal: string; text: string }>): number {
   for (const t of texts) {
     const compact = t.replace(/\s/g, "");
     if (compact.length < 200) continue;
-    const objPer100 = (compact.match(OBJ_LEX)?.length ?? 0) / compact.length * 100; // 物象/百字(相对信号)
     const dlgPer1k = ((t.match(/[「」“”]/g)?.length ?? 0) / 2) / (compact.length / 1000); // 对话/千字(引号对数)
-    const sObj = Math.max(0, Math.min(1, (13 - objPer100) / 5)); // 物象/100 ≤8→满, ≥13→0
-    const sDlg = Math.max(0, Math.min(1, (13 - dlgPer1k) / 7)); // 对话/1k ≤6→满, ≥13→0(高密度章对白=情报播报)
-    acc += 0.5 * sObj + 0.5 * sDlg; n++;
+    acc += Math.max(0, Math.min(1, (13 - dlgPer1k) / 7)); // 对话/1k ≤6→满, ≥13→0(高密度章对白=情报播报、信息密集)
+    n++;
   }
   if (!n) return 6;
   return +Math.max(0, Math.min(10, 10 * (acc / n))).toFixed(2);
