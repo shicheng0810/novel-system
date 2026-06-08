@@ -167,6 +167,13 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     req.on("close", () => sseClients.delete(res));
     return;
   }
+  if (url === "/api/worldlog") { // 世事流转(诉求②): 近期可解说事件→中文一句, 供前端打开即有内容 + 轮询近实时刷(零 LLM)。SSE 只推连接后新事件、不回填, 故另开此端点。
+    const recent = store.readRecentEvents(db, worldId, 250);
+    const chars = store.loadSnapshot(db, worldId)?.snapshot.characters ?? {};
+    const nameOf = (id: string): string => chars[id]?.name ?? id;
+    const out = recent.map((e) => ({ severity: e.severity, narration: narrate(e, nameOf) })).filter((x) => x.narration).slice(-40).reverse(); // 近40条有解说的, 最新在前
+    return json(res, out);
+  }
   if (url === "/api/snapshot") return json(res, store.loadSnapshot(db, worldId)?.snapshot ?? null);
   if (url === "/api/minds") {
     const snap = store.loadSnapshot(db, worldId)?.snapshot;

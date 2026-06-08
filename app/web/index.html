@@ -270,7 +270,6 @@ es.onmessage=m=>{const e=JSON.parse(m.data);evtCount++;if(e.tick!=null)tick=e.ti
   $("deepstat").innerHTML=`tick=<span>${tick}</span> · 事件=<span>${evtCount}</span> · 角色=<span>${Object.keys((window._snap||{characters:{}}).characters).length}</span>`;
   const d=document.createElement("div");d.className="evt"+(e.severity==="notable"?" notable":"")+(e.severity==="decision-required"?" dr":"");
   d.innerHTML=`t${e.tick} <b>${esc(e.verb||e.kind)}</b>`+(e.summary&&e.summary!==e.kind?` ${esc(e.summary)}`:"");$("echoes").prepend(d);while($("echoes").childElementCount>40)$("echoes").lastChild.remove();
-  if(e.narration){const wl=$("worldlog");if(wl){const ph=wl.querySelector(".muted");if(ph)ph.remove();const w=document.createElement("div");w.className="evt"+(e.severity==="notable"?" notable":e.severity==="decision-required"?" dr":"");w.textContent=e.narration;wl.prepend(w);while(wl.childElementCount>40)wl.lastChild.remove();}}
   if(e.kind==="AgentThought"&&e.summary){}/* pulse handled via commit */
   if(e.kind==="StageCommitted"){flashLine(e.summary);}
   if(e.kind==="StoryEventTriggered"){const w=$("worldstate");w.classList.remove("flash");void w.offsetWidth;w.classList.add("flash");setWay("⚡ 大事降临 · "+esc(e.summary||e.verb||""));}
@@ -309,6 +308,8 @@ async function refreshSim(){try{const e=await(await fetch("/api/evolution")).jso
 let MINDS={};
 function nameOf(id){const s=window._snap;return (s&&s.characters&&s.characters[id]&&s.characters[id].name)||id}
 async function refreshMinds(){try{MINDS=(await(await fetch("/api/minds")).json()).thoughts||{}}catch(e){}}
+let _wlKey="";
+async function loadWorldlog(){try{const ls=await(await fetch("/api/worldlog")).json();const wl=$("worldlog");if(!wl)return;const key=ls.length+"|"+(ls[0]?ls[0].narration:"");if(key===_wlKey)return;_wlKey=key;if(!ls.length){wl.innerHTML='<div class="muted">世界每有动静，便在此一句句道来…</div>';return}wl.innerHTML="";for(const x of ls){const w=document.createElement("div");w.className="evt"+(x.severity==="notable"?" notable":x.severity==="decision-required"?" dr":"");w.textContent=x.narration;wl.appendChild(w)}}catch(e){}}
 let VB={x:50,y:120,w:1300,h:960};
 function applyVB(){$("svg").setAttribute("viewBox",`${VB.x.toFixed(1)} ${VB.y.toFixed(1)} ${VB.w.toFixed(1)} ${VB.h.toFixed(1)}`)}
 function s2w(cx,cy){const svg=$("svg"),pt=svg.createSVGPoint();pt.x=cx;pt.y=cy;const m=svg.getScreenCTM();return m?pt.matrixTransform(m.inverse()):{x:cx,y:cy}}
@@ -438,7 +439,7 @@ async function defineWorld(){const kf=$("sbKey");if(kf){if(!kf.value.trim()){$("
   sbDefining();
   try{const r=await(await fetch("/api/define-world",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt,outline,outlineMode:mode,rules,protagonists,warmup})})).json();
     if(!r.ok){$("sbStatus").textContent="失败："+(r.error||"未知");const b=$("sbStart");if(b){b.disabled=false;b.textContent="🕯 开始创造世界"}}}catch(e){$("sbStatus").textContent="失败："+e}}
-(async()=>{try{TIERS=(await(await fetch("/api/packmeta")).json()).tiers||{}}catch(e){}tickState();refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();checkStandby();setupCanvas();setInterval(tickState,1600);setInterval(()=>{refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();checkStandby()},5000);setInterval(ambientThought,3200);
+(async()=>{try{TIERS=(await(await fetch("/api/packmeta")).json()).tiers||{}}catch(e){}tickState();refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();checkStandby();loadWorldlog();setupCanvas();setInterval(tickState,1600);setInterval(()=>{refreshCouncil();refreshChapters();refreshForeshadows();refreshMinds();refreshPause();refreshSim();loadAutoVerdict();checkStandby();loadWorldlog()},5000);setInterval(ambientThought,3200);
   // 新手引导: 首次访问 或 未填 API Key 时自动弹(随时点 ? 重看)
   try{const st=await(await fetch("/api/standby")).json();const s=await(await fetch("/api/settings")).json();if(!st.standby&&(!localStorage.getItem("novel_onboarded")||!s.hasKey))startTour()}catch(e){try{if(!localStorage.getItem("novel_onboarded"))startTour()}catch(_){}}})();
 </script>
