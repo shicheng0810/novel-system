@@ -20,8 +20,8 @@ import { motifSig, nameGrams } from "./gentle-director"; // 复用 2-gram 名词
 import { jaccard } from "./sim-fitness";      // 复用 Jaccard(gentle-director 自己也从这里取, 不转出)
 import { loadPL } from "./progression-ledger"; // [T3] 读进展账本算 W_progress(无循环: progression-ledger 不 import warm-fitness, 仅依赖 sim-fitness)
 
-export interface WarmFitness { total: number; var: number; bond: number; social: number; arc: number; progress: number; emerge: number; atCh: number }
-export interface WarmHistory { history: Array<{ atCh: number; total: number; var: number; bond: number; social: number; arc: number; progress: number; emerge: number }> }
+export interface WarmFitness { total: number; var: number; bond: number; social: number; arc: number; progress: number; emerge: number; breath: number; atCh: number }
+export interface WarmHistory { history: Array<{ atCh: number; total: number; var: number; bond: number; social: number; arc: number; progress: number; emerge: number; breath: number }> }
 
 const WF_FILE = (d: string): string => join(d, "warm-fitness.json");
 const WH_FILE = (d: string): string => join(d, "warm-fitness-history.json");
@@ -33,7 +33,7 @@ export function saveWarmFit(d: string, wf: WarmFitness): void {
   try {
     writeFileSync(WF_FILE(d), JSON.stringify(wf, null, 2), "utf8");
     const h: WarmHistory = (() => { try { return existsSync(WH_FILE(d)) ? (JSON.parse(readFileSync(WH_FILE(d), "utf8")) as WarmHistory) : { history: [] }; } catch { return { history: [] }; } })();
-    h.history.push({ atCh: wf.atCh, total: wf.total, var: wf.var, bond: wf.bond, social: wf.social, arc: wf.arc, progress: wf.progress, emerge: wf.emerge });
+    h.history.push({ atCh: wf.atCh, total: wf.total, var: wf.var, bond: wf.bond, social: wf.social, arc: wf.arc, progress: wf.progress, emerge: wf.emerge, breath: wf.breath });
     if (h.history.length > 400) h.history = h.history.slice(-400);
     writeFileSync(WH_FILE(d), JSON.stringify(h, null, 2), "utf8");
   } catch { /* 非关键 */ }
@@ -137,6 +137,27 @@ function emergeDiversity(events: WorldEventRecord[]): number {
   return +Math.max(0, Math.min(10, 10 * (0.4 * verbVariety + 0.25 * facVariety + 0.2 * moveRatio + 0.15 * tierFreq))).toFixed(2);
 }
 
+// 物象/感官 lexicon(粗·相对信号, 仿 info-density 研究): 器物/自然/草药/身体感官常见字。每百字命中越多=画面越塞。
+const OBJ_LEX = /灯|炉|灶|柴|炭|火|碗|壶|盏|碟|勺|筷|桌|椅|凳|床|榻|被|褥|枕|帘|门|窗|墙|壁|梁|柱|瓦|檐|阶|砖|石|井|缸|桶|绳|篮|筐|担|伞|帕|巾|衣|袖|襟|衫|鞋|袜|帽|簪|铃|镯|纸|笔|书|卷|包|袋|罐|瓶|锅|风|月|云|雾|烟|雨|雪|霜|露|溪|河|山|树|竹|松|槐|草|叶|花|苔|泥|土|沙|星|光|影|药|茶|粥|饼|枣|姜|米|汤|糖|果|菜|手|指|腕|眼|眉|发|鬓|脸|腮|唇|牙|喉|胸|肩|背|脚|声|香|味|气/g;
+// ⑦ 留白节奏 W_breath(0..10): 段内信息密度【反向】项——【物象/感官密度】+【对话密度】高=读着累、低=耐留白。[M3·降密度·info-density 研究 .audit/20260607-info-density]
+//    实测此二维最能区分好章 vs 高密度章(对话/千字: 好 3.7-5.9 vs 高 9.2-13.1=情报播报; 物象/百字 好低高高); 句法短句率/段起伏区分不开温情好坏故弃用。与 W_var 正交: var 测章间换景, breath 测段内塞不塞。
+function breathRhythm(recentCh: Array<{ goal: string; text: string }>): number {
+  const texts = recentCh.filter((c) => (c.text ?? "").replace(/\s/g, "").length > 200).map((c) => c.text ?? "");
+  if (!texts.length) return 6; // 样本不足 → 中性偏高(不误判)
+  let acc = 0; let n = 0;
+  for (const t of texts) {
+    const compact = t.replace(/\s/g, "");
+    if (compact.length < 200) continue;
+    const objPer100 = (compact.match(OBJ_LEX)?.length ?? 0) / compact.length * 100; // 物象/百字(相对信号)
+    const dlgPer1k = ((t.match(/[「」“”]/g)?.length ?? 0) / 2) / (compact.length / 1000); // 对话/千字(引号对数)
+    const sObj = Math.max(0, Math.min(1, (13 - objPer100) / 5)); // 物象/100 ≤8→满, ≥13→0
+    const sDlg = Math.max(0, Math.min(1, (13 - dlgPer1k) / 7)); // 对话/1k ≤6→满, ≥13→0(高密度章对白=情报播报)
+    acc += 0.5 * sObj + 0.5 * sDlg; n++;
+  }
+  if (!n) return 6;
+  return +Math.max(0, Math.min(10, 10 * (acc / n))).toFixed(2);
+}
+
 export function computeWarmFit(events: WorldEventRecord[], snapshot: WorldSnapshot, recentCh: Array<{ goal: string; text: string }>, dir: string): WarmFitness {
   const wVar = sceneDiversity(recentCh, nameGrams(Object.values(snapshot.characters).map((c) => c.name)));
   const wBond = bondWarmth(snapshot);
@@ -144,7 +165,8 @@ export function computeWarmFit(events: WorldEventRecord[], snapshot: WorldSnapsh
   const wArc = arcWarmth(events);
   const wProg = progressMomentum(dir); // [T3] 读账本, 纯进度
   const wEmerge = emergeDiversity(events); // [T2'] 读事件层涌现多样性, 接进化
-  // var 0.30→0.25 匀 0.05 给 emerge(var 仍 0.25 并列最高、不破场景施压主力; var 绝对值不变, 9.84≫9.4 命门安全)。绝不动 W_social/W_progress 语义。
-  const total = +(0.25 * wVar + 0.25 * wBond + 0.20 * wSocial + 0.15 * wArc + 0.10 * wProg + 0.05 * wEmerge).toFixed(2);
-  return { total, var: wVar, bond: wBond, social: wSocial, arc: wArc, progress: wProg, emerge: wEmerge, atCh: snapshot.tick ?? 0 };
+  const wBreath = breathRhythm(recentCh); // [M3·降密度] 段内留白节奏(短句呼吸+疏密起伏); 低=读着累
+  // [M3] var 0.25→0.17 匀 0.08 给 breath。var 权重降(研究: W_var 跨章求新会传导成「每章铺新器物」的密度-UP 压力, 降权减此压); var 信号值仍由 gentle-director 守高(命门是值≥9.4、非权重, 不受影响)。其余信号语义不动。
+  const total = +(0.17 * wVar + 0.25 * wBond + 0.20 * wSocial + 0.15 * wArc + 0.10 * wProg + 0.05 * wEmerge + 0.08 * wBreath).toFixed(2);
+  return { total, var: wVar, bond: wBond, social: wSocial, arc: wArc, progress: wProg, emerge: wEmerge, breath: wBreath, atCh: snapshot.tick ?? 0 };
 }

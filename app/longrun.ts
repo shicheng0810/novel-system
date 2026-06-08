@@ -38,7 +38,7 @@ const SECTIONS = Number(process.env["NOVEL_SECTIONS"] ?? 4);
 const WARMUP = Number(process.env["NOVEL_WARMUP"] ?? 0); // 世界预演化: 起跑前静默推演 N tick(不出章)再写第 1 章, 让关系/恩怨/派系成形(StoryBox 实证: 先模拟提升人物/冲突)。0=快起笔(创世即写)
 // 笔法风格: 默认爽文向(明快短句); NOVEL_STYLE=温润 切到温情/文学向(留白、舒缓、重内心与余味) —— 温情向/启发向世界用, 不被默认的明快爽利指令带跑。
 const PENMANSHIP = process.env["NOVEL_STYLE"] === "温润"
-  ? `【笔法·要紧】笔调温润、克制、有留白与回味：容得下环境、细节与内心的细腻铺陈，不必处处明快短促；以具体的人间烟火细节承载情感、不喊口号、不滥煽情；对白自然，可有寒暄、欲言又止与言外之意；节奏舒缓有韵、重在触动余味与启发，而非爽利推进。仍须干净、不无谓注水，避免"仿佛/似乎/宛如"之类空泛模糊词。`
+  ? `【笔法·要紧】笔调温润、克制、有留白与回味：容得下环境、细节与内心的细腻铺陈，不必处处明快短促；以具体的人间烟火细节承载情感、不喊口号、不滥煽情；对白自然，可有寒暄、欲言又止与言外之意；节奏舒缓有韵、重在触动余味与启发，而非爽利推进。仍须干净、不无谓注水，避免"仿佛/似乎/宛如"之类空泛模糊词。\n【疏密相间·要紧·降信息密度】全章须有疏有密、忌每段都是密集的微距静物与感官特写堆叠（读着会累）：浓墨细描的段落之后，接几段疏朗的纯对话或纯动作给读者喘息；一段只写一件事、写透它，不在同段叠第二件事或第二个新人、新景；以物载情贵在一两件物贯穿全章反复回扣，而非每段都端出新器物；克制每段的器物与感官细节总量，容得下不上静物特写的低密度段落；新出场的人不必一来就交代其满身道具与全部身世，先坐实再慢慢显；对白重言外之意、一句别塞进多条事实；宁可写短、把一件事写从容即收，不为凑字数往段里堆物象、感官与多重从句。`
   : `【笔法·要紧】文字干净利落、节奏明快：多用动词与短句，少堆砌形容词与比喻；删去"仿佛/似乎/像是/宛如/一般"之类的模糊修饰；对白须推动情节、不寒暄铺垫；不为凑字数而注水环境描写。`;
 const GENTLE = process.env["NOVEL_STYLE"] === "温润"; // 温情/温润向: 节拍走「场景流连/相遇展开/心境流转」而非生新冲突跳切, 章末留余味而非硬悬念
 const VOL = 25;
@@ -200,7 +200,7 @@ async function writeChapter(n: number, vol: number, scene: string, crisis: strin
   let prev = "";
   for (let i = 0; i < beats.length; i++) {
     const last = i === beats.length - 1;
-    const secPrompt = `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】${GENTLE && ambience ? `\n【本章风物背景】${ambience}` : ""}\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。${GENTLE && sceneAvoid ? `\n本段须把镜头放在新场景里的人来人往，勿回到【${sceneAvoid}】。` : ""}\n${PENMANSHIP}${canonHard ? "\n" + canonHard : ""}${loreBlock ? "\n" + loreBlock : ""}${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n约 ${perSec} 字。${last ? (GENTLE ? "段末以一点余味自然收束、不必强留悬念；但余味不要总落在静物停寂或一声渐息上，可以是一点暖意、一句寻常的人语、一个将启的明天、或一处微微敞开引人向往的画面——换着来，别每章都收在同一种静止里。" : "段末留一个引向下一章的悬念钩子。") : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
+    const secPrompt = `${sys}\n【第${n}章《${goal}》·第${vol}卷·情境：${scene}】${GENTLE && ambience ? `\n【本章风物背景】${ambience}` : ""}\n【当前世界大事】${crisis || "暂无"}\n【在场角色及修为】${ros}\n【上文结尾】${prev.slice(-280) || "（本章开篇，承接上一章）"}\n续写本章第${i + 1}/${SECTIONS}段，对应情节：「${beats[i]}」。${weave && i === Math.min(1, SECTIONS - 1) ? `本段须自然落实：${weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。${GENTLE && sceneAvoid ? `\n本段须把镜头放在新场景里的人来人往，勿回到【${sceneAvoid}】。` : ""}\n${PENMANSHIP}${canonHard ? "\n" + canonHard : ""}${loreBlock ? "\n" + loreBlock : ""}${canonInject ? "\n" + canonInject : ""}${conBlock ? "\n" + conBlock : ""}${evoGuidance ? "\n" + evoGuidance : ""}\n${GENTLE ? `约 ${perSec} 字（温情·宁短勿堆：够把这一段一件事写从容即可，不为凑字数往段里堆物象、感官与多重从句；一段只写一件事、不叠第二件事或多个新人新景）` : `约 ${perSec} 字`}。${last ? (GENTLE ? "段末以一点余味自然收束、不必强留悬念；但余味不要总落在静物停寂或一声渐息上，可以是一点暖意、一句寻常的人语、一个将启的明天、或一处微微敞开引人向往的画面——换着来，别每章都收在同一种静止里。" : "段末留一个引向下一章的悬念钩子。") : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
     let sec = "";
     for (let attempt = 0; attempt < 4; attempt++) { // 每段守门: 正常数百字; <120 字多半是 DeepSeek 抽风回退 mock 占位 → 等 15s 重试本段, 扛持续抽风、防部分垃圾混入
       sec = await llm.complete(secPrompt, { thinking: false, temperature: evoGenome.gen.temperature, topP: evoGenome.gen.topP, frequencyPenalty: evoGenome.gen.frequencyPenalty, presencePenalty: evoGenome.gen.presencePenalty }); // 进化基因控制采样
@@ -516,7 +516,7 @@ async function main(): Promise<void> {
             if (GENTLE) { // T3: 温情专属 fitness 平行 slot(零冲突项, W_var 用 2-gram 名词指纹 → 测 novelty 看不见的坍塌)。evolveOnce GENTLE 分支折进基因。
               const wf = computeWarmFit(store.readRecentEvents(db, worldId, 800), spf.snapshot, recentCh, ROOT); // [T3] 补 ROOT 入参: progressMomentum 读 progression-ledger.json 算 W_progress
               saveWarmFit(ROOT, wf);
-              console.log(`  🌿 温情层${wf.total}/10 · 场景多样${wf.var} · 关系暖${wf.bond} · 人情${wf.social} · 善了${wf.arc} · 推进${wf.progress} · 涌现${wf.emerge}`);
+              console.log(`  🌿 温情层${wf.total}/10 · 场景多样${wf.var} · 关系暖${wf.bond} · 人情${wf.social} · 善了${wf.arc} · 推进${wf.progress} · 涌现${wf.emerge} · 留白${wf.breath}`);
             }
           }
           const evo = await evolveOnce(llm, sys, ROOT, vol, recentCh.slice(-8));

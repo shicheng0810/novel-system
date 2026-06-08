@@ -293,6 +293,9 @@ async function mutateGenome(llm: LLMProvider, parent: Genome, engineBase: Engine
       child.engine.eventBias = toward(child.engine.eventBias, 0.7, 1.0);
       child.engine.scarcity = +Math.min(0.4, child.engine.scarcity).toFixed(2);
       child.engine.structureGrowth = +Math.min(0.4, child.engine.structureGrowth).toFixed(2);
+      // [M2·降密度] 温情压采样惩罚上限: frequencyPenalty/presencePenalty 高 → 逼模型不复用词 → 不断换新物象/新感官 → 段内信息密度UP(读着累)。压低让模型敢在同一意象停留、行文疏朗。温情本就要"一两件物反复回扣", 方向一致。
+      child.gen.frequencyPenalty = +Math.min(0.45, child.gen.frequencyPenalty).toFixed(2);
+      child.gen.presencePenalty = +Math.min(0.35, child.gen.presencePenalty).toFixed(2);
       // move 节奏【锚定式自进化】(用户选): LLM 仍可提议(界内), 但每代把结果朝本世界 premise 锚 moveBiasAnchor(游历0.20/定居0.15/隐居0.08)收 66%、只留 34% 漂移 → 防 LLM 把所有温情世界收敛到公共0.15、保各世界节奏分化。clamp[0.05,0.22] 防回归move=0 & 防过量稀释。经 engineNiche 落安步/缓行/游历 niche。爽文 !GENTLE 不进此块→moveBias 保持 0→逐字节不变。
       const _mvProp = clamp(j["moveBias"], 0.05, 0.22, e.moveBias > 0 ? e.moveBias : e.moveBiasAnchor);
       child.engine.moveBias = +Math.min(0.22, Math.max(0.05, e.moveBiasAnchor + (_mvProp - e.moveBiasAnchor) * 0.34)).toFixed(2);
@@ -326,7 +329,7 @@ export async function evolveOnce(llm: LLMProvider, sys: string, dir: string, vol
   const cn = loadCanon(dir);
   const castSize = Object.keys(cn.characters ?? {}).length;
   const repThreshold = 0.15 + Math.min(0.12, castSize * 0.006); // 群像豁免: 人物越多, 实体/人名复现越正常, 重复阈值随之放宽(4人≈0.17, 14人≈0.23, 上限0.27)
-  const antiProxy = (avgLen > 0 && m.len > avgLen * 1.6) || m.repetition > repThreshold || m.dialogueRatio > 0.55 || m.ttr > 0.62; // 刷分嫌疑: 长度暴涨/重复飙升/对白堆砌(>55%)/碎句刷词汇多样(ttr>0.62) — 覆盖 obj 的可刷代理指标
+  const antiProxy = (avgLen > 0 && m.len > avgLen * 1.6) || m.repetition > repThreshold || m.dialogueRatio > 0.55 || m.ttr > (GENTLE ? 0.72 : 0.62); // 刷分嫌疑: 长度暴涨/重复飙升/对白堆砌(>55%)/碎句刷词汇多样(ttr>0.62) — 覆盖 obj 的可刷代理指标。[M5] 温情 ttr 阈值上调 0.62→0.72: 实测 ttr>0.62 误罚了 renjian ch-4/147 的松弛好章(温润文词汇本就丰富), 解耦防误伤(此项不降密度、只保质量)
   const consFit = (() => { const a = typeof cn.lastConsistency === "number" ? cn.lastConsistency : 5; const b = typeof cn.lastForeshadow === "number" ? cn.lastForeshadow : 5; return +((a + b) / 2).toFixed(1); })(); // 缺省取保守 5(未测≠及格8: 防白送地板污染跨卷/跨世界比较)
   // 模拟层 fitness(longrun 在 evolveOnce 前算好存盘): 世界本身够不够有戏(story-sifting+派系张力+新颖度)。有则作主驱动之一, 无则退回纯作者层混合。
   const sf = loadSimFitness(dir);
