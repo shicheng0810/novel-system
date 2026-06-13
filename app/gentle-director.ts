@@ -2,12 +2,12 @@
 // drama.ts 温情对位: 纯符号无 LLM, 每章一次, 读落盘近章标题/正文 → 2-gram 名词指纹测坍塌 → 单维递进派场景。
 // 只在 GENTLE; 绝不写 factionShifts/负valence/Fell/crisis/tuning, 结构上不引冲突。core/packs 不涉。
 // 选择全基于 ctrl.turn(禁 Math.random/Date.now) → resume 完全复现。
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { jaccard } from "./sim-fitness"; // 复用现成 Jaccard(但指纹自带 2-gram, 不用盲眼 4-gram novelty)
 
 export interface SceneShift { forCh: number; domain: string; timeShift: string; avoidClass: string; ambience: string }
-export interface GDCtrl { sameStreak: number; lastMotifs: string[]; lastDomain: string; turn: number; defyStreak: number; motifHist?: string[][] }
+export interface GDCtrl { sameStreak: number; lastMotifs: string[]; lastDomain: string; turn: number; defyStreak: number; motifHist?: string[][]; lastDomainAt?: number; dispatchLog?: Array<{ ch: number; domain: string; escalation: string }> } // lastDomainAt=[Q3·协同审计] 上次真派域的章号(域记忆加章龄·>3章视空, 防陈年lastDomain永久排挤候选+假抗命); dispatchLog=[P0-1·干预四账②·蓝图 .audit/20260610-evolution-overhaul §3.1] 每次派景记 {ch,domain,escalation}(滚64·按 forCh 键确定性·遥测零行为, NOVEL_GD=0 时照记)。预注册退休条款: 2卷无消费者即停写(蓝图P0-1)。
 
 const S_TRIGGER = 4;                       // [C7] 提到4, 容温情合理停留
 const SEASONS = ["立春乍暖·清晨", "谷雨润物·向午", "小满麦黄·晌午", "夏至蝉长·薄暮", "白露凉起·清晨", "秋分桂香·向晚", "霜降叶染·黄昏", "小雪初寒·入夜", "冬至围炉·夜深", "雨水冰解·拂晓"];
@@ -30,7 +30,8 @@ export function loadGD(d: string): GDCtrl {
   try { return existsSync(F(d)) ? { sameStreak: 0, lastMotifs: [], lastDomain: "", turn: 0, defyStreak: 0, ...JSON.parse(readFileSync(F(d), "utf8")) } : { sameStreak: 0, lastMotifs: [], lastDomain: "", turn: 0, defyStreak: 0 }; }
   catch { return { sameStreak: 0, lastMotifs: [], lastDomain: "", turn: 0, defyStreak: 0 }; }
 }
-export function saveGD(d: string, c: GDCtrl): void { try { writeFileSync(F(d), JSON.stringify(c)); } catch { /* 非关键 */ } }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→load 静默回空(蓝图 .audit/20260610-evolution-overhaul §3.2)
+export function saveGD(d: string, c: GDCtrl): void { try { atomicWrite(F(d), JSON.stringify(c)); } catch { /* 非关键 */ } }
 
 // [C4] 2-gram 中文「场景/静物」指纹(对 motif 坍塌敏感; 不用盲眼 4-gram)。warm-fitness.ts 复用之。
 // 滤掉虚词/语法碎片(了一/那只/的话)与传入的人名 → 指纹聚焦真场景名词, 不被高频功能字与主角名挤占 top-k(否则坍塌检测被噪声稀释)。
@@ -62,8 +63,9 @@ export function gentleDirect(
   const persist = motifs.filter((m) => hist.filter((s) => s.includes(m)).length >= 3);
   const stuck = jaccard(new Set(motifs), new Set(ctrl.lastMotifs)) >= 0.5 || persist.length >= 2; // 内容坍塌 或 场景锚持久 → 黏住
   const sameStreak = stuck ? ctrl.sameStreak + 1 : 0;
-  // [C5/4.4] 事后闭环: 上章派了场景却仍黏住 = prose 抗命
-  const defyStreak = (ctrl.lastDomain && stuck) ? ctrl.defyStreak + 1 : 0;
+  // [C5/4.4] 事后闭环: 上章派了场景却仍黏住 = prose 抗命。[Q3] 只计真抗命: 派发须是近2章内的事(陈年lastDomain不算·防假抗命直跳顶格干预)
+  const recentDispatch = ctrl.lastDomainAt != null && forCh - ctrl.lastDomainAt <= 2;
+  const defyStreak = (recentDispatch && ctrl.lastDomain && stuck) ? ctrl.defyStreak + 1 : 0;
   let next: GDCtrl = { ...ctrl, sameStreak, lastMotifs: motifs, motifHist: hist, defyStreak };
 
   if (occupied || sameStreak < S_TRIGGER) {
@@ -78,7 +80,8 @@ export function gentleDirect(
   }
   if (sameStreak >= 6 || defyStreak >= 1) { // 换场景域(候选按 location 可达过滤——示意: 简化为跳过上次域)
     let di = next.turn % DOMAINS.length;
-    if (DOMAINS[di] === ctrl.lastDomain) di = (di + 1) % DOMAINS.length;
+    const freshLast = ctrl.lastDomainAt != null && forCh - ctrl.lastDomainAt <= 3 ? ctrl.lastDomain : ""; // [Q3] 域记忆章龄: >3章前派的域不再排挤
+    if (DOMAINS[di] === freshLast) di = (di + 1) % DOMAINS.length;
     domain = DOMAINS[di]!;
   }
   if (sameStreak >= 7) { // 概率挂风物(确定性: 用 turn 低位, resume 复现)
@@ -89,8 +92,10 @@ export function gentleDirect(
   if (defyStreak >= 2 && location) ambience = `本章开篇须离开${location}(出门/启程)，把人事挪到别处。` + ambience;
 
   // [修正] 只在【真换场景域】后归零 streak(给新舞台喘息); 软调(仅时令/新面孔)时保持 streak 继续爬 → 下章升级到换景, 否则永远卡在4只发时令、escalation 阶梯失效。
-  next = { ...next, lastDomain: domain || ctrl.lastDomain, turn: next.turn + 1, sameStreak: domain ? 0 : next.sameStreak, defyStreak: domain ? 0 : defyStreak };
+  next = { ...next, lastDomain: domain || ctrl.lastDomain, lastDomainAt: domain ? forCh : ctrl.lastDomainAt, turn: next.turn + 1, sameStreak: domain ? 0 : next.sameStreak, defyStreak: domain ? 0 : defyStreak };
   const shift: SceneShift = { forCh, domain: domain || "(原处·仅推时令/添新面孔)", timeShift, avoidClass, ambience };
+  // [P0-1·干预四账②] 派景记账(同章重派=弃章重试→按 ch 键覆盖, 确定性)。预注册退休条款: 2卷无消费者即停写(蓝图P0-1)。
+  next = { ...next, dispatchLog: [...(next.dispatchLog ?? []).filter((x) => x.ch !== forCh), { ch: forCh, domain: shift.domain, escalation: `s${sameStreak}d${defyStreak}` }].slice(-64) };
   return {
     sceneShift: shift, ctrl: next, motifs,
     log: `🍃${domain ? `换景→【${domain}】` : "软调"}·${timeShift}${ambience ? "·" + ambience.slice(0, 8) + "…" : ""}(避:${avoidClass})`,

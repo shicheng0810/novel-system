@@ -216,10 +216,19 @@ export async function step(db: DB, worldId: string, pack: ContentPack, llm: LLMP
               ch.props["actCount"] = 0; // 重置, 为下一阶累积
               ch.props["resource"] = 0; // 进阶耗尽积蓄的资源, 须重新累积(门槛随阶位递增)
               ch.narrativeStress = Math.max(0, ch.narrativeStress - 0.3); // 突破后心境舒缓
-              // 世代更替: 登顶最高阶 → 功成身退/飞升(退出活跃舞台, 为新生代腾位; 主角亦然)
+              // 世代更替: 登顶最高阶 → 功成身退/飞升, 或 [去饱和·L4] 部分留场为 elder(把"跑步机终点=清空"改成"沉淀": 留场生传承/请益/旧怨锚, 不刷归隐、不触发腾位补员; 正对温情"老者守渡头"premise)
               if (curIdx + 1 === tiers.length - 1) {
-                ch.present = false;
-                evs.push({ kind: "CharacterTranscended", characterId: ch.id, name: ch.name, toTier: next.id });
+                const elderRetention = clamp01(tnum(snapshot.props["tuning"], "elderRetention", 0)); // 默认0=现状全退(爽文/yunyou/旧库逐字节不变); 温情经 GENTLE 变异给 ~0.5
+                const elderCount = Object.values(snapshot.characters).filter((c) => c.present && c.props["elder"]).length;
+                // 确定性 rng(禁 random/Date.now → resume 完全复现): FNV 散列 char.id+tick → [0,1)
+                let hh = 2166136261; const seed = `${ch.id}:${tick}`; for (let i = 0; i < seed.length; i++) { hh ^= seed.charCodeAt(i); hh = Math.imul(hh, 16777619); }
+                const r = ((hh >>> 0) % 1000) / 1000;
+                if (elderRetention > 0 && elderCount < 4 && r < elderRetention) {
+                  ch.props["elder"] = true; // 留场: canAdvance 对 elder 返 false(不再进阶), 成传承/请益/旧怨/稀缺资源锚
+                } else {
+                  ch.present = false;
+                  evs.push({ kind: "CharacterTranscended", characterId: ch.id, name: ch.name, toTier: next.id });
+                }
               }
             }
           }

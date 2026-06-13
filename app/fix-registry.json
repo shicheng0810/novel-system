@@ -1,0 +1,269 @@
+{
+  "updated": "2026-06-11-D13",
+  "source": ".audit/20260609-eval-governance/synthesis.md §3.2",
+  "freezeRule": "措辞类补丁冻结(停手规则4/5触发·阈值钉死); 单章评测不触发上线(n=1锁); 新症须≥2章复现+机检可分",
+  "items": [
+    {
+      "id": 1,
+      "name": "PENMANSHIP温润",
+      "channel": "sec×4",
+      "target": "房格调/密度/规整/克制",
+      "rating": "基底必留",
+      "charsPerCh": 3800,
+      "retire": "永久层·限700字/段"
+    },
+    {
+      "id": 2,
+      "name": "beatSpec",
+      "channel": "outline×1",
+      "target": "节拍散/无张力/重演",
+      "rating": "部分证实·样例回声已删(2026-06-10)",
+      "charsPerCh": 726,
+      "retire": "样例已抽象化·留骨架"
+    },
+    {
+      "id": 3,
+      "name": "MICRO_TENSION轮盘",
+      "channel": "weave×0.75",
+      "target": "处处圆润",
+      "rating": "疗效与回声同体",
+      "charsPerCh": 110,
+      "retire": "EXP-1双轨判·无差先事实化再判"
+    },
+    {
+      "id": 4,
+      "name": "跨段已写账(段指纹)",
+      "channel": "sec×4",
+      "target": "拼接病",
+      "rating": "失聪实证 | EXP-2(2026-06-10·exp/exp2-segledger): 两臂6章配对无差(flags p=1·d1c p=0.5·D2/tradeReps双零)·关闭侧章长-30%(5095→3576)·按预注册规则=裁撤候选(待人签·检测器#22永留)",
+      "charsPerCh": 160,
+      "retire": "已裁撤(2026-06-10·EXP-2无差·用户人签·SEG_LEDGER_ON默认改opt-in·检测器D7-D12永留·revert=NOVEL_SEG_LEDGER=1)",
+      "status": "DONE-裁撤"
+    },
+    {
+      "id": 5,
+      "name": "人地账",
+      "channel": "sec×4",
+      "target": "重引/重访/日界",
+      "rating": "失聪实证·标记词已删(2026-06-10) | EXP-2(2026-06-10·exp/exp2-segledger): 两臂6章配对无差(flags p=1·d1c p=0.5·D2/tradeReps双零)·关闭侧章长-30%(5095→3576)·按预注册规则=裁撤候选(待人签·检测器#22永留)",
+      "charsPerCh": 397,
+      "retire": "已裁撤(2026-06-10·EXP-2无差·用户人签·SEG_LEDGER_ON默认改opt-in·检测器D7-D12永留·revert=NOVEL_SEG_LEDGER=1)",
+      "status": "DONE-裁撤"
+    },
+    {
+      "id": 6,
+      "name": "交易账",
+      "channel": "sec条件",
+      "target": "同物二卖",
+      "rating": "n=1真阳·糖人绕过=覆盖缺口·样例已删 | EXP-2(2026-06-10·exp/exp2-segledger): 两臂6章配对无差(flags p=1·d1c p=0.5·D2/tradeReps双零)·关闭侧章长-30%(5095→3576)·按预注册规则=裁撤候选(待人签·检测器#22永留)",
+      "charsPerCh": 90,
+      "retire": "已裁撤(2026-06-10·EXP-2无差·用户人签·SEG_LEDGER_ON默认改opt-in·检测器D7-D12永留·revert=NOVEL_SEG_LEDGER=1)",
+      "status": "DONE-裁撤"
+    },
+    {
+      "id": 7,
+      "name": "节拍全景",
+      "channel": "sec×4",
+      "target": "段间互盲",
+      "rating": "未单独证",
+      "charsPerCh": 400,
+      "retire": "B2简化(只留本段拍)"
+    },
+    {
+      "id": 8,
+      "name": "voiceCard声口+毛病",
+      "channel": "sec×4",
+      "target": "声口同腔/人物太标准",
+      "rating": "声口部分证实·毛病=回声风险(散列防)",
+      "charsPerCh": 1400,
+      "retire": "毛病措辞ST-3改写"
+    },
+    {
+      "id": 9,
+      "name": "personaDigest毛病",
+      "channel": "outline",
+      "target": "人物太标准",
+      "rating": "已裁(2026-06-10·与#8双通道冗余)",
+      "charsPerCh": 0,
+      "retire": "DONE"
+    },
+    {
+      "id": 10,
+      "name": "gdDomain/sceneAvoid",
+      "channel": "outline+sec",
+      "target": "镜头锁死",
+      "rating": "证实(全系统最佳案例)",
+      "charsPerCh": 150,
+      "retire": "保留"
+    },
+    {
+      "id": 11,
+      "name": "场景流动泛提示",
+      "channel": "outline",
+      "target": "镜头兜底",
+      "rating": "搭#10",
+      "charsPerCh": 223,
+      "retire": "待压缩到120字"
+    },
+    {
+      "id": 12,
+      "name": "recentImgs近5章意象",
+      "channel": "sec×4",
+      "target": "跨章意象复用",
+      "rating": "证实",
+      "charsPerCh": 160,
+      "retire": "保留"
+    },
+    {
+      "id": 13,
+      "name": "动态段预算+宁短勿堆",
+      "channel": "sec×4",
+      "target": "超配8115",
+      "rating": "机制类无回声·v2嫌疑解除",
+      "charsPerCh": 480,
+      "retire": "保留(A1免责)"
+    },
+    {
+      "id": 14,
+      "name": "canonHard",
+      "channel": "sec×4",
+      "target": "境界/生死漂移",
+      "rating": "证实·事实类零回声",
+      "charsPerCh": 800,
+      "retire": "永久"
+    },
+    {
+      "id": 15,
+      "name": "lore/canonInject/conBlock",
+      "channel": "sec首末",
+      "target": "设定一致",
+      "rating": "已节制",
+      "charsPerCh": 600,
+      "retire": "保留"
+    },
+    {
+      "id": 16,
+      "name": "evoGuidance",
+      "channel": "sec首末(2026-06-10裁自×4)",
+      "target": "历代tic",
+      "rating": "avoid命中率无统计 | W5验收过(2026-06-10 dukou二窗ch1-16: avoidHits draft36>revised35·分化章ch11·FIT_DRAFT保持开)",
+      "charsPerCh": 300,
+      "retire": "命中率门控待做"
+    },
+    {
+      "id": 17,
+      "name": "situAnchor/arcHint/ambience",
+      "channel": "outline",
+      "target": "漂移/开篇/风物",
+      "rating": "机制类",
+      "charsPerCh": 100,
+      "retire": "保留"
+    },
+    {
+      "id": 18,
+      "name": "标题移后·据实起题+D10标题闸",
+      "channel": "title",
+      "target": "标题幻想/回声",
+      "rating": "证实(机制性)",
+      "charsPerCh": 0,
+      "retire": "永久"
+    },
+    {
+      "id": 19,
+      "name": "余味收束指令",
+      "channel": "sec末",
+      "target": "章尾同种静止",
+      "rating": "部分",
+      "charsPerCh": 130,
+      "retire": "保留"
+    },
+    {
+      "id": 20,
+      "name": "宿缘旧账",
+      "channel": "outline",
+      "target": "前情回响",
+      "rating": "已降频(2026-06-10·温润卷首章才注)",
+      "charsPerCh": 4,
+      "retire": "观察"
+    },
+    {
+      "id": 21,
+      "name": "edit-pass(11维+减法+四闸)",
+      "channel": "修订",
+      "target": "用力过猛族",
+      "rating": "证实",
+      "charsPerCh": 0,
+      "retire": "B2后触发率<20%→降flags-only"
+    },
+    {
+      "id": 22,
+      "name": "lint-seams D1-D12",
+      "channel": "检测only",
+      "target": "拼接/回声/算术/事件计量",
+      "rating": "D10/11/12已扩(2026-06-10)",
+      "charsPerCh": 0,
+      "retire": "永不退·检测器与指令分离"
+    },
+    {
+      "id": 23,
+      "name": "D13整句复写检测器+directive",
+      "target": "症⑤分段互盲新形态: ≥12字连续段在>600字两处逐字重复(米糕水痕案ch280: 眼仁雨后山溪石头21字×2)",
+      "type": "detector+directive",
+      "rating": "三语料校准: dukou11.6%/huolang22.3%/好章基准22.2%(directive层≥16字·短段12-15字进telemetry·好章ch1三处短节奏段不误伤)·重大副发现: 带已写账的huolang率(43.2%any)≥裁撤栈dukou(27.6%)→EXP-2裁撤被新仪器回溯再验证·已写账从不防此病 | xiqiao 30章疗效验证: directive失聪实锤(any23%/dir10%≈基线·ch11/20修订采纳复写幸存·ch5地板拒)→按预注册退路升级D13确定性去重(d13DedupSecond·归一检测映射回原文·链式合并·剥头句界·扩句删第二处·占比≥0.55+引号配对守卫·≤2处/章·NOVEL_DEDUP默认开·GENTLE-only)。实测: ch280类独立句复写=删净(d13 1→0)·好章基准2删全真复写零误删·xiqiao ch5/11/20类[从句嵌长句]守卫正确拒删=已知残留类(留telemetry盯) | 两窗疗效复读(2026-06-12·ch286-420·135章成稿侧): **directive层11.6%→1.5%(-87%)**·any27.6%→21.5%(短段保护tier按设计不动)·远低8%升级线=子句手术不必做·残留2章≈守卫拒删类 | dedup v2(2026-06-12 gen2 ch3案): 旧版守卫失败break整轮=彩票式(首候选过闸才删·L60怪物段漏网)→重写候选收集+大段优先+守卫continue+attempted防复试·ch3删2怪物段·全回归绿·好章仍2",
+      "chars": 0,
+      "retire": "检测器永留; dedup若两窗后directive层率仍≥8%→残留类(从句嵌长句)再议子句级手术"
+    },
+    {
+      "id": 24,
+      "name": "D18名漂检测+spawnName防撞(根因reattribution)",
+      "target": "雾江余债案(gen2 ch27·35-55%↓自70-85%): 同方子双署名引出名漂家族——gen2 27章4章真漂(苏思齐≈柳思齐×2/谢子衿≈何子衿/顾小棠≈苏小棠主角漂)·宋青舟(≈柳青舟同业同名)已被canon册封=摄取管道吸漂",
+      "type": "detector+directive+ingest-guard",
+      "rating": "D18(后两字同+姓异+不在册+称谓停用表): gen2命中7章中4真3FP(管事/老三=头衔)·停用表后好章基准0误伤; canon防漂闸拒收同后两字新名(📛日志); 策展移除宋青舟; ch27苏小棠/苏知秋=父女同堂C类非漂 | 反转(同日二诊): 许子衿/方无尘/顾小棠/宋青舟全是sim真角色——根因=make-pack.spawnName姓优先遍历+名池含主角名→17人册15人共享5名(思齐×4/子衿×4/小棠×3/青舟×2/无尘×2)·非写者漂移; 处置回滚: 宋青舟canon恢复·防漂闸降级只报不拒; **真修=spawnName防撞**(主角+显式配角名进禁用表+名优先成块遍历192唯一组合·前24组合实测零主角克隆); D18检测器保留(运行时names含sim册=只打真写漂) | gen3实测(重开后): 主角名克隆绝迹✓·姓块成型✓·残留3对跨块同名(承志/若兰/念远×2·12可用名+turnover结构性·spawnName纯函数按index不可查活册[resume确定性]·vs gen2的15/17灾=量级改善)",
+      "chars": 0,
+      "retire": "检测器永留; 防漂闸若误拒合法新角色(日志可查)→改报不拒"
+    },
+    {
+      "id": 25,
+      "name": "D19同台词复写",
+      "target": "三道印案(gen3 ch17·75-90%): 「连本带息你不该算一算」11字×2逃过D13的16字手术层·台词逐字重说杀伤力远超叙述",
+      "type": "detector+directive",
+      "rating": "引号片段归并(≤8字插入语切开的拼回一句·三道印形态)·≥8字·距>300: gen3 5%/gen1 5.2%/好章0误伤·ch17索引命中; 同龄横评(本案核查「劣化」感): gen3同龄19章三代最干净(D13any 4<6<8)=无系统性劣化·三道印系坏抽样",
+      "chars": 0,
+      "retire": "检测器永留; 沈无尘断线类(开线不收)=B类待复现池"
+    }
+  ],
+  "pending": [
+    {
+      "name": "NOVEL_SEAM_REGEN重生成闸",
+      "status": "未实现(骨架待B2后·定位安全网·限1次/章·注入检测器具体发现)"
+    },
+    {
+      "name": "EXP-2 gates(NOVEL_SEG_LEDGER/NOVEL_FLAW/NOVEL_DYN_BUDGET/NOVEL_RESTRAINT_CLAUSE)",
+      "status": "待EXP-1后补(~1h)"
+    },
+    {
+      "name": "evoGuidance avoid命中率门控",
+      "status": "待统计基建"
+    },
+    {
+      "name": "PENMANSHIP三说一事合并/场景泛提示压缩",
+      "status": "待两轮内指令池≤9000字推进"
+    }
+  ],
+  "runnerCertified": "2026-06-10用户会签(certification-note.json·exp-runner正式上岗)",
+  "trial1": "2026-06-11人签: incumbent续任(trial1-genome-v2·3臂×6章·无候选过双门·cand-coarse[scarcity0.2]双主指标趋好不显著→trial2复测项)",
+  "trial2": "2026-06-11人签: incumbent续任(scarcity-retest/cand-coarse2守门否决[章长cv]·priorweight首测无差·步长0.2过量结论)",
+  "trial3": "2026-06-11人签: incumbent续任(scarcity-half 0.16方向反转=苗头证伪·priorweight二轮不一致=无信号·轴Ⅱ三卷无差→P2-1判别轮触发)",
+  "trial4_freeze": "2026-06-11判别轮(P2-1·§4.8): 三关冻结栈下incumbent vs 44438d5仍无差(micro p=0.637/simile p=0.637·方向跷跷板)→干预掩蔽不成立·死刑材料第1轮; 第2轮改形已排ch150卷6(极端对比基因conflictRate=1.4粗档顶+换指标族rep4g+settleRatio+章数10)·皆无差→参数层死刑签呈用户(冻preset+停候选+预算转P2-2模板层)",
+  "trial5_freeze_R2": "2026-06-11判别轮R2: conflictRate0.6→1.4极端对比·三关冻结·10章·换族指标→**有差**(settleRatio 0.049→0.087·候选9/10章更差·反向p≈0.011·rep4g无差)=基因极端对比下可检→**死刑不签**(§4.8预注册)·检测地板实测落在scarcity0.08步(不可见)与conflictRate0.8步(可见)之间=P1-5粗档挡距设计获实证·轴Ⅱ收缩为低频粗档trial(每2-3卷·下轮~ch200卷8)·P2-2模板层不触发(死刑未签)",
+  "trial6_coarse": "2026-06-11低频粗档R1: turnover-low(0.85→0.35)全面趋差(micro+13%/simile+13%/settle翻倍/章短22%=低代谢不适配渡口题材)·eventbias-high(0.65→1.05)中性偏好(simile-20%·flags=0·均NS)→incumbent五连任·无verdict(fail-safe)·下轮粗档~ch275(卷11)",
+  "trial7_coarse": "2026-06-11: eventbias-retest二轮反转(trial6 simile-20%→trial7 +44%=噪声·线关闭)·structure-high首测全趋差·incumbent六连任·参数轴已扫: scarcity×3/nicheWeight/priorWeight×2/turnoverRate/eventBias×2/structureGrowth/conflictRate极端——全null·剩elderRetention/moveBias未粗测·下轮~ch350(卷14)按池供给",
+  "p2_2_template": "2026-06-11用户「启动模板层」: TPL槽位外置落地(longrun TPL_DEFAULT+NOVEL_TPL_FILE·缺省逐字节同golden37/37·负对照实证注入)·首槽endGentle·三变体(motion/voice/minimal)·trial9-template-v14 spec就位(trial8完即发)·白名单纪律=检测器/canon/标题闸/voiceCard/fitness永不外置·转正=双门+人签+TPL_DEFAULT回写+golden同步·设计档.audit/20260611-p2-2-template-evolution/",
+  "trial8_coarse": "2026-06-11参数轴收官轮: elderRetention 0.38→0.8(最后旋钮)·抢救自误杀案(孤儿臂写满+collect-only重判读)·\"incumbent:incumbent\"·至此9旋钮全谱扫毕全null·参数轴正式转纯护栏(写者request照发·只在池现粗档或用户令时开臂)",
+  "trial9_template": "2026-06-11 P2-2首轮(endGentle槽·4臂): **minimal(40字)settleRatio 0.05→0.033·7好/1差·p=0.035=九轮首个预注册主指标显著**+pauseBeats-33%+flags减半+省110字; similePerK+7%NS(3好/4差)→runner按双门判未过(第二指标不逆条款)·裁决书递用户(推荐复测轮trial10头对头·primary=settleRatio单指标)·motion/voice无差",
+  "trial10_retest": "2026-06-12复测: minimal未复制(settle 0.045vs0.044 p=0.5·cv劣化0.29)→trial9 p=0.035判单窗侥幸·线关(复测纪律第二次拦住假阳性[第一次scarcity])·下槽宁短勿堆排队(~ch400 v16基底)",
+  "trial11_budget": "2026-06-12宁短勿堆槽: positive(正向重述)micro-12%NS但settle+40%差·shorter(减半)micro-21%(p=0.145)NS+flags翻倍→全null现任续任·正向重述假说未证·下槽疏密相间排队(节制1-2槽/日)",
+  "trial12_13": "2026-06-12: 疏密槽(dens-short/structural)与克制句槽(shorter/positive)均全null·现任文本四槽全胜·模板轴四槽全谱收束(endGentle/budget/density/restraint)·节拍全景含插值不宜槽化·静物意象尾句无试验价值",
+  "verify_fresh_01": "2026-06-12重开验证舰队SOP v1: 3冷启新世界×8章并行40分钟·D13dir 4%(gen1出生同口径25%)·any21%(37.5%)·D17零·修复链有效·gen2据此重开",
+  "eval_wujiang": "2026-06-12雾江余债(gen2 ch27): 35-55%(修复链后首个gen2盲评·vs空青芝麻70-85%)·亮点=铜钱人情债/对话/方子工具化·余症=密度均匀(C类已知)+人名密+名漂(→D18)"
+}

@@ -5,7 +5,7 @@
 // 铁律(镜像 gentle-director.ts): 只在 GENTLE; 绝不写 conflictRate/tuning/crisis/drama, 结构上不引冲突,
 //   推进靠「多识一人/多走一程/道行长进/近一桩牵念」非事件冲突; core/packs 不涉。
 //   选择全基于 pl.turn 计数器(禁 Math.random/Date.now) → resume 完全复现。
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import type { LLMProvider } from "../core/services/llm";
 import type { OutlinePlan } from "./outline-plan";
@@ -28,8 +28,9 @@ export function loadPL(d: string): ProgressLedger {
   try { return existsSync(F(d)) ? { ...EMPTY(), ...JSON.parse(readFileSync(F(d), "utf8")) } : EMPTY(); }
   catch { return EMPTY(); }
 }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→load 静默回空(蓝图 .audit/20260610-evolution-overhaul §3.2)
 export function savePL(d: string, p: ProgressLedger): void {
-  try { writeFileSync(F(d), JSON.stringify(p, null, 2), "utf8"); } catch { /* 非关键 */ }
+  try { atomicWrite(F(d), JSON.stringify(p, null, 2)); } catch { /* 非关键 */ }
 }
 
 // 虚词/语法碎片停用集(对齐 gentle-director.isContentGram, 但这里聚焦动作/处境词、不取静物): 滤掉功能字 → 2-gram 聚焦「主角做了什么/走到哪/与谁」, 不被高频语法字稀释。

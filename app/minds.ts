@@ -4,7 +4,7 @@
 //   ③ 异步 + 单写者: 批量 LLM 在 step 之外跑(off-critical-path), 结果经 store.enqueueInput("mind-update")
 //      → 下个 step 的 drainInputs 在单事务里写入(WorldActor 仍是唯一写者, 铁律不破)。反思滞后 1~2 tick(慢变量, 可接受)。
 // 借: Smallville importance>阈反思 · TopoSim 代表共享 · OpenCity 共享前缀 · AI Town input 异步写回。core/ 不涉。
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import type { LLMProvider } from "../core/services/llm";
 import type { WorldSnapshot, CharacterState } from "../core/domain/world";
@@ -28,7 +28,8 @@ export function loadMinds(d: string): MindsState {
   try { return existsSync(F(d)) ? { pendingImp: {}, lastReflectCh: 0, ...JSON.parse(readFileSync(F(d), "utf8")) } : { pendingImp: {}, lastReflectCh: 0 }; }
   catch { return { pendingImp: {}, lastReflectCh: 0 }; }
 }
-export function saveMinds(d: string, m: MindsState): void { try { writeFileSync(F(d), JSON.stringify(m), "utf8"); } catch { /* 非关键 */ } }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→load 静默回空(蓝图 .audit/20260610-evolution-overhaul §3.2)
+export function saveMinds(d: string, m: MindsState): void { try { atomicWrite(F(d), JSON.stringify(m)); } catch { /* 非关键 */ } }
 
 // ① importance 门控(零 LLM): 从新事件给被卷入角色累加卷入度。事件 kind → 该角色增量。
 const KIND_IMP: Record<string, number> = { CharacterFell: 2.5, VengeanceResolved: 2.0, CharacterTranscended: 2.0, FactionDissolved: 1.5, FactionSplit: 1.8, ProgressionAdvanced: 1.2, StoryEventTriggered: 0.8, CharacterEntered: 0.6 };

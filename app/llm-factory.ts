@@ -1,7 +1,7 @@
 // app/llm-factory.ts — LLM 装配(composition root)。
 // 优先级: 网页设置(.novel-output/llm-config.json) > 环境变量 > mock。
 // 网页 /api/settings 写这个文件; longrun 每章按指纹热切换; 引擎(core/)不碰这些机器细节。
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { MockLLM, HermesLLM, DeepSeekLLM, FallbackLLM, type LLMProvider, type HermesOpts } from "../core/services/llm";
@@ -41,7 +41,9 @@ export function readLLMConfig(): LLMConfig {
 
 export function writeLLMConfig(cfg: LLMConfig): void {
   mkdirSync(dirname(LLM_CONFIG_PATH), { recursive: true });
-  writeFileSync(LLM_CONFIG_PATH, JSON.stringify(cfg, null, 2), "utf8");
+  const tmp = LLM_CONFIG_PATH + ".tmp." + process.pid; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→readLLMConfig 静默回落(蓝图 .audit/20260610-evolution-overhaul §3.2)
+  writeFileSync(tmp, JSON.stringify(cfg, null, 2), "utf8");
+  renameSync(tmp, LLM_CONFIG_PATH);
 }
 
 export function readHermesOpts(model?: string): HermesOpts | null {

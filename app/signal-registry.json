@@ -1,0 +1,441 @@
+{
+  "_comment": "P0-9 信号登记簿(声明版·零行为)。蓝图 .audit/20260610-evolution-overhaul/synthesis.md §3.1 P0-9 / §3.4 行 schema。每行: name / reads(读哪一层: draft=修订前草稿 | revised=edit-pass 后成稿 | events=事件流 | snapshot=世界快照 | file=状态文件) / measures(测的是谁: genome=基因 | intervention=干预层 | mixed=混杂 | pipeline=生成管线工艺) / consumers(谁在消费) / pollution(归因污染: 读 revised 者被干预层污染=high; treadmill/emerge 读 events=low; clean 读 draft 账=low) / fv(公式版本戳) / weight+composite(当前权重·registry-lint 与源码对照·weight=0 表示算入史不入 total) / semantic(语义标签·双计检测用)。蓝图初稿估 24 行, 全集实登 26(蓝图行表 + lint-seams/edit-ledger 两聚合维)。",
+  "_rules": [
+    "三禁① pollution=high 的信号不得作 bestEngine 判据 —— evolve.ts bestEngine 现经 simFit.total 吃 novelty(high): 已知违例·蓝图§4.6 预定 bestEngine 退役为遥测",
+    "三禁② pollution=high 的信号不得作铁律停滞判依据 —— longrun~:655 现读 scores.fitness(混 llmFit/objFit 全 high): 已知违例·蓝图 P1-4 换源在案",
+    "三禁③ pollution=high 的信号不得作 QD 沉积依据 —— promoteToGlobal 现按 cell.fitness(混 high 成分)逐格 max: 已知违例·蓝图 P0-6② EMA + §4.6 verdict 制在案"
+  ],
+  "_doubleCountAuthorization": "已知双计 C11: 爽文 fitness 中 simFit.novelty(4-gram 历史重叠·经 simFit×0.28)与 objFit.repetition(4-gram 窗内重复·经 objFit×0.18×0.4)同语义重复计分 → 蓝图裁决: 列报告·不动代码·进一次性授权批。",
+  "fv": 1,
+  "_composites": {
+    "warm.total": "默认(NOVEL_WCLEAN≠1): 0.20*var + 0.25*bond + 0.20*social + 0.15*arc + 0.10*progress + 0.10*treadmill (emerge/breath/clean 不入·各行 weight=0); P1-2 gate 开启变体见 warmTotalVariants.wcleanOn",
+    "warmTotalVariants": {
+      "default": {
+        "var": 0.2,
+        "bond": 0.25,
+        "social": 0.2,
+        "arc": 0.15,
+        "progress": 0.1,
+        "treadmill": 0.1
+      },
+      "wcleanOn": {
+        "var": 0.2,
+        "bond": 0.25,
+        "social": 0.16,
+        "arc": 0.11,
+        "progress": 0.1,
+        "treadmill": 0.1,
+        "clean": 0.08
+      }
+    },
+    "sim.total": "0.5*sift + 0.3*tension + 0.2*(novelty*10) · massacre 守门时 ×0.75",
+    "fitnessOf": "0.28*freshness + 0.18*hook + 0.16*character + 0.14*pacing + 0.12*dialogue + 0.12*coherence",
+    "objectiveScore": "0.4*repScore + 0.3*ttrScore + 0.3*dlgScore - min(2.5, 0.3*avoidHits)",
+    "fitnessBlends": {
+      "shuang_simFit": {
+        "llm": 0.42,
+        "obj": 0.18,
+        "cons": 0.12,
+        "sim": 0.28
+      },
+      "gentle_warmFit": {
+        "llm": 0.45,
+        "obj": 0.15,
+        "cons": 0.1,
+        "warm": 0.3
+      },
+      "fallback_noSim": {
+        "llm": 0.6,
+        "obj": 0.25,
+        "cons": 0.15
+      }
+    }
+  },
+  "signals": [
+    {
+      "name": "warm.var",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "computeWarmFit.total",
+        "evolveOnce.fitness(GENTLE·经wf.total×0.30)",
+        "warm-fitness-history(server曲线)"
+      ],
+      "pollution": "high",
+      "fv": 2,
+      "weight": 0.2,
+      "composite": "warm.total",
+      "note": "2-gram 名词指纹逐章 Jaccard 补·fv2 高段幂放大(γ=9·yunyou 39 窗重放选型); GD 派景/sceneShift 干预直接施压此维(基因哪里弱干预当章补偿·蓝图§1.3#7)"
+    },
+    {
+      "name": "warm.bond",
+      "reads": "snapshot",
+      "measures": "mixed",
+      "consumers": [
+        "computeWarmFit.total",
+        "evolveOnce.fitness(GENTLE·经wf.total×0.30)",
+        "warm-fitness-history(server曲线)"
+      ],
+      "pollution": "mid",
+      "fv": 2,
+      "weight": 0.25,
+      "composite": "warm.total",
+      "note": "在场角色 bond:* 正向人均·fv2 log1p 对数压缩(满分阈 4→8·重放 σ=0.416 真梯度, 治 fv1 钉顶 10.0 sd=0); drama 每章覆写 tuning 调制 sim 故 mid"
+    },
+    {
+      "name": "warm.social",
+      "reads": "events",
+      "measures": "mixed",
+      "consumers": [
+        "computeWarmFit.total",
+        "evolveOnce.fitness(GENTLE·经wf.total×0.30)",
+        "warm-fitness-history(server曲线)"
+      ],
+      "pollution": "mid",
+      "fv": 2,
+      "weight": 0.2,
+      "composite": "warm.total",
+      "note": "StageCommitted ally 占比 + CharacterEntered 新面孔频次; 受 drama tuning 调制故 mid"
+    },
+    {
+      "name": "warm.arc",
+      "reads": "events",
+      "measures": "mixed",
+      "consumers": [
+        "computeWarmFit.total",
+        "evolveOnce.fitness(GENTLE·经wf.total×0.30)",
+        "warm-fitness-history(server曲线)"
+      ],
+      "pollution": "mid",
+      "fv": 2,
+      "weight": 0.15,
+      "composite": "warm.total",
+      "note": "StageCommitted summary 温情完成词匹配(剔负向语义)"
+    },
+    {
+      "name": "warm.progress",
+      "reads": "file",
+      "measures": "pipeline",
+      "consumers": [
+        "computeWarmFit.total",
+        "evolveOnce.fitness(GENTLE·经wf.total×0.30)",
+        "warm-fitness-history(server曲线)"
+      ],
+      "pollution": "mid",
+      "fv": 2,
+      "weight": 0.1,
+      "composite": "warm.total",
+      "note": "读 progression-ledger.json(里程碑达成+近窗挪移); 处境由 advanceStep LLM 读成稿判定、任务由 weave 管线注入; 实测钉死(yunyou 恒 6.5·P0-8 已加 progressFrozen 冻结标注·只标不改分)"
+    },
+    {
+      "name": "warm.emerge",
+      "reads": "events",
+      "measures": "genome",
+      "consumers": [
+        "warm-fitness-history(观察·不入total)",
+        "server曲线"
+      ],
+      "pollution": "low",
+      "fv": 2,
+      "weight": 0,
+      "composite": "warm.total",
+      "note": "纯事件度量(ally 措辞多样/faction 首现/move 占比/tier 跨越)·sim 层 S1/S2/S3 一改即反映=接进化设计; 与 progress 在 move/tier 弱正相关(已声明可接受); 0.05→0 已让位 treadmill"
+    },
+    {
+      "name": "warm.breath",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "warm-fitness-history(观察·不入total)",
+        "server曲线"
+      ],
+      "pollution": "high",
+      "fv": 2,
+      "weight": 0,
+      "composite": "warm.total",
+      "note": "对话/千字反向(寡淡留白=高); 2026-06-08 退役出 total(edit-pass 确定性治密度后冗余、且被 premise 混淆)·仍入史观察"
+    },
+    {
+      "name": "warm.treadmill",
+      "reads": "events",
+      "measures": "mixed",
+      "consumers": [
+        "computeWarmFit.total",
+        "evolveOnce.fitness(GENTLE·经wf.total×0.30)",
+        "warm-fitness-history(server曲线)"
+      ],
+      "pollution": "low",
+      "fv": 2,
+      "weight": 0.1,
+      "composite": "warm.total",
+      "note": "L8 去饱和: 升级跑步机事件(晋阶/归隐/裁决)占有解说事件比的反向; drama 不直接打此维故 low"
+    },
+    {
+      "name": "warm.clean",
+      "reads": "draft",
+      "measures": "genome",
+      "consumers": [
+        "warm-fitness-history(观察·不入total)",
+        "蓝图P1-2转正候选(0.08-0.10·前置P0-8重标定)"
+      ],
+      "pollution": "low",
+      "fv": 2,
+      "weight": 0,
+      "composite": "warm.total",
+      "note": "Q5 观察版: 读 edit-ledger.lints(draft·修订前制造量, microPerK/settleRatio/pauseBeats/similePerK 四维)——断『genome 替编辑领功』归因链第一步; P1-2 转正 gate NOVEL_WCLEAN 已就位(默认关·开启权重见 _composites.warmTotalVariants.wcleanOn)"
+    },
+    {
+      "name": "simFit.sift",
+      "reads": "events",
+      "measures": "mixed",
+      "consumers": [
+        "computeSimFitness.total",
+        "evolveOnce.fitness(!GENTLE·经simFit×0.28)",
+        "evolveOnce.bestEngine(simFit棘轮·⚠三禁watch·蓝图§4.6预定退役为遥测)",
+        "dramaControl(dangling顺水推舟)",
+        "mutateGenome.simReflect"
+      ],
+      "pollution": "mid",
+      "fv": 1,
+      "weight": 0.5,
+      "composite": "sim.total",
+      "note": "story-sifting 链产量×质量(recency 加权); drama 顺水推舟悬链=干预层直接生产 sift 素材故 mid"
+    },
+    {
+      "name": "simFit.tension",
+      "reads": "snapshot",
+      "measures": "mixed",
+      "consumers": [
+        "computeSimFitness.total",
+        "evolveOnce.fitness(!GENTLE·经simFit×0.28)",
+        "evolveOnce.bestEngine(⚠三禁watch)",
+        "dramaControl"
+      ],
+      "pollution": "mid",
+      "fv": 1,
+      "weight": 0.3,
+      "composite": "sim.total",
+      "note": "极化/势均/交锋/赌注/化解/波动(snapshot+近窗 events 双读·主 snapshot); drama tuning 每章调制 conflictRate/eventBias 故 mid"
+    },
+    {
+      "name": "simFit.novelty",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "computeSimFitness.total",
+        "evolveOnce.fitness(!GENTLE·经simFit×0.28)",
+        "evolveOnce.bestEngine(经simFit.total·⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": 0.2,
+      "composite": "sim.total",
+      "semantic": "4gram-overlap",
+      "note": "ASAL 历史新颖度(新章对历史章 4-gram 最大相似度之补); C11: 与 objFit.repetition 同语义双计(授权批·不先动)"
+    },
+    {
+      "name": "critique.freshness",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "fitnessOf→evolveOnce.fitness(llmFit·blend 最大成分0.42-0.6)",
+        "scores.fitness→铁律停滞判(longrun~:655·⚠三禁watch·P1-4换源在案)",
+        "scores.fitness→QD沉积(经archive cell fitness·⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": 0.28,
+      "composite": "fitnessOf",
+      "note": "LLM 评委单采样 σ_llm 0.3-0.7 ≥ 基因效应(P0-3 median-of-3 在案); 读 edit-pass 删病后的成稿=干预层领功"
+    },
+    {
+      "name": "critique.pacing",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "fitnessOf→evolveOnce.fitness(llmFit)",
+        "scores.fitness→铁律停滞判(⚠三禁watch)",
+        "scores.fitness→QD沉积(⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": 0.14,
+      "composite": "fitnessOf",
+      "note": "同 freshness(P0-3 在案); 动态段预算夹断直接调制节奏=干预"
+    },
+    {
+      "name": "critique.dialogue",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "fitnessOf→evolveOnce.fitness(llmFit)",
+        "scores.fitness→铁律停滞判(⚠三禁watch)",
+        "scores.fitness→QD沉积(⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": 0.12,
+      "composite": "fitnessOf",
+      "note": "同 freshness(P0-3 在案); voiceCard 注入直接调制对白=干预"
+    },
+    {
+      "name": "critique.hook",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "fitnessOf→evolveOnce.fitness(llmFit)",
+        "scores.fitness→铁律停滞判(⚠三禁watch)",
+        "scores.fitness→QD沉积(⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": 0.18,
+      "composite": "fitnessOf",
+      "note": "同 freshness(P0-3 在案); 温润语义=余韵回味"
+    },
+    {
+      "name": "critique.coherence",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "fitnessOf→evolveOnce.fitness(llmFit)",
+        "scores.fitness→铁律停滞判(⚠三禁watch)",
+        "scores.fitness→QD沉积(⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": 0.12,
+      "composite": "fitnessOf",
+      "note": "同 freshness(P0-3 在案); canonHard/canonInject 注入直接兜底一致性=干预"
+    },
+    {
+      "name": "critique.character",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "fitnessOf→evolveOnce.fitness(llmFit)",
+        "scores.fitness→铁律停滞判(⚠三禁watch)",
+        "scores.fitness→QD沉积(⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": 0.16,
+      "composite": "fitnessOf",
+      "note": "同 freshness(P0-3 在案); persona/voiceCard 注入直接调制人物=干预"
+    },
+    {
+      "name": "objFit.ttr",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "objectiveScore→evolveOnce.fitness(objFit)",
+        "antiProxy守门(ttr>0.62/温润0.72→打折)",
+        "ledger.scores.ttr",
+        "scores.fitness→铁律停滞判(⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": 0.3,
+      "composite": "objectiveScore",
+      "note": "2-gram type-token ratio; freq/presencePenalty(基因)与 PENMANSHIP(干预)同时驱动→mixed"
+    },
+    {
+      "name": "objFit.repetition",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "objectiveScore→evolveOnce.fitness(objFit)",
+        "antiProxy守门(rep>repThreshold→打折)",
+        "ledger.scores.rep",
+        "scores.fitness→铁律停滞判(⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": 0.4,
+      "composite": "objectiveScore",
+      "semantic": "4gram-overlap",
+      "note": "窗内 4-gram 重复率(repScore=1-min(1,rep*4)); C11: 与 simFit.novelty 同语义双计(授权批·不先动); edit-pass 删重复=干预领功"
+    },
+    {
+      "name": "objFit.avoidHits",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "objectiveScore惩罚项(-0.3/hit·封顶2.5)",
+        "ledger.scores.avoidHits"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": -0.3,
+      "composite": "objectiveScore",
+      "note": "weight 为惩罚系数(取负号记); avoid 账 v1 抑制实测≈随机且 avoidHits 随时间上升(蓝图§1.3#9·P1-3 v2 在案); guidance 注入又请求回避=测量与干预同体"
+    },
+    {
+      "name": "objFit.sentLen",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "rhythmBin(节奏分箱→archive cell key·非计分)",
+        "ledger.scores.slm"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "note": "句长均值·不入 objectiveScore(无 weight/不参与声明对照); 只作 MAP-Elites 节奏维分箱(34/67 分位自适应)"
+    },
+    {
+      "name": "objFit.dialogueRatio",
+      "reads": "revised",
+      "measures": "mixed",
+      "consumers": [
+        "objectiveScore→evolveOnce.fitness(objFit)",
+        "antiProxy守门(dlg>0.55→打折)",
+        "ledger.scores.dlg",
+        "scores.fitness→铁律停滞判(⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "weight": 0.3,
+      "composite": "objectiveScore",
+      "note": "含引号句占比·~0.3 为峰的带状记分(dlgScore)"
+    },
+    {
+      "name": "consFit",
+      "reads": "revised",
+      "measures": "pipeline",
+      "consumers": [
+        "evolveOnce.fitness(blend 0.12/0.10/0.15·见_composites.fitnessBlends)",
+        "scores.fitness→铁律停滞判(⚠三禁watch)"
+      ],
+      "pollution": "high",
+      "fv": 1,
+      "note": "=(canon.lastConsistency + lastForeshadow)/2·缺省保守 5; 一致性由 canonStep LLM 读成稿、伏笔回收率=longrun 排期行为(管线); canonHard 强注入兜底=干预层在场"
+    },
+    {
+      "name": "lintSeams.D1-D12",
+      "reads": "draft",
+      "measures": "pipeline",
+      "consumers": [
+        "reviseChapter.directives(D3/D6/D1c≥8 表层可修)",
+        "flags日志(D1a/D2/D4/D5/D7/D8/D9/D11/D12 结构病只记)",
+        "seam度量(d1cPairs/tradeReps 疗效趋势)",
+        "exp-runner.guards(D1-D12)"
+      ],
+      "pollution": "low",
+      "fv": 1,
+      "note": "拼接病检测器(零 LLM·仅 GENTLE edit-pass 路径): 测 writeChapter 分段流水线工艺病; 检测器与指令分离·永不退(fix-registry#22); D10=echo-lint(注入回声·标题闸在生成端)"
+    },
+    {
+      "name": "editLedger.lint",
+      "reads": "draft",
+      "measures": "mixed",
+      "consumers": [
+        "reviseChapter减法directives(8维设闸)",
+        "edit-ledger.json.lints(滚16章)→warm.clean数据源",
+        "exp-runner主指标(microPerK/settleRatio/restraint/givePerK等)"
+      ],
+      "pollution": "low",
+      "fv": 1,
+      "note": "11+3 维: similePerK/cliches/bodyRepeats/crossImgs/noResp/workingObj/explainTail/microPerK/settleRatio/pauseBeats/pauseEndRatio(+restraint/smilePerK/givePerK 观察不设闸); 基因文笔倾向+prompt 工艺混杂→mixed; draft 侧故 low"
+    }
+  ]
+}

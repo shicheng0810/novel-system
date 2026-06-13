@@ -2,7 +2,7 @@
 //   门派/功法/灵根/地点/法宝/概念 做成条目, 正文提到关键词才召回注入写作 prompt, 而非全量前置(省 token、防过载、保一致)。
 //   中文用子串匹配(includes, 无需分词); alwaysOn 条目无条件常驻。lore.json 落各世界目录。app/ 叶子模块, core/ 不涉。
 //   v1 用关键词召回; 中文别名靠 keys 多写; 语义召回(embedding)留作后续(minds 已有 embedding 基建可借)。
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 
 export interface LoreEntry { name: string; keys: string[]; text: string; alwaysOn?: boolean }
@@ -12,7 +12,8 @@ const F = (d: string): string => join(d, "lore.json");
 export function loadLore(d: string): LoreLib | null {
   try { return existsSync(F(d)) ? (JSON.parse(readFileSync(F(d), "utf8")) as LoreLib) : null; } catch { return null; }
 }
-export function saveLore(d: string, l: LoreLib): void { try { writeFileSync(F(d), JSON.stringify(l, null, 2), "utf8"); } catch { /* 非关键 */ } }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→load 静默回空(蓝图 .audit/20260610-evolution-overhaul §3.2)
+export function saveLore(d: string, l: LoreLib): void { try { atomicWrite(F(d), JSON.stringify(l, null, 2)); } catch { /* 非关键 */ } }
 
 // 规范化任意输入(LLM 产出的 cfg.lore 或用户填)为 LoreLib。
 export function normalizeLore(raw: unknown): LoreLib {

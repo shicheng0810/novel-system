@@ -5,7 +5,7 @@
 //    让其恩怨收束), 而非凭空砸大事(防 Randy-Random 廉价刺激、读者麻木)。
 //  · 闭环 self-limiting: 干预幅度随 coldStreak 增长但封顶 0.6; 张力一回升 cold 即 false → 干预自动退出。
 //  core/ 不涉; 只往 props.tuning / props.dramaFocus 写通用值, 引擎按既有钩子消费。
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import type { WorldEventRecord } from "../core/domain/events";
 import type { WorldSnapshot } from "../core/domain/world";
@@ -18,9 +18,11 @@ export function loadDrama(d: string): DramaCtrl {
   try { return existsSync(D_FILE(d)) ? { coldStreak: 0, hotStreak: 0, lastTension: 5, ...JSON.parse(readFileSync(D_FILE(d), "utf8")) } : { coldStreak: 0, hotStreak: 0, lastTension: 5 }; }
   catch { return { coldStreak: 0, hotStreak: 0, lastTension: 5 }; }
 }
-export function saveDrama(d: string, c: DramaCtrl): void { try { writeFileSync(D_FILE(d), JSON.stringify(c)); } catch { /* 非关键 */ } }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→load 静默回空(蓝图 .audit/20260610-evolution-overhaul §3.2)
+export function saveDrama(d: string, c: DramaCtrl): void { try { atomicWrite(D_FILE(d), JSON.stringify(c)); } catch { /* 非关键 */ } }
 
-export interface DramaOut { tuning: EngineGenes; dramaFocus: string[]; dramaHint: string; ctrl: DramaCtrl; log: string }
+// clamped=[P0-1·干预四账④·蓝图 .audit/20260610-evolution-overhaul §3.1] 本章地板/封顶实际咬合的 tuning 键(遥测零行为·longrun 记入 sim-fitness.json clampLog)。预注册退休条款: 2卷无消费者即停写(蓝图P0-1)。
+export interface DramaOut { tuning: EngineGenes; dramaFocus: string[]; dramaHint: string; ctrl: DramaCtrl; log: string; clamped: string[] }
 
 export function dramaControl(events: WorldEventRecord[], snapshot: WorldSnapshot, sf: SimFitness | null, base: EngineGenes, ctrl: DramaCtrl, gentle = false): DramaOut {
   const present = Object.values(snapshot.characters).filter((c) => c.present);
@@ -43,11 +45,16 @@ export function dramaControl(events: WorldEventRecord[], snapshot: WorldSnapshot
   const chill = Math.min(0.5, hotStreak * 0.18); // 热→收敛
 
   const tuning: EngineGenes = { ...base };
-  if (gentle && !(base.moveBias > 0)) tuning.moveBias = 0.15; // 温情·floor-only(Y): 仅未进化出 moveBias 的世界给 0.15 起跑 floor(破 move=0); 一旦基因进化出值(base.moveBias>0)即沿用基因值(已由上面 {...base} 带入 tuning)→ 不盖掉自进化、让 engineNiche 按真实节奏分格。爽文 gentle=false 不设→tuning.moveBias 沿用 base 的 0→world-actor if 不进、逐字节不变。
-  tuning.eventBias = +Math.max(0.4, base.eventBias * (1 + heat - chill)).toFixed(2);
-  tuning.conflictRate = +Math.max(0.5, base.conflictRate * (1 + heat * 0.6 - chill * 0.7)).toFixed(2);
-  if (!gentle && coldStreak >= 2 && facChange === 0) tuning.structureGrowth = +Math.min(1, base.structureGrowth + 0.3 + heat * 0.3).toFixed(2); // 太静(版图无变动)→挑起派系分裂(温情向不挑裂、由它静着)
-  if (present.length < FLOOR) tuning.turnoverRate = +Math.min(base.turnoverRate, 0.6).toFixed(2); // 人口告急→压折损留住人
+  const clamped: string[] = []; // [P0-1·四账④] 地板/封顶实际咬合的键(纯观察, 数值计算与原逐字节同——raw 提取不改运算)。预注册退休条款: 2卷无消费者即停写(蓝图P0-1)。
+  if (gentle && !(base.moveBias > 0)) { tuning.moveBias = 0.15; clamped.push("moveBiasFloor"); } // 温情·floor-only(Y): 仅未进化出 moveBias 的世界给 0.15 起跑 floor(破 move=0); 一旦基因进化出值(base.moveBias>0)即沿用基因值(已由上面 {...base} 带入 tuning)→ 不盖掉自进化、让 engineNiche 按真实节奏分格。爽文 gentle=false 不设→tuning.moveBias 沿用 base 的 0→world-actor if 不进、逐字节不变。
+  const evRaw = base.eventBias * (1 + heat - chill);
+  tuning.eventBias = +Math.max(0.4, evRaw).toFixed(2);
+  if (evRaw < 0.4) clamped.push("eventBias");
+  const cfRaw = base.conflictRate * (1 + heat * 0.6 - chill * 0.7);
+  tuning.conflictRate = +Math.max(0.5, cfRaw).toFixed(2);
+  if (cfRaw < 0.5) clamped.push("conflictRate");
+  if (!gentle && coldStreak >= 2 && facChange === 0) { const sgRaw = base.structureGrowth + 0.3 + heat * 0.3; tuning.structureGrowth = +Math.min(1, sgRaw).toFixed(2); if (sgRaw > 1) clamped.push("structureGrowth"); } // 太静(版图无变动)→挑起派系分裂(温情向不挑裂、由它静着)
+  if (present.length < FLOOR) { tuning.turnoverRate = +Math.min(base.turnoverRate, 0.6).toFixed(2); if (base.turnoverRate > 0.6) clamped.push("turnoverRate"); } // 人口告急→压折损留住人
 
   // 戏剧导演: 顺水推舟未了的故事链(聚焦未了复仇者 → director 优先让其登场, 推动恩怨收束)
   const danglers = present.filter((c) => typeof c.props["avenge"] === "string");
@@ -58,5 +65,5 @@ export function dramaControl(events: WorldEventRecord[], snapshot: WorldSnapshot
 
   const evMult = (x: number, b: number): string => (Math.max(0.01, b) ? (x / Math.max(0.01, b)).toFixed(2) : "1");
   const log = `${cold ? "❄冷" : hot ? "🔥热" : "≈临界"}(兴亡${upheaval}/张力${tension}/戏链${sift}/在场${present.length}) → 大事×${evMult(tuning.eventBias, base.eventBias)} 冲突×${evMult(tuning.conflictRate, base.conflictRate)}${tuning.structureGrowth > base.structureGrowth ? " 挑裂" : ""}${tuning.turnoverRate < base.turnoverRate ? " 护盘" : ""}${dramaFocus.length ? ` 聚焦未了×${dramaFocus.length}` : ""}`;
-  return { tuning, dramaFocus, dramaHint, ctrl: { coldStreak, hotStreak, lastTension: tension }, log };
+  return { tuning, dramaFocus, dramaHint, ctrl: { coldStreak, hotStreak, lastTension: tension }, log, clamped };
 }

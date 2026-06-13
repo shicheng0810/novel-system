@@ -91,6 +91,25 @@ function narrate(e: { kind: string; summary?: string; payload?: unknown }, nameO
   }
 }
 
+// 世事流转折叠(诉求: 用户反馈"重复"): 连续同类事件(晋阶/归隐/依准/落定/了断)合并成一行, 防晚期饱和(角色都封顶→晋阶/归隐刷屏 + autoverdict 全准→"依准"连刷)把解说区刷成重复。零 LLM。
+function logPrefix(n: string): string { const m = n.match(/^[^·\s]+/); return m ? m[0] : n; }
+function collapseLog(arr: Array<{ severity: unknown; narration: string }>): Array<{ severity: unknown; narration: string }> {
+  const MERGE = new Set(["晋阶", "归隐", "议事已裁", "落定", "了断"]); // 易刷屏的同类事件
+  const groups: Array<{ severity: unknown; pre: string; items: string[] }> = [];
+  for (const it of arr) {
+    const pre = logPrefix(it.narration);
+    const last = groups[groups.length - 1];
+    if (last && last.pre === pre && MERGE.has(pre)) { last.items.push(it.narration); continue; } // 连续同类→并入
+    groups.push({ severity: it.severity, pre, items: [it.narration] });
+  }
+  return groups.map((g) => {
+    if (g.items.length === 1) return { severity: g.severity, narration: g.items[0] };
+    if (g.pre === "议事已裁") return { severity: g.severity, narration: `议事已裁 · ${g.items.length} 桩接连依准` };
+    const subj = [...new Set(g.items.map((n) => { const m = n.match(/·\s*([^\s，、]+)/); return m ? m[1] : ""; }).filter(Boolean))]; // 抽主语去重
+    return { severity: g.severity, narration: `${g.pre} · ${subj.slice(0, 5).join("、")}${subj.length > 5 ? "等" : ""}（${g.items.length} 桩）` };
+  });
+}
+
 const sseClients = new Set<ServerResponse>();
 let lastSeqBroadcast = 0;
 function broadcastNew(): void {
@@ -140,9 +159,10 @@ function readReg(): WorldEntry[] {
     return [];
   }
 }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→readReg/世界配置静默坏(蓝图 .audit/20260610-evolution-overhaul §3.2)
 function writeReg(r: WorldEntry[]): void {
   mkdirSync(OUT, { recursive: true });
-  writeFileSync(REG, JSON.stringify(r, null, 2), "utf8");
+  atomicWrite(REG, JSON.stringify(r, null, 2));
 }
 function chapterCount(name: string): number {
   try {
@@ -171,7 +191,8 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const recent = store.readRecentEvents(db, worldId, 250);
     const chars = store.loadSnapshot(db, worldId)?.snapshot.characters ?? {};
     const nameOf = (id: string): string => chars[id]?.name ?? id;
-    const out = recent.map((e) => ({ severity: e.severity, narration: narrate(e, nameOf) })).filter((x) => x.narration).slice(-40).reverse(); // 近40条有解说的, 最新在前
+    const mapped = recent.map((e) => ({ severity: e.severity, narration: narrate(e, nameOf) })).filter((x) => x.narration) as Array<{ severity: unknown; narration: string }>;
+    const out = collapseLog(mapped).slice(-40).reverse(); // 折叠连续同类(晋阶/归隐/依准刷屏)防晚期饱和重复, 近40条, 最新在前
     return json(res, out);
   }
   if (url === "/api/snapshot") return json(res, store.loadSnapshot(db, worldId)?.snapshot ?? null);
@@ -321,7 +342,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           const cfgStyle = (cfg as { style?: string }).style;
           const cfgPath = join(OUT, "worlds", `${SAGA}.json`);
           mkdirSync(dirname(cfgPath), { recursive: true });
-          writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
+          atomicWrite(cfgPath, JSON.stringify(cfg, null, 2)); // [档C②] 世界配置原子写(longrun 每次重启都读, 撕坏即起不来)
           const WDIR = join(here, "..", ".novel-output", SAGA);
           if ((p.outlineMode === "balanced" || p.outlineMode === "strict") && p.outline && p.outline.trim()) {
             try { const plan = await generateOutlinePlan(p.outline, llm, 1000); plan.obedience = p.outlineMode; if (plan.beats.length) saveOutlinePlan(WDIR, plan); } catch { /* 退化涌现, 不阻断 */ }
@@ -351,12 +372,30 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     try { if (existsSync(lf)) { pid = Number(readFileSync(lf, "utf8").trim()); if (pid > 0) { process.kill(pid, "SIGKILL"); killed = true; } } } catch { killed = false; }
     return json(res, { killed, pid });
   }
+  if (url === "/api/start" && req.method === "POST") { // 继续/重启该世界写者(⏹终止或崩溃后续写)。WARMUP=0 不重预演化(longrun n>0 本就跳过)、NOVEL_STYLE 同源世界配置(兜底温情产物在则温润)、防双写者串台。
+    const dir = join(here, "..", ".novel-output", SAGA);
+    const lf = join(dir, "longrun.lock");
+    let alive = false, oldPid = 0;
+    try { if (existsSync(lf)) { oldPid = Number(readFileSync(lf, "utf8").trim()); if (oldPid > 0) { process.kill(oldPid, 0); alive = true; } } } catch { alive = false; } // 锁内 PID 还活 → 已有写者在跑
+    if (alive) return json(res, { started: false, reason: "alive", pid: oldPid }); // 防双写者: 历史教训=堆叠僵尸写者同章写两遍/串台
+    try { if (existsSync(lf)) unlinkSync(lf); } catch { /* 清死锁: 免新写者等陈旧锁超时接管 */ }
+    try { const pf = join(dir, "paused"); if (existsSync(pf)) unlinkSync(pf); } catch { /* 继续=恢复写作: 清残留 paused 文件, 免重启后写者空转(终止+暂停叠加时尤需) */ }
+    const cfgPath = join(OUT, "worlds", `${SAGA}.json`);
+    let cfgStyle = ""; try { if (existsSync(cfgPath)) cfgStyle = String((JSON.parse(readFileSync(cfgPath, "utf8")) as { style?: string }).style ?? ""); } catch { /* 配置缺失不阻断 */ }
+    if (cfgStyle !== "温润" && (existsSync(join(dir, "warm-fitness.json")) || existsSync(join(dir, "gentle-director.json")))) cfgStyle = "温润"; // 兜底: 配置无 style 但温情产物在(如 renjian) → 判温润, 免重启丢温润退回爽文
+    try {
+      const child = spawn("npx", ["tsx", "app/longrun.ts"], { cwd: join(here, ".."), env: { ...process.env, NOVEL_PACK: "freeform", NOVEL_WORLD_CONFIG: cfgPath, NOVEL_SAGA_DIR: SAGA, NOVEL_STANDBY: "0", NOVEL_TARGET: "1000", NOVEL_SECTIONS: "4", NOVEL_WARMUP: "0", NOVEL_STYLE: cfgStyle === "温润" ? "温润" : "" }, detached: true, stdio: "ignore" }); // 续写: WARMUP=0; NOVEL_EVOLVE 默认开不显式设
+      child.on("error", () => { /* spawn 失败(npx/tsx 起不来): 锁已清, 可再点继续 */ });
+      child.unref();
+    } catch (e: unknown) { res.statusCode = 500; return json(res, { started: false, reason: String(e).slice(0, 120) }); }
+    return json(res, { started: true }); // 新写者建锁后 /api/pause 轮询自动转 alive
+  }
   if (url === "/api/delete" && req.method === "POST") { // 彻底删除本世界: 杀写者 + 归档数据目录(可逆) + 移出注册表, 之后 server 自停。
     const dir = join(here, "..", ".novel-output", SAGA);
     let killed = false, pid = 0, archived = "";
     try { const lf = join(dir, "longrun.lock"); if (existsSync(lf)) { pid = Number(readFileSync(lf, "utf8").trim()); if (pid > 0) { process.kill(pid, "SIGKILL"); killed = true; } } } catch { /* ignore */ }
     try { if (existsSync(dir)) { archived = `${dir}-killed-${Date.now()}`; renameSync(dir, archived); } } catch { /* ignore */ }
-    try { writeFileSync(REG, JSON.stringify(readReg().filter((w: { name?: string }) => w.name !== SAGA), null, 2), "utf8"); } catch { /* ignore */ }
+    try { atomicWrite(REG, JSON.stringify(readReg().filter((w: { name?: string }) => w.name !== SAGA), null, 2)); } catch { /* ignore */ }
     json(res, { deleted: true, killed, pid, archived: archived.split("/").pop() ?? "" });
     setTimeout(() => process.exit(0), 800); // 数据已移走, 本 server 无法再服务该世界
     return;
@@ -386,7 +425,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
           const cfgStyle = (cfg as { style?: string }).style;
           const cfgPath = join(OUT, "worlds", `${safe}.json`);
           mkdirSync(dirname(cfgPath), { recursive: true });
-          writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), "utf8");
+          atomicWrite(cfgPath, JSON.stringify(cfg, null, 2)); // [档C②] 世界配置原子写(longrun 每次重启都读, 撕坏即起不来)
           const wdir = join(OUT, safe); mkdirSync(wdir, { recursive: true });
           // 严格跟纲模式: 解析大纲 → 章节节拍主线, 落到世界目录, longrun 读到则逐章跟纲(松散底座模式不生成)
           if ((p.outlineMode === "balanced" || p.outlineMode === "strict") && p.outline && p.outline.trim()) {

@@ -181,6 +181,30 @@ export function getChapter(db: DB, worldId: string, id: string): { goal: string;
   const r = db.prepare(`SELECT goal, text FROM chapters WHERE world_id=? AND id=?`).get(worldId, id) as { goal: string; text: string } | undefined;
   return r ?? null;
 }
+// ── drafts(章后精修 pass 的修订前草稿·蓝图 .audit/20260610-evolution-overhaul §3.1 P0-2 / §3.2 P1-1) ──
+// 独立表彻底隔离: readChapters(:163) 无前缀过滤且 resume 章号源是它 → draft 绝不能落 chapters 表(独立行 id 也不行)。
+// 表懒建(CREATE TABLE IF NOT EXISTS): 不动 schema.sql, 旧库零迁移; 只新增函数、不改既有任何函数语义。
+function ensureDrafts(db: DB): void {
+  db.exec(`CREATE TABLE IF NOT EXISTS drafts (
+    id TEXT NOT NULL,
+    world_id TEXT NOT NULL,
+    ch INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (world_id, ch)
+  )`);
+}
+// 修订前草稿落盘(reviseChapter 采纳修订时调; draft 与成稿不同的章才有行)。幂等: 同章重写(弃章重试)覆盖。
+export function saveDraft(db: DB, worldId: string, ch: number, text: string, ts: number): void {
+  ensureDrafts(db);
+  db.prepare(`INSERT OR REPLACE INTO drafts (id, world_id, ch, text, created_at) VALUES (?,?,?,?,?)`).run(`draft-ch-${ch}`, worldId, ch, text, ts);
+}
+// 读区间草稿(P1-1 draft 双轨: 进化评估窗读修订前草稿, 缺 draft 的章由调用方回退成稿)。
+export function readDrafts(db: DB, worldId: string, fromCh: number, toCh: number): Array<{ ch: number; text: string }> {
+  ensureDrafts(db);
+  return db.prepare(`SELECT ch, text FROM drafts WHERE world_id=? AND ch>=? AND ch<=? ORDER BY ch`).all(worldId, fromCh, toCh) as Array<{ ch: number; text: string }>;
+}
+
 // 近期"实际发生的事"(从 events 的 StageCommitted payload 取 summary), 给 compose 当素材
 export function readRecentStageSummaries(db: DB, worldId: string, limit: number): string[] {
   const rows = db.prepare(`SELECT payload_json FROM events WHERE world_id=? AND kind='StageCommitted' ORDER BY seq DESC LIMIT ?`).all(worldId, limit) as Array<{

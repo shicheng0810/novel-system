@@ -4,7 +4,7 @@
 //   ③ 影子模拟闸(借 OMNI-EPIC/POET MCC): 把候选机制注入当前世界的克隆, 用 MockLLM 空跑 N tick —— 不崩、人口不坍、派系不爆炸才准入。
 // 准入的机制以通用数据挂进 props.simRules, 由 core/world-actor 的 simRuleStoryEvent 按通用 metric/effect 解释触发(零 genre 语义)。
 // 镜像 constraints.ts 的提议→准入流程, 但作用在「模拟层」而非「作者层」, 且闸门是自动影子模拟(非人工议事)。core/ 不涉。
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { openDb } from "../core/services/db";
 import { MockLLM, type LLMProvider } from "../core/services/llm";
@@ -33,7 +33,8 @@ export function loadSimRules(d: string): SimRules {
   try { return existsSync(SR_FILE(d)) ? { active: [], generation: 0, rejected: [], ...JSON.parse(readFileSync(SR_FILE(d), "utf8")) } : { active: [], generation: 0, rejected: [] }; }
   catch { return { active: [], generation: 0, rejected: [] }; }
 }
-export function saveSimRules(d: string, r: SimRules): void { try { writeFileSync(SR_FILE(d), JSON.stringify(r, null, 2), "utf8"); } catch { /* 非关键 */ } }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→load 静默回空(蓝图 .audit/20260610-evolution-overhaul §3.2)
+export function saveSimRules(d: string, r: SimRules): void { try { atomicWrite(SR_FILE(d), JSON.stringify(r, null, 2)); } catch { /* 非关键 */ } }
 
 // ── ① 静态自洽闸: 解析+校验+钳死 → 规范化 SimRule(或 null) ──
 function validateSimRule(j: Record<string, unknown>, vol: number, idSuffix: string): SimRule | null {

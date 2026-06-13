@@ -2,7 +2,7 @@
 //   松散底座(loose)模式不生成本文件; 仅 follow 模式在建世界时生成 outline-plan.json, longrun 读到则逐章跟纲。
 //   注: 世界模拟仍在底下跑(角色心智/状态/质感), 跟纲只 steer 每章「情节方向」; 若模拟与大纲硬冲突(如大纲要的人已陨落),
 //   以 prose 调和为主、不强制模拟服从大纲(那是更大的工程)。app/ 叶子模块, core/ 不涉。
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import type { LLMProvider } from "../core/services/llm";
 
@@ -17,8 +17,9 @@ export function loadOutlinePlan(d: string): OutlinePlan | null {
   try { return existsSync(PLAN_FILE(d)) ? (JSON.parse(readFileSync(PLAN_FILE(d), "utf8")) as OutlinePlan) : null; }
   catch { return null; }
 }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→load 静默回空(蓝图 .audit/20260610-evolution-overhaul §3.2)
 export function saveOutlinePlan(d: string, p: OutlinePlan): void {
-  try { writeFileSync(PLAN_FILE(d), JSON.stringify(p, null, 2), "utf8"); } catch { /* 非关键 */ }
+  try { atomicWrite(PLAN_FILE(d), JSON.stringify(p, null, 2)); } catch { /* 非关键 */ }
 }
 
 // 找覆盖第 n 章的节拍 goal(超出计划末尾 → 返回最后一段, 让结尾不至于突然失纲; 完全无计划 → 空)

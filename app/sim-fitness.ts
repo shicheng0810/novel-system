@@ -6,7 +6,7 @@
 //   ③ ASAL 历史新颖度: 新章对所有历史章的最大相似度越低越好(抗停滞/抗套路重复)。
 // 走文件持久化(镜像 canon): longrun 每 8 章算好存盘, evolveOnce 读 total 折进基因适应度; server 读出来画曲线。
 // core/ 不涉, 纯 app 层。
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import type { WorldEventRecord, DomainEvent } from "../core/domain/events";
 import type { WorldSnapshot, CharacterState } from "../core/domain/world";
@@ -38,13 +38,14 @@ export function loadSimFitness(d: string): SimFitness | null {
   try { return existsSync(SF_FILE(d)) ? (JSON.parse(readFileSync(SF_FILE(d), "utf8")) as SimFitness) : null; } catch { return null; }
 }
 export function loadSimHistory(d: string): SimHistory { try { return existsSync(SH_FILE(d)) ? (JSON.parse(readFileSync(SH_FILE(d), "utf8")) as SimHistory) : { history: [] }; } catch { return { history: [] }; } }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→load 静默回空(蓝图 .audit/20260610-evolution-overhaul §3.2)
 export function saveSimFitness(d: string, sf: SimFitness): void {
   try {
-    writeFileSync(SF_FILE(d), JSON.stringify(sf, null, 2), "utf8");
+    atomicWrite(SF_FILE(d), JSON.stringify(sf, null, 2));
     const h: SimHistory = (() => { try { return existsSync(SH_FILE(d)) ? (JSON.parse(readFileSync(SH_FILE(d), "utf8")) as SimHistory) : { history: [] }; } catch { return { history: [] }; } })();
     h.history.push({ atCh: sf.atCh, vol: sf.vol, total: sf.total, sift: sf.sift.score, tension: sf.tension.score, novelty: +(sf.novelty * 10).toFixed(2) });
     if (h.history.length > 400) h.history = h.history.slice(-400);
-    writeFileSync(SH_FILE(d), JSON.stringify(h, null, 2), "utf8");
+    atomicWrite(SH_FILE(d), JSON.stringify(h, null, 2));
   } catch { /* 非关键 */ }
 }
 

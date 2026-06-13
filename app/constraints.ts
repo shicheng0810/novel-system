@@ -2,7 +2,7 @@
 //   而非空间内调参。每个世界有一组显式「铁律」(enabling constraints)定义其叙事可能性空间;
 //   进化算子定期【提议】改写一条铁律 → 经【议事】由作者人工裁决(破自动评委天花板)→ 批准则改变空间。
 // core/ 不涉, 纯 app 层。
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import type { LLMProvider } from "../core/services/llm";
 
@@ -30,7 +30,8 @@ export function loadConstraints(d: string): Constraints {
     return { active: Array.isArray(c.active) && c.active.length ? c.active : [...DEFAULT_CONSTRAINTS], generation: c.generation ?? 0, pending: c.pending, history: c.history ?? [], lastChangeCh: c.lastChangeCh ?? 0 };
   } catch { return { active: [...DEFAULT_CONSTRAINTS], generation: 0, history: [], lastChangeCh: 0 }; }
 }
-export function saveConstraints(d: string, c: Constraints): void { writeFileSync(C_FILE(d), JSON.stringify(c, null, 2), "utf8"); }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→load 静默回空(蓝图 .audit/20260610-evolution-overhaul §3.2)
+export function saveConstraints(d: string, c: Constraints): void { atomicWrite(C_FILE(d), JSON.stringify(c, null, 2)); }
 
 // 注入生成提示的「世界铁律」块
 export function constraintsBlock(active: string[]): string {
