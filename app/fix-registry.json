@@ -266,5 +266,6 @@
   "trial12_13": "2026-06-12: 疏密槽(dens-short/structural)与克制句槽(shorter/positive)均全null·现任文本四槽全胜·模板轴四槽全谱收束(endGentle/budget/density/restraint)·节拍全景含插值不宜槽化·静物意象尾句无试验价值",
   "verify_fresh_01": "2026-06-12重开验证舰队SOP v1: 3冷启新世界×8章并行40分钟·D13dir 4%(gen1出生同口径25%)·any21%(37.5%)·D17零·修复链有效·gen2据此重开",
   "eval_wujiang": "2026-06-12雾江余债(gen2 ch27): 35-55%(修复链后首个gen2盲评·vs空青芝麻70-85%)·亮点=铜钱人情债/对话/方子工具化·余症=密度均匀(C类已知)+人名密+名漂(→D18)",
-  "verify_fullctx": "2026-06-12舰队(fork gen3 ch100·3臂×8章): FULLCTX套语爆炸**坐实**(A臂d1c均11.9=B臂4.8的2.5x·峰30≥16历史爆炸区·D13复写3vs0·p=0.004·章长+18%)→**FULLCTX否决为根治**(handoff警告获实证); SEG_LEDGER单开benign(C臂d1c4.1≈对照·无套语代价)但漂移轴本批未表达(三臂drift均0·base太干净)=窄带账本安全但疗效未证"
+  "verify_fullctx": "2026-06-12舰队(fork gen3 ch100·3臂×8章): FULLCTX套语爆炸**坐实**(A臂d1c均11.9=B臂4.8的2.5x·峰30≥16历史爆炸区·D13复写3vs0·p=0.004·章长+18%)→**FULLCTX否决为根治**(handoff警告获实证); SEG_LEDGER单开benign(C臂d1c4.1≈对照·无套语代价)但漂移轴本批未表达(三臂drift均0·base太干净)=窄带账本安全但疗效未证",
+  "p1_factledger": "2026-06-13 P1v1否决: NOVEL_FACT_LEDGER(zero-LLM逐字台词指纹注入)A/B双轴皆败(复述率A5/8>B3/8·d1c A6.0=B3.3的1.8x)→喂逐字散文触发induction-head复制·同时放大复述+套语(FULLCTX小号)·研究核心实证·gate保持默认关·建议暂搁或v2数据型抽取"
 }
