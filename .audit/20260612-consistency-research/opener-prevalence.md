@@ -28,3 +28,17 @@
 - **诚实边界**: 涌现型新规则矛盾("独条船"非配置已有·ch1 现编)只 B3 章内守卫接其"同章推翻"部分·真预防需选配世界规则抽取(A2 未显示规则型占多·暂不上)。
 
 ## 4. 下一步 = Phase B(OFS + 矛盾守卫·动 longrun→四道 canary + A/B 舰队·不碰 gen4·人签采纳)
+
+## 5. Phase C A/B 终判:**inconclusive·不采纳**(2026-06-13)
+舰队 `verify-opener-v1`(fresh 冷启双臂·各 ch1-8·A=OPENER_FACTS=1+FACT_LEDGER=3 / B=对照 FACT_LEDGER=2):
+
+| 轴 | A(OFS+守卫) | B(对照) | 判定 |
+|---|---|---|---|
+| factualContradiction(主·判官 ch1-5) | 0/5 | 0/5 | base 本批未表达·无从证降 |
+| transitionGap(判官 ch1-5) | 1/5(ch4 陆云归未上船却站船头) | 0/5 | A 反多1(n=1 噪声·守卫未拦住此例) |
+| d1c 套语(副) | 5.4/峰10 | 8.0/峰14 | A benign(数据型未催套语·反更净) |
+| 章长 | 3082 | 3294 | 不催肥 |
+
+**裁断: inconclusive → 不采纳(gate 保持默认关)。** 主靶 factualContradiction 两臂均 0——冷启 fresh 世界 ch1-5 用当前共享栈本就不产 factC(不同于 17% 基线含 gen4 ch3/gen3 ch1 等历史坏章·彼时栈不同)→ OFS 的增量价值**无法在本批显示**(同"容器漂移舰队 base 太干净测不出"问题)。transG A>B 是 n=1 噪声且暴露守卫未拦 ch4 例。**OFS/守卫无害(d1c benign)但无证据有效。**
+**处置选项(交用户)**: ①更狠的测——fork 自历史含矛盾态 或 judge ch1-8 加样、跑第二批(trial 复测纪律); ②OFS 搁置(gated 留档·无害但未证·同 v1 留档但 v1 有害、OFS 无害); ③仍采纳(凭 17% 基线先验+机理+benign·但违"无证降不采纳"纪律·不建议)。
+**诚实结论**: Phase A 量出开篇 factC 17% 是真(历史章), 但 Phase C 用当前栈的 fresh 世界复现不出该发率 → 要么当前栈已自带改善(则 OFS 多余), 要么需更大样本/更脏 base 才测得出。**测量纪律下: 不采纳, 待更强证据。**
