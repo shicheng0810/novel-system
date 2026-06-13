@@ -65,5 +65,11 @@
 - `app/consistency-judge.ts` — 判官 prompt 模板 + 三类定义 + 证据链 schema(Opus subagent 驱动·DeepSeek 自判为弱 fallback)。
 - 本文件 + `prevalence-baseline.md`(确定性表原始输出)。
 
-## 5. 下一步(P1·待用户授权动 longrun)
-建窄带「已陈述事实账本」: 每段后零 LLM 抽本段陈述的人物状态/物件事实 → 紧凑 schema(非散文)→ 下段 prompt 边缘提示"以下已交代,勿复述"。**动 longrun 模块级 → 四道 canary 铁律 + A/B 舰队双轴(判官复述率↓ + d1c 不炸)+ 不赌 gen3。** 先出设计 + 人签再动手。
+## 5. P1 已实现(gated·默认关·2026-06-12 用户「计划里需要做的都要」)
+**窄带台词复述账本 v1**(`NOVEL_FACT_LEDGER` gate·默认关·zero-LLM·GENTLE-only·resume 安全):
+- 段循环后零 LLM 抽本段台词(`「」`内 ≥8字)→ 归一指纹(去标点·截18字)→ `statedLines` 滑窗(封顶最近10条防催肥)。
+- 下段 prompt 边缘注入「本章已说过的话·勿再原样说同一句、也勿换措辞把同一件事实再交代一遍」。
+- **靶心**=判官实测复述多为台词形态(姜是姜/唐若兰差人送来/他哪来的钱);章内段间维护,正合判官发现的章内复述 scope。
+- **四道过**: esbuild ✓ tsc ✓ golden 37/37(未设 statedLines=逐字节同·默认关零变·`?.` null-safe)✓ 产线 canary(FACT_LEDGER=1 加载)✓。golden 抓到一次 required-field 崩→改 optional+null-safe(第四道价值实证)。
+- **A/B 舰队验证中**(`verify-factledger-v1`·fork gen3 v5·fact-on vs 对照·8章): 双轴=①判官复述率(Opus subagent 另测·主)②d1c 套语(防注入回喂催爆)。**采纳门槛**: 复述率↓ 且 d1c 不炸(A≤B×1.3 且 <16)→ 递人签设默认; 否则机制无效/改结构化 schema。
+- **靶心边界(诚实)**: v1 zero-LLM 只接逐字/近逐字台词复述(判官 findings 多数);纯语义复述(嗓子哑/新钱·不同措辞)逃过 v1,留待 v2 light-LLM 结构化抽取(若 v1 验证概念成立再上)。
