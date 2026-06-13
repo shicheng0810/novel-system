@@ -33,6 +33,7 @@ export interface WorldConfig {
   surnames?: string[]; // 姓氏池(名字池用尽后「姓+名」组合, 避免「·N」后缀漏进正文)
   givenNames?: string[]; // 名字池(同上)
   moodWords?: [string, string, string, string]; // 心境四档(焚/动/省/澄), 缺省给通用
+  gateCurve?: "linear" | "exp"; // [去饱和·L2] 进阶门槛曲线: linear(默认·爽文要稳定爬塔爽感)/exp(温情·高阶门槛指数化→封顶稀有化, 防晚期归隐刷屏饱和)。蓝图 .audit/20260608-desaturation/
 }
 
 const DEFAULT_GOAL = { label: "立身", desc: "在这世道里站稳脚跟", axis: "caution" as DispAxis };
@@ -70,9 +71,11 @@ export function makePack(cfg: WorldConfig) {
   const progression: ProgressionSystem = {
     tiers: TIERS,
     canAdvance(char) {
-      if (num(char.props["actCount"], 0) < 6) return { ok: false, gate: "bottleneck" };
-      const ord = TIERS.findIndex((t) => t.id === char.progressionTier);
-      if (num(char.props["resource"], 0) < (Math.max(0, ord) + 1) * 3) return { ok: false, gate: "lack-resource" };
+      if (char.props["elder"]) return { ok: false, gate: "elder" }; // [去饱和·L4] 封顶留场的 elder 不再进阶, 留场生传承/请益/旧怨戏
+      const ord = Math.max(0, TIERS.findIndex((t) => t.id === char.progressionTier));
+      const exp = cfg.gateCurve === "exp"; // [去饱和·L2] exp(温情)→高阶门槛指数化、封顶稀有; 默认 linear → 爽文/旧库逐字节不变(linear 分支与原式等价)
+      if (num(char.props["actCount"], 0) < (exp ? 6 + ord * 2 : 6)) return { ok: false, gate: "bottleneck" };
+      if (num(char.props["resource"], 0) < (exp ? Math.round(3 * Math.pow(1.7, ord)) : (ord + 1) * 3)) return { ok: false, gate: "lack-resource" };
       return { ok: true };
     },
   };
@@ -120,12 +123,18 @@ export function makePack(cfg: WorldConfig) {
   const _genSur = (cfg.surnames ?? []).filter((s) => !_usedSur.has(s));
   const genSurnames = _genSur.length >= 2 ? _genSur : (cfg.surnames ?? []);
   // 名字池用尽后用「姓+名」组合生成干净互异名(身份靠 id 唯一; 无姓名池则干净循环、不加「·N」后缀污染正文)
+  // [P0-2·撞名灾修·2026-06-12雾江余债案] 旧式=姓优先遍历(前16组合全拿giv[0])且名池含主角名→gen2实测17人册15人共享5名(思齐×4/子衿×4/小棠×3/青舟×2/无尘×2·宋青舟≈主角柳青舟同业同名)。
+  //   修: ①主角+显式配角占用的「后两字」进禁用表(主角名永不被克隆) ②名优先成块遍历(每名配满一姓块再换名→S×FG个唯一全名后才可能重名·16×12=192)。确定性·resume安全。
+  const _usedGiv = new Set<string>();
+  for (const c of cfg.protagonists ?? []) { const nm = typeof c === "string" ? c : (c as { name?: string }).name ?? ""; if (nm.length === 3) _usedGiv.add(nm.slice(1)); }
+  for (const nm of cfg.spawnNames) if (nm.length === 3) _usedGiv.add(nm.slice(1));
+  const _freeGiv = (cfg.givenNames ?? []).filter((g) => !_usedGiv.has(g));
   function spawnName(index: number): string {
     if (index < cfg.spawnNames.length) return cfg.spawnNames[index] ?? "路人";
-    const sur = genSurnames, giv = cfg.givenNames;
+    const sur = genSurnames, giv = _freeGiv.length ? _freeGiv : cfg.givenNames;
     if (sur && sur.length && giv && giv.length) {
       const k = index - cfg.spawnNames.length;
-      return (sur[k % sur.length] ?? "") + (giv[Math.floor(k / sur.length) % giv.length] ?? "");
+      return (sur[Math.floor(k / giv.length) % sur.length] ?? "") + (giv[k % giv.length] ?? "");
     }
     return cfg.spawnNames[index % cfg.spawnNames.length] ?? "路人";
   }

@@ -1,7 +1,7 @@
 // app/canon.ts — 长篇一致性追踪器(借 LifeBook digest 式"结构抽取 + 一致性闸门"的理念)。
 //   每隔若干章: ① 从近章抽取/更新结构化「设定档 canon」(人物属性 / 世界事实) ② 校验近章与 canon 有无自相矛盾。
 //   产出: 注入生成(保持一致 + 修正矛盾) + 一致性分(作"可验证子目标"计入进化适应度)。core/ 不涉, 叶子模块。
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import type { LLMProvider } from "../core/services/llm";
 
@@ -17,7 +17,8 @@ export interface Canon {
 const F = (d: string): string => join(d, "canon.json");
 const empty = (): Canon => ({ characters: {}, world: [], updatedCh: 0 });
 export function loadCanon(d: string): Canon { try { return existsSync(F(d)) ? { ...empty(), ...JSON.parse(readFileSync(F(d), "utf8")) } : empty(); } catch { return empty(); } }
-export function saveCanon(d: string, c: Canon): void { writeFileSync(F(d), JSON.stringify(c, null, 2), "utf8"); }
+const atomicWrite = (file: string, data: string): void => { const tmp = file + ".tmp." + process.pid; writeFileSync(tmp, data, "utf8"); renameSync(tmp, file); }; // [档C②·原子写] 同目录 tmp+rename 防 torn-write→load 静默回空(蓝图 .audit/20260610-evolution-overhaul §3.2)
+export function saveCanon(d: string, c: Canon): void { atomicWrite(F(d), JSON.stringify(c, null, 2)); }
 
 // 注入生成提示的「已确立设定 + 须修正矛盾」块
 export function canonBlock(c: Canon): string {
@@ -45,7 +46,17 @@ export async function canonStep(llm: LLMProvider, sys: string, d: string, chapte
       { thinking: false, temperature: 0.2 },
     );
     const j = JSON.parse((raw.match(/\{[\s\S]*\}/) ?? ["{}"])[0]) as { characters?: Record<string, string[]>; world?: string[] };
-    if (j.characters) for (const [n, fs] of Object.entries(j.characters)) { const ex = c.characters[n] ?? []; c.characters[n] = [...new Set([...ex, ...(Array.isArray(fs) ? fs.filter((x) => typeof x === "string") : [])])].slice(0, 8); }
+    // [D18防漂闸·2026-06-12雾江余债案] 新人名后两字与已册名相同(非称谓)=极可能名字漂移(宋青舟≈柳青舟已被册封实证)→拒收并记日志·不创建新条目
+    const APPELL = new Set(["老三", "老四", "管事", "掌柜", "婶子", "师太", "夫人", "公子", "大娘", "大爷", "把头", "师傅", "郎中", "大夫", "先生", "姑娘"]);
+    const givenOf = (n: string): string => (n.length === 3 ? n.slice(1) : "");
+    if (j.characters) for (const [n, fs] of Object.entries(j.characters)) {
+      if (!(n in c.characters)) {
+        const g = givenOf(n);
+        const twin = g && !APPELL.has(g) ? Object.keys(c.characters).find((m) => m !== n && givenOf(m) === g) : undefined;
+        if (twin) console.log(`  📛 canon同名雷达: 新名「${n}」与已册「${twin}」后两字同(本世界sim名池撞名成灾·只报不拒——拒收会饿死合法角色·2026-06-12实证: 顾小棠/宋青舟等皆sim真角色)`);
+      }
+      const ex = c.characters[n] ?? []; c.characters[n] = [...new Set([...ex, ...(Array.isArray(fs) ? fs.filter((x) => typeof x === "string") : [])])].slice(0, 8);
+    }
     if (Array.isArray(j.world)) c.world = [...new Set([...c.world, ...j.world.filter((x) => typeof x === "string")])].slice(0, 30);
   } catch { /* ignore */ }
   // ② 校验矛盾: 以引擎【权威硬事实】为境界/派系的准绳(不再让 LLM 自抽自查), 软层另查
