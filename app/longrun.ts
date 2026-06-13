@@ -55,7 +55,9 @@ const PENMANSHIP = process.env["NOVEL_STYLE"] === "温润"
 const GENTLE = process.env["NOVEL_STYLE"] === "温润"; // 温情/温润向: 节拍走「场景流连/相遇展开/心境流转」而非生新冲突跳切, 章末留余味而非硬悬念
 const EDIT_PASS = GENTLE && process.env["NOVEL_EDIT_PASS"] !== "0"; // 章后精修 pass: 温润世界默认开(NOVEL_EDIT_PASS=0 关), 爽文永不跑。逼近大师(.audit/20260608-master-benchmark): 删比喻过密/情绪过释/象征过劳/点破尾巴
 const SEG_LEDGER_ON = process.env["NOVEL_SEG_LEDGER"] === "1"; // [EXP-2裁决·2026-06-10用户人签裁撤·registry#4/5/6→DONE] 6章配对无差(flags p=1·d1c p=0.5·D2/tradeReps双零)且指令在催肥章长+30%(5095→3576)→默认关(=1可回开)。注入块自坍缩: covered/人地账/交易账输入置空·检测器D7-D12照跑(lint用canon∪roster非metNames)·节拍全景#7独立不在此gate·爽文本就不走
-const FACT_LEDGER_ON = process.env["NOVEL_FACT_LEDGER"] === "1"; // [P1·已陈述事实账本·.audit/20260612-consistency-research·状态复述31%靶] =1开: 跨段累积已说过的台词指纹·喂后续段防"同一句话/同一事实换措辞再说一遍"(判官实测复述多为台词)。默认关=注入自坍缩(golden逐字节同)·零LLM·resume安全·GENTLE-only。A/B舰队验证(判官复述率↓且d1c不炸才采纳)。
+const FACT_LEDGER = process.env["NOVEL_FACT_LEDGER"] ?? "0"; // [P1·已陈述事实账本·状态复述31%靶] "1"=v1逐字台词注入(2026-06-13 A/B双轴皆败·否决留档) "2"=v2数据型(light-LLM抽「实体:属性」喂数据非散文·研究Phase1本意·避v1喂散文触发induction-head复制)。默认关·GENTLE-only·resume安全·statedLines空则注入自坍缩(golden逐字节同)。
+const FACT_V1 = FACT_LEDGER === "1";
+const FACT_V2 = FACT_LEDGER === "2";
 const MICRO_TENSION_ON = GENTLE && process.env["NOVEL_MICRO_TENSION"] === "1"; // 修1b轮盘·[EXP-1裁决2026-06-10默认关]: 预注册消融B臂(无轮盘)全维更净(flags 0/6 vs A臂0.67/章·顶针/丸药同物二卖复发=轮盘在制造重复求购素材)→改opt-in; stakes路径改走ST-3事实参数化(十源不给措辞给sim账本事实)待做
 // 日常张力轮盘(A3 十源 taxonomy): 纯涌现世界(无 outline-plan→stageGoal 恒空→T2/T2' 永久死)的 weave 兜底。
 //   按 n 确定性轮换(禁随机/时钟, resume 安全); 措辞回避冲突词族, 与 beatSpec『绝不靠冲突』共存; 仅 GENTLE。
@@ -330,7 +332,7 @@ export function buildOutlinePrompt(ctx: OutlinePromptCtx): string {
 }
 export interface SecPromptCtx { sys: string; n: number; goal: string; vol: number; scene: string; ambience: string; crisis: string; ros: string; text: string; prev: string; beats: string[]; covered: string[]; metNames: Set<string>; metRoles: Set<string>; seenPlaces: Set<string>; statedLines?: string[]; weave: string; sceneAvoid: string; recentImgs: string[]; loreBlock: string; canonHard: string; canonInject: string; conBlock: string; evoGuidance: string; voiceCard: string; secBudget: number; wrote: number; perSec: number; GENTLE: boolean; FULLCTX: boolean; SECTIONS: number; MINLEN: number; PENMANSHIP: string }
 export function buildSecPrompt(ctx: SecPromptCtx, i: number, last: boolean): string {
-  return `${ctx.sys}\n【第${ctx.n}章${ctx.goal ? `《${ctx.goal}》` : ""}·第${ctx.vol}卷·情境：${ctx.scene}】${ctx.GENTLE && ctx.ambience ? `\n【本章风物背景】${ctx.ambience}` : ""}\n【当前世界大事】${ctx.crisis || "暂无"}\n【在场角色及修为】${ctx.ros}\n【${ctx.FULLCTX ? "本章已写正文·从头至此（它是事实依据：接续其情节人物时序，但勿照抄其句子、比喻与措辞——同样的意思换说法）" : "上文结尾"}】${(ctx.FULLCTX ? ctx.text.slice(-6000) : ctx.prev.slice(ctx.GENTLE ? -480 : -280)) || "（本章开篇，承接上一章）"}${ctx.GENTLE ? `\n【本章节拍全景】${ctx.beats.map((b, k) => `${k + 1}.${b}${k < i ? "(已写)" : k === i ? "(本段)" : "(留待后段勿提前)"}`).join(" ")}` : ""}${ctx.GENTLE && ctx.covered.length ? `\n【本章已写之事·最要紧·绝不重写】${ctx.covered.join("；")}；已出场：${[...ctx.metNames].join("、") || "—"}${ctx.metRoles.size ? `；已遇(未具名)：${[...ctx.metRoles].join("、")}` : ""}${ctx.seenPlaces.size ? `；已到过：${[...ctx.seenPlaces].join("、")}` : ""}。以上均已发生：本段只能向前续写，不得另起一个版本重写开头或离开/动身的场景，已出场者——包括上列未具名者——不得再次以生人引入或重问来历身份，再相逢须接续前话；已到过之处同章再去须交代缘由、不作初到写法；同一日时序只进不退，不得章中途另起一日重述昨日之约；所在地须顺上文连续、不得无故折返起点。` : ""}${ctx.GENTLE && ctx.statedLines?.length ? `\n【本章已说过的话·勿再原样说同一句、也勿换措辞把同一件事实再交代一遍(读者已知)：${ctx.statedLines.join("；")}】` : ""}\n续写本章第${i + 1}/${ctx.SECTIONS}段，对应情节：「${ctx.beats[i]}」。${ctx.weave && i === Math.min(1, ctx.SECTIONS - 1) ? `本段须自然落实：${ctx.weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。${ctx.GENTLE && ctx.sceneAvoid ? `\n本段须把镜头放在新场景里的人来人往，勿回到【${ctx.sceneAvoid}】。` : ""}${ctx.GENTLE && ctx.recentImgs.length ? `\n【近5章已用过的静物意象——本章换载体勿复用(章内既有信物回扣不限)】${ctx.recentImgs.join("、")}` : ""}\n${ctx.PENMANSHIP}${ctx.GENTLE && ctx.voiceCard ? "\n" + ctx.voiceCard : ""}${ctx.canonHard ? "\n" + ctx.canonHard : ""}${(!ctx.GENTLE || i === 0 || last) && ctx.loreBlock ? "\n" + ctx.loreBlock : ""}${(!ctx.GENTLE || i === 0 || last) && ctx.canonInject ? "\n" + ctx.canonInject : ""}${(!ctx.GENTLE || i === 0 || last) && ctx.conBlock ? "\n" + ctx.conBlock : ""}${(!ctx.GENTLE || i === 0 || last) && ctx.evoGuidance ? "\n" + ctx.evoGuidance : ""}\n${ctx.GENTLE ? `${Math.round(ctx.secBudget * 0.55)}至${ctx.secBudget}字之间、写到从容即收${ctx.wrote >= ctx.MINLEN * 1.2 ? "——全章篇幅已足，本段务必短小、把本拍写完即收" : ""}${TPL["secBudgetGentle"]}` : `约 ${ctx.perSec} 字`}。${last ? (ctx.GENTLE ? TPL["endGentle"] : "段末留一个引向下一章的悬念钩子。") : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
+  return `${ctx.sys}\n【第${ctx.n}章${ctx.goal ? `《${ctx.goal}》` : ""}·第${ctx.vol}卷·情境：${ctx.scene}】${ctx.GENTLE && ctx.ambience ? `\n【本章风物背景】${ctx.ambience}` : ""}\n【当前世界大事】${ctx.crisis || "暂无"}\n【在场角色及修为】${ctx.ros}\n【${ctx.FULLCTX ? "本章已写正文·从头至此（它是事实依据：接续其情节人物时序，但勿照抄其句子、比喻与措辞——同样的意思换说法）" : "上文结尾"}】${(ctx.FULLCTX ? ctx.text.slice(-6000) : ctx.prev.slice(ctx.GENTLE ? -480 : -280)) || "（本章开篇，承接上一章）"}${ctx.GENTLE ? `\n【本章节拍全景】${ctx.beats.map((b, k) => `${k + 1}.${b}${k < i ? "(已写)" : k === i ? "(本段)" : "(留待后段勿提前)"}`).join(" ")}` : ""}${ctx.GENTLE && ctx.covered.length ? `\n【本章已写之事·最要紧·绝不重写】${ctx.covered.join("；")}；已出场：${[...ctx.metNames].join("、") || "—"}${ctx.metRoles.size ? `；已遇(未具名)：${[...ctx.metRoles].join("、")}` : ""}${ctx.seenPlaces.size ? `；已到过：${[...ctx.seenPlaces].join("、")}` : ""}。以上均已发生：本段只能向前续写，不得另起一个版本重写开头或离开/动身的场景，已出场者——包括上列未具名者——不得再次以生人引入或重问来历身份，再相逢须接续前话；已到过之处同章再去须交代缘由、不作初到写法；同一日时序只进不退，不得章中途另起一日重述昨日之约；所在地须顺上文连续、不得无故折返起点。` : ""}${ctx.GENTLE && ctx.statedLines?.length ? `\n【本章已交代的事实(读者已知·勿再向读者重新交代或复述这些·可顺势引用但不重述)：${ctx.statedLines.join("；")}】` : ""}\n续写本章第${i + 1}/${ctx.SECTIONS}段，对应情节：「${ctx.beats[i]}」。${ctx.weave && i === Math.min(1, ctx.SECTIONS - 1) ? `本段须自然落实：${ctx.weave}。` : ""}须由上段结果直接引发、承接因果，各角色言行暗合其命格性情。${ctx.GENTLE && ctx.sceneAvoid ? `\n本段须把镜头放在新场景里的人来人往，勿回到【${ctx.sceneAvoid}】。` : ""}${ctx.GENTLE && ctx.recentImgs.length ? `\n【近5章已用过的静物意象——本章换载体勿复用(章内既有信物回扣不限)】${ctx.recentImgs.join("、")}` : ""}\n${ctx.PENMANSHIP}${ctx.GENTLE && ctx.voiceCard ? "\n" + ctx.voiceCard : ""}${ctx.canonHard ? "\n" + ctx.canonHard : ""}${(!ctx.GENTLE || i === 0 || last) && ctx.loreBlock ? "\n" + ctx.loreBlock : ""}${(!ctx.GENTLE || i === 0 || last) && ctx.canonInject ? "\n" + ctx.canonInject : ""}${(!ctx.GENTLE || i === 0 || last) && ctx.conBlock ? "\n" + ctx.conBlock : ""}${(!ctx.GENTLE || i === 0 || last) && ctx.evoGuidance ? "\n" + ctx.evoGuidance : ""}\n${ctx.GENTLE ? `${Math.round(ctx.secBudget * 0.55)}至${ctx.secBudget}字之间、写到从容即收${ctx.wrote >= ctx.MINLEN * 1.2 ? "——全章篇幅已足，本段务必短小、把本拍写完即收" : ""}${TPL["secBudgetGentle"]}` : `约 ${ctx.perSec} 字`}。${last ? (ctx.GENTLE ? TPL["endGentle"] : "段末留一个引向下一章的悬念钩子。") : ""}只输出正文，不要写任何章节标题或"第X章"字样。`;
 }
 
 // [档C①] writeChapter 位置参收编为单一 ctx 对象(蓝图同条·唯一调用点同步改): 字段=原位置参原名, 顶部解构后函数体零改动。
@@ -369,7 +371,7 @@ async function writeChapter(chCtx: ChapterCtx): Promise<{ goal: string; text: st
   const metNames = new Set<string>();
   const metRoles = new Set<string>(); // 未具名角色(老修士/大嫂…)·竹光窄处修: 不入账则后段当生人重引
   const seenPlaces = new Set<string>(); // 已到过地点(何家/X村…)·不入账则后段重访如初到
-  const statedLines: string[] = []; // [P1] 已说过的台词指纹(≥8字·归一)·FACT_LEDGER_ON 才填·喂后续段防复述
+  const statedLines: string[] = []; // [P1] 已说过的台词指纹(≥8字·归一)·FACT_V1/V2 才填·喂后续段防复述
   const knownNames = GENTLE ? [...new Set(ros.match(/[一-龥]{2,4}(?=\()/g) ?? [])] : []; // roster 格式 `名(修为)` ASCII 左括号
   if (GENTLE) lastRosterNames = knownNames; // [D3兜底] canon 未生成的新世界, lint-seams 道具检测用 roster 名排除(防主角名2-gram混进道具表)
   for (let i = 0; i < beats.length; i++) {
@@ -399,12 +401,20 @@ async function writeChapter(chCtx: ChapterCtx): Promise<{ goal: string; text: st
       for (const it of tradeAskedItems(clean, knownNames)) if (!covered.some((c) => c.includes(`【${it}】`)))
         covered.push(`已点名求购/售卖过【${it}】——后文段落不得再写它的第二次完整成交；若必须再现，须变了意思、不得原样重演；上文若有一桩尚未收尾的交易，照常写完不算重演`); // [修3b] 同物二卖治本(回声载体已删: 括号样例与节拍名是指纹·.audit/20260609-eval-governance §六.2)
     }
-    if (GENTLE && FACT_LEDGER_ON) { // [P1·已陈述事实账本·独立gate] 抽本段已说过的台词(≥8字·judge findings 复述多为台词: 姜是姜/唐若兰差人送来/他哪来的钱)→归一指纹喂后续段·防同句/同事实复述。封顶最近10条防注入催肥。
+    if (GENTLE && FACT_V1) { // [P1 v1·逐字台词·否决留档·独立gate] 抽本段已说过的台词(≥8字·judge findings 复述多为台词: 姜是姜/唐若兰差人送来/他哪来的钱)→归一指纹喂后续段·防同句/同事实复述。封顶最近10条防注入催肥。
       for (const m of clean.matchAll(/[「“]([^「」“”]{8,40})[」”]/g)) {
         const line = (m[1] ?? "").replace(/[\s，、。！？]/g, "").slice(0, 18);
         if (line.length >= 6 && !statedLines.some((x) => x.includes(line) || line.includes(x))) statedLines.push(line);
       }
       while (statedLines.length > 10) statedLines.shift(); // 只留最近10条(滑窗·防 prompt 催肥)
+    }
+    if (GENTLE && FACT_V2) { // [P1 v2·数据型·喂数据非散文(避 v1 喂散文触发 induction-head 复制)]
+      try {
+        const raw = await llm.complete(`从下面这段小说正文, 抽出"本段向读者交代了的人物状态或物件属性事实"。只要事实本身、写成极简数据条目「主体:属性」(每条≤10字), 不抄原句、不抽动作过程/对话内容/景物描写。最多6条, 顿号分隔一行。无可抽=只回"无"。\n\n正文: ${clean.slice(0, 1500)}`, { thinking: false, temperature: 0.1 });
+        for (const f of raw.replace(/[\s。.]/g, "").split(/[，,、；;]/).map((x) => x.trim()).filter((x) => (x.includes(":") || x.includes("：")) && x.length <= 12 && x !== "无").slice(0, 6))
+          if (!statedLines.includes(f)) statedLines.push(f);
+        while (statedLines.length > 12) statedLines.shift(); // 滑窗封顶12条数据
+      } catch { /* 抽取失败不阻断写章 */ }
     }
   }
   if (GENTLE) { // 据实起题(症④): 标题延后到正文写完, 只可用正文确有的意象, 杜绝『两双鞋』式幻想承诺
