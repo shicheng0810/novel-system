@@ -19,6 +19,8 @@ export function buildOpenerFacts(saga: string, out = join(process.cwd(), ".novel
     const parts: string[] = [];
     if (chars.length) parts.push(`角色身份(勿改名/勿换派系): ${chars.join("; ")}`);
     if (locs.length) parts.push(`地点规范名(勿造异名·勿把同一地写成两个名): ${locs.join("/")}`);
+    // [B3·转场守卫] 治"角色未入场即从某地出来"(柳青舟瞬移案)——静态生成规则, 与 OFS 同 gate(OPENER_FACTS)。
+    parts.push(`转场: 角色首次到某地点须先写他如何来到此处(移动/进门/靠岸), 勿直接写"从X出来/在X里"而前文无其进入X的交代; 某人此刻在何处须顺前文、勿瞬移。`);
     return `【本世界既定事实·开篇须据此立稳, 勿与之矛盾(同一人/地/数, 后文不得给冲突值)】\n${parts.join("\n")}`;
   } catch { return ""; }
 }
