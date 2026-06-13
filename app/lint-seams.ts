@@ -566,6 +566,50 @@ function d19DialogueDup(body: string): Array<{ q: string; first: number; second:
   return out;
 }
 
+// ── D20 信物容器材质漂移(炊烟案2026-06-12·ch-0119: 同一包雨前茶 纸包→布包→粗蓝布·分段各取材质) ──
+//    ⚠ 不入 lintSeams 逐章管线: 6593章校准证实本类无法零误杀(同物改皮 vs "一场景两只不同包恰好都沾同一名词" 局部特征不可分·需指代消解=LLM);
+//    收紧到具体信物内容锚后仍 0.94%/章 且抽读多为两物并存假阳性。故仅作【按需人工分诊】导出(ledger-scan.ts CLI 调用·列候选给人工核)·非 gate 非遥测。
+//    真治本在生成端(FULLCTX 让模型见全章·自不改皮)+ 人眼验收——与本案五轮人工精修同理。
+const D20_HEAD_G = /[一-龥]{0,2}(包袱|荷包|钱包|书包|药包|包|罐|瓶|盒)/g; // 包袱(布裹行李)/荷包/药包 等是独立物件·各自成 head·不并入「包」
+const D20_MAT: Array<[string, RegExp]> = [ // 互斥材质类: 同一 head 不可既是纸又是布
+  ["纸", /纸/], ["布", /布|绸|绢|棉/], ["陶瓷", /陶|瓷/], ["竹木", /竹|木/], ["金属", /铜|铁|锡|银/],
+];
+const D20_CONTENT_G = /茶叶|雨前|茶末|茶|红糖|白糖|饴糖|糖|信笺|书信|信|账本|盐巴/g; // 只认能唯一指认某件信物的具体内容; 故意剔除泛在的 药/银/钱/米/粮(医馆世界里两个不同包都沾药=假阳性源)
+export function auditContainerDrift(text: string): string[] { // 按需人工分诊入口(ledger-scan CLI): 自建 paras·独立于 lintSeams 管线
+  const body = text.trim();
+  return d20MaterialDrift(getParas(body), body.length || 1);
+}
+function d20MaterialDrift(paras: Para[], len: number): string[] {
+  type M = { head: string; cls: string; at: number; content: Set<string>; snip: string };
+  const ms: M[] = [];
+  for (const p of paras) {
+    const contentSet = new Set([...p.t.matchAll(D20_CONTENT_G)].map((x) => x[0]));
+    for (const hm of p.t.matchAll(D20_HEAD_G)) {
+      const head = hm[1]!;
+      const pre = hm[0].slice(0, hm[0].length - head.length); // head 前 0-2 字(取材质)
+      let cls = "";
+      for (const [name, re] of D20_MAT) if (re.test(pre)) { cls = name; break; }
+      if (!cls) continue;
+      ms.push({ head, cls, at: p.off + (hm.index ?? 0), content: contentSet, snip: hm[0] });
+    }
+  }
+  const byHead = new Map<string, M[]>(); // head 不归并: 包袱/荷包/药包 各自独立(同字才算同物)
+  for (const m of ms) { if (!byHead.has(m.head)) byHead.set(m.head, []); byHead.get(m.head)!.push(m); }
+  const hits: string[] = [];
+  for (const [head, list] of byHead) {
+    if (new Set(list.map((m) => m.cls)).size < 2) continue;
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      if (list[i]!.cls === list[j]!.cls) continue;
+      const shared = [...list[i]!.content].filter((c) => list[j]!.content.has(c));
+      if (shared.length) {
+        hits.push(`容器材质漂移: 同一「${head}」(盛${shared[0]})章内既是「${list[i]!.cls}」(${list[i]!.snip}@${(list[i]!.at / len * 100) | 0}%)又是「${list[j]!.cls}」(${list[j]!.snip}@${(list[j]!.at / len * 100) | 0}%)——疑同物改皮·全章统一材质`);
+        return hits; // 一章报一条够定位
+      }
+    }
+  }
+  return hits;
+}
+
 // 主入口: text=章正文(无标题行), names=canon 人名(写章时在手), title=本章标题(goal)。
 export function lintSeams(text: string, names: string[], title: string): SeamResult {
   const body = text.trim();
