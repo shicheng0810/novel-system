@@ -11,17 +11,19 @@ export const JUDGE_CLASSES = {
   objAttribution: "物件归属错乱: 同一具体物件前文明确是 A 拿出/带来/拥有, 后文却写成 B 的, 且无转手动作交代。合法转手(递给/接过等动作)不算。",
   stateRestate: "状态语义复述: 同一人物状态/事实, 相隔较远处用不同措辞重复交代两遍(读者已知却被再讲)。真冗余才算; 文学呼应/回旋/不同人物各自得知同一事=正常不算。",
   foreshadowUnclosed: "伏笔不收: 本章开了明确悬念线索(异动/异响/未解之问), 引导读者期待回应, 但本章内再未触及、悬空。留待后续章节的大伏笔不算。",
+  factualContradiction: "事实矛盾: 同章对同一事实给出冲突的值——数值(船钱前写1文后写3文)、世界规则(前『只有这一条船』后『上月坐的别家船』)、属性(同物前后颜色/材质/归属不一)。证据=两处冲突引文+冲突点。文学性的『说法不同但事实不冲突』不算。",
+  transitionGap: "转场缺失(未建立的在场): 角色未经移动/进入的交代就直接出现在某地点(如『柳青舟从听雨茶楼出来』但前文无他进入茶楼/无从别处移动来此的交代)。证据=出现处引文+『前文无X入场/移动』。已在场者的正常活动不算。",
 } as const;
 
 // 判官 prompt(保守高精度·不确定判干净·带正文引文证据链)。判官读全文正文 text, 返回 JSON。
 export function buildJudgePrompt(text: string, ch: number): string {
   const defs = Object.entries(JUDGE_CLASSES).map(([k, v], i) => `${i + 1}. **${k}** — ${v}`).join("\n");
   return `你是长篇小说"结构一致性判官"(ConStory-Checker 范式), 独立外部判官——只看正文事实、不揣测作者意图。**保守高精度: 宁漏勿误, 只有非常确信才标记, 不确定一律判"干净"。**
-逐项判定下列三类**章内**结构 bug(只看本章正文, 不跨章):
+逐项判定下列五类**章内**结构 bug(只看本章正文, 不跨章):
 ${defs}
 
 只输出一个 JSON(无其他文字):
-{"ch":${ch},"objAttribution":[{"evidence1":"前文引文≤30字","evidence2":"矛盾处引文≤30字","why":"一句话"}],"stateRestate":[...],"foreshadowUnclosed":[{"evidence":"悬空线索引文≤30字","why":"一句话"}]}
+{"ch":${ch},"objAttribution":[{"evidence1":"前文引文≤30字","evidence2":"矛盾处引文≤30字","why":"一句话"}],"stateRestate":[...],"foreshadowUnclosed":[{"evidence":"悬空线索引文≤30字","why":"一句话"}],"factualContradiction":[{"evidence1":"前文值引文≤30字","evidence2":"冲突值引文≤30字","why":"冲突点"}],"transitionGap":[{"evidence":"未建立在场处引文≤30字","why":"前文无X入场/移动"}]}
 每类空数组=该类干净。证据必须是正文真实引文。
 
 【本章正文】
@@ -29,7 +31,7 @@ ${text}`;
 }
 
 export interface JudgeFinding { evidence1?: string; evidence2?: string; evidence?: string; why: string }
-export interface JudgeResult { ch: number; objAttribution: JudgeFinding[]; stateRestate: JudgeFinding[]; foreshadowUnclosed: JudgeFinding[] }
+export interface JudgeResult { ch: number; objAttribution: JudgeFinding[]; stateRestate: JudgeFinding[]; foreshadowUnclosed: JudgeFinding[]; factualContradiction: JudgeFinding[]; transitionGap: JudgeFinding[] }
 
 // fallback 跑法(弱·DeepSeek 自判): 研究警告同模型判官通过率虚高, 仅 Opus subagent 不可用时兜底。
 //   权威跑法是 Opus subagent(主 Claude 派 general-purpose agent 读章批判)——见 P0-results.md, 那才是 ≠ 写章模型的解耦判官。
@@ -38,8 +40,8 @@ export async function judgeChapterFallback(text: string, ch: number): Promise<Ju
   const raw = await llm.complete(buildJudgePrompt(text, ch), { thinking: false, temperature: 0.2 });
   try {
     const j = JSON.parse((raw.match(/\{[\s\S]*\}/) ?? ["{}"])[0]) as Partial<JudgeResult>;
-    return { ch, objAttribution: j.objAttribution ?? [], stateRestate: j.stateRestate ?? [], foreshadowUnclosed: j.foreshadowUnclosed ?? [] };
-  } catch { return { ch, objAttribution: [], stateRestate: [], foreshadowUnclosed: [] }; }
+    return { ch, objAttribution: j.objAttribution ?? [], stateRestate: j.stateRestate ?? [], foreshadowUnclosed: j.foreshadowUnclosed ?? [], factualContradiction: j.factualContradiction ?? [], transitionGap: j.transitionGap ?? [] };
+  } catch { return { ch, objAttribution: [], stateRestate: [], foreshadowUnclosed: [], factualContradiction: [], transitionGap: [] }; }
 }
 
 // CLI: npx tsx app/consistency-judge.ts <章文件> [--fallback]
