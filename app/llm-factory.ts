@@ -61,7 +61,9 @@ export function readHermesOpts(model?: string): HermesOpts | null {
 
 export function makeLLM(cfg: LLMConfig = readLLMConfig()): LLMProvider {
   if (cfg.provider === "deepseek" && cfg.deepseekKey) {
-    return new FallbackLLM(new DeepSeekLLM({ key: cfg.deepseekKey, model: cfg.model ?? "deepseek-chat", baseUrl: cfg.deepseekBaseUrl, temperature: cfg.temperature ?? 1.5, thinking: cfg.thinking ?? true, reasoningEffort: "high" }), new MockLLM());
+    // [R·写手降本实验·R-model-flash-cost-spec] NOVEL_DEEPSEEK_MODEL env 覆盖 model(仅实验·默认不设=`?? cfg.model` 逐字节同现状)→ 每个舰队臂带各自模型并行跑 flash vs pro。
+    const model = process.env["NOVEL_DEEPSEEK_MODEL"] ?? cfg.model ?? "deepseek-chat";
+    return new FallbackLLM(new DeepSeekLLM({ key: cfg.deepseekKey, model, baseUrl: cfg.deepseekBaseUrl, temperature: cfg.temperature ?? 1.5, thinking: cfg.thinking ?? true, reasoningEffort: "high" }), new MockLLM());
   }
   if (cfg.provider === "hermes") {
     const opts = readHermesOpts(cfg.model);

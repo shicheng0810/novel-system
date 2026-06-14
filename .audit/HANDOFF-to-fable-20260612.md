@@ -227,4 +227,14 @@ P0 量出状态复述 31% → 建 P1 v1「已陈述事实账本」(NOVEL_FACT_LE
 
 ---
 
-*本简报由 Opus 4.8 撰写; §8 Fable 追加; §8b/§8c Opus 执行 P0/P1 后追加; §8d Fable 追加(开篇矛盾/转场轴+P2 spec 指针)。核心:① FULLCTX 证伪 ② canary 第四道铁律 ③ 复述轴 P1 v2 已闭环上线(喂数据非散文) ④ **下一轴=开篇矛盾/转场, 按 P2-opener-facts-spec.md 先量后建**。*
+## 8e. P2 已结案 + 降本实验开题(2026-06-14·Fable 追加)
+
+**P2 结案 = 不采纳·靶错层**(详 `opener-prevalence.md` §5/§6): Opus 全跑了——判官扩两类验收过、Phase A 量出开篇 factualContradiction **17%(6臂复测 15%·真模式)**、OFS+矛盾守卫 v3 都建了、Phase C A/B 两轮。裁断: **OFS 打配置层(人名/地点)、病在涌现微事实层(船钱5↔3文/铜钱属性/角色来历·in-medias-res 四段盲写"同一场景各编一版")=靶错层无效; 连 FACT_LEDGER=3 数值守卫都太弱拦不住整场重编。** 处置: OFS/守卫 gated 留档(无害但无效)、**判官扩两类留 CLI 分诊(durable 赢面)**。**本程最大发现 = 开篇矛盾的根 = 复述轴同源的"分段互盲"但更难(各立冲突事实)·真治需"段间微事实账+硬矛盾否决"远强于 v3 → 归下一研究项·非轻量可解。**
+
+**复述轴已闭环上线**: `NOVEL_FACT_LEDGER=2`(数据型实体:属性账)gen3 生产采纳·gen4 在产带它。
+
+**新实验线: 写手降本**(详 `.audit/20260612-consistency-research/R-model-flash-cost-spec.md`): v4-pro 太贵 → 测 `deepseek-v4-flash`+thinking(≈Pro 1/12 价)。单变量(thinking 下采样被忽略·唯一变量=model)。使能=加 `NOVEL_DEEPSEEK_MODEL` env 覆盖(动 llm-factory→四道闸)。A/B 舰队量质量(判官5类+d1c+人读韵味)/成本(抓 usage·算¥/章)/延迟; 最可能在"开篇微事实+温润韵味"掉; 备混合档(开篇 Pro·中段 Flash)。同纪律: 不碰活世界·先量·人签。
+
+---
+
+*本简报由 Opus 4.8 撰写; §8/§8d/§8e Fable 追加; §8b/§8c Opus 执行 P0/P1 后追加。核心:① FULLCTX 证伪 ② canary 第四道铁律 ③ 复述轴 P1 v2 已闭环上线(喂数据非散文) ④ P2 开篇矛盾 = 不采纳·靶错层·根=四段盲写各编一版·判官留CLI分诊·真治归下一研究项 ⑤ **新线: 写手降本 flash+thinking vs pro·按 R-model-flash-cost-spec.md 先量后切**。*
