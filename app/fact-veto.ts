@@ -137,6 +137,33 @@ export function groundingAssertions(text: string, names?: string[]): Array<{ ent
   return out;
 }
 
+// ── Phase 2·LLM 值事实抽取(收窄·治40%单章值矛盾·plan-fable §2) ──
+//   离线证精度(phase2-extraction-precision.md): 收窄到"数值/在场/性别/物件属性"→抽错率~0(关系/身份抽错全消失·那是撞名根治领地)。flash便宜解耦≠pro写手。
+//   错误剖面: 漏抽无害(退回现状)·抽错=锁错有害→故严禁抽易错的实体关系/身份。
+export const EXTRACT_VALUE_PROMPT = (text: string): string => `你是小说"值事实抽取器"。只抽下面正文里**明确的: 数值、人物此刻在场地点、人物性别、物件外观属性**·写成数据条。
+**严禁抽: 人物之间的关系、谁是谁/谁就是谁的身份判断、哪件东西归谁、谁绞的谁做的、事件因果**(这些易抽错·一律不要)。
+只抽这四类: 数值(铜板三枚/药费十五文/绳长五尺)、在场地点(沈无尘此刻:茶棚)、性别(林思齐:男)、物件外观(铜板:磨亮/碗:缺角)。
+每行一条「实体:值」(≤14字)·实体要具体。最多10条。无='无'。
+正文:
+${text.slice(0, 3000)}`;
+
+// 解耦 LLM 抽本段值事实→entity→value(longrun 累积进 ground-truth 账·first-wins·喂后续段)。抽取失败返空(漏抽无害)。
+export async function extractValueFacts(text: string, llm: { complete(p: string, o?: { thinking?: boolean; temperature?: number }): Promise<string> }): Promise<Array<{ entity: string; fact: string }>> {
+  try {
+    const raw = await llm.complete(EXTRACT_VALUE_PROMPT(text), { thinking: false, temperature: 0.1 });
+    const out: Array<{ entity: string; fact: string }> = [];
+    for (const ln of raw.split("\n")) {
+      const line = ln.trim().replace(/^(数值|在场地点|性别|物件外观|物件属性)[:：]\s*/, ""); // 去类别前缀
+      if (!line || line === "无" || line.length > 26) continue;
+      const m = line.match(/^(.{1,10})[:：](.{1,14})$/);
+      if (!m) continue;
+      const e = (m[1] ?? "").trim(), v = (m[2] ?? "").trim();
+      if (e && v) out.push({ entity: `值:${e}`, fact: `${e}:${v}` });
+    }
+    return out;
+  } catch { return []; }
+}
+
 // CLI: npx tsx app/fact-veto.ts <章.md> [名1,名2,...]  → 打印检出 JSON(离线精度验证用)
 if (process.argv[1]?.endsWith("fact-veto.ts")) {
   const file = process.argv[2];

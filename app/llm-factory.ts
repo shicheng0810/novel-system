@@ -59,10 +59,10 @@ export function readHermesOpts(model?: string): HermesOpts | null {
   };
 }
 
-export function makeLLM(cfg: LLMConfig = readLLMConfig()): LLMProvider {
+export function makeLLM(cfg: LLMConfig = readLLMConfig(), modelOverride?: string): LLMProvider {
   if (cfg.provider === "deepseek" && cfg.deepseekKey) {
-    // [R·写手降本实验·R-model-flash-cost-spec] NOVEL_DEEPSEEK_MODEL env 覆盖 model(仅实验·默认不设=`?? cfg.model` 逐字节同现状)→ 每个舰队臂带各自模型并行跑 flash vs pro。
-    const model = process.env["NOVEL_DEEPSEEK_MODEL"] ?? cfg.model ?? "deepseek-chat";
+    // [R·写手降本实验] NOVEL_DEEPSEEK_MODEL env 覆盖 model。modelOverride 参(Phase2·调用方显式指定·优先级最高)→ 让抽取器用 flash 而写手仍用 pro(同进程双模型解耦)。默认不设=逐字节同现状。
+    const model = modelOverride ?? process.env["NOVEL_DEEPSEEK_MODEL"] ?? cfg.model ?? "deepseek-chat";
     return new FallbackLLM(new DeepSeekLLM({ key: cfg.deepseekKey, model, baseUrl: cfg.deepseekBaseUrl, temperature: cfg.temperature ?? 1.5, thinking: cfg.thinking ?? true, reasoningEffort: "high" }), new MockLLM());
   }
   if (cfg.provider === "hermes") {

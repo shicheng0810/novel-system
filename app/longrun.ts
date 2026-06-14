@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { openDb } from "../core/services/db";
 import { MockLLM, type LLMProvider } from "../core/services/llm";
-import { makeLLM, configSignature } from "./llm-factory";
+import { makeLLM, configSignature, readLLMConfig } from "./llm-factory";
 import * as store from "../core/services/store";
 import { step } from "../core/runtime/world-actor";
 import { PACK, natalLabel, goalLabel, plateLabel } from "./pack-select";
@@ -33,7 +33,7 @@ import { loadConstraints, constraintsBlock, proposeConstraintMutation, saveConst
 import { canonStep, canonBlock, loadCanon, saveCanon } from "./canon";
 import { loadEditLedger, saveEditLedger, lintChapter, buildRevisePrompt, passesGuards, updateEditLedger } from "./edit-ledger"; // 章后精修 pass(仅 GENTLE): 机检定位"用力过猛"→LLM 只做减法→三道闸守门
 import { lintSeams, tradeAskedItems, extractRolesPlaces, echoLint, d13DedupSecond } from "./lint-seams"; // 症⑤拼接病检测(零LLM·仅GENTLE): 结构病只记日志(治本=生成端跨段已写账), 表层项(单物过劳/市井堆/套语对)并入减法 directives; tradeAskedItems=[修3b]同物二卖已写账; extractRolesPlaces=[竹光窄处修]未具名角色/地点入账(老修士×2/何家×2盲区)
-import { groundingAssertions } from "./fact-veto"; // [Phase1b·接地·plan-fable] 复用 1a 清洁确定性抽取(称谓法名/性别·已证0误检)·把已立事实抽成 entity→value 钉进后续段当 ground-truth(veto→grounding 重框·绕开 zero-FP 检测墙)
+import { groundingAssertions, extractValueFacts } from "./fact-veto"; // [Phase1b/2·接地·plan-fable] groundingAssertions=确定性抽称谓法名/性别(0误检); extractValueFacts=Phase2解耦LLM抽值事实(数值/位置/性别/属性·收窄~0抽错)→entity→value 钉进后续段当 ground-truth(veto→grounding 重框)
 import { buildOpenerFacts } from "./opener-facts"; // [P2·开篇事实底牌]
 import type { WorldSnapshot, CharacterState } from "../core/domain/world";
 
@@ -63,7 +63,9 @@ const FACT_V2 = FACT_LEDGER === "2";
 const FACT_V3 = FACT_LEDGER === "3"; // [P2 B3·矛盾守卫] v3 = v2复述账 + 数值/归属/规则"勿写冲突值"句(治同章1→3文)。=2现役采纳·=3舰队臂用。
 const OPENER_FACTS_ON = GENTLE && process.env["NOVEL_OPENER_FACTS"] === "1"; // [P2·开篇事实底牌·opener factC开篇17%>>8%门槛] worlds硬事实(主角名+派系/规范地点)seed开篇ch1-N·防改名/换数/造异名·数据型避套语·默认关·空坍缩(golden逐字节同)·GENTLE-only·resume安全。A/B舰队验证(矛盾↓且d1c不炸才采纳)。
 const OPENER_CH = Number(process.env["NOVEL_OPENER_CH"] ?? 5);
-const FACT_GROUND = GENTLE && process.env["NOVEL_FACT_GROUND"] === "1"; // [Phase1b·接地·plan-fable §1b] 段后确定性抽已立"称谓法名/性别"→章内 ground-truth 账(first-wins)→钉进后续段 prompt 当既定事实(数据·非禁令)·让后续段没机会编新值(治静檀↔静安/他↔她漂移)。复用 fact-veto 1a 抽取器(已证0误检)·零新LLM·漏抽无害退回现状·默认关·空坍缩(golden逐字节同)·GENTLE-only·resume安全。A/B fork中段验接地机制(专名/性别factC↓且d1c不动)。
+const FACT_GROUND = GENTLE && (process.env["NOVEL_FACT_GROUND"] === "1" || process.env["NOVEL_FACT_GROUND"] === "2"); // [Phase1b·接地] 段后确定性抽已立"称谓法名/性别"→章内 ground-truth 账(first-wins)→钉进后续段 prompt 当既定事实(数据·非禁令)·让后续段没机会编新值。复用 fact-veto 1a 抽取器(0误检)·漏抽无害·默认关·空坍缩(golden逐字节同)·GENTLE-only·resume安全。"1"=仅确定性·"2"=+LLM值事实(Phase2)。
+const FACT_GROUND_LLM = GENTLE && process.env["NOVEL_FACT_GROUND"] === "2"; // [Phase2·plan-fable §2] 段后解耦LLM抽值事实(数值/位置/性别/属性·收窄~0抽错·治40%单章值矛盾如铜板3↔2)→同ground-truth账。抽取器=flash(便宜·≠pro写手·解耦防自偏)。漏抽无害·严禁抽实体关系(抽错=锁错·那是撞名根治领地)。
+const EXTRACTOR_MODEL = process.env["NOVEL_EXTRACTOR_MODEL"] ?? "deepseek-v4-flash"; // [Phase2] 抽取器模型(默认flash便宜解耦)
 const OPENER_FACTS_STR = OPENER_FACTS_ON ? buildOpenerFacts(process.env["NOVEL_SAGA_DIR"] ?? "saga") : "";
 const MICRO_TENSION_ON = GENTLE && process.env["NOVEL_MICRO_TENSION"] === "1"; // 修1b轮盘·[EXP-1裁决2026-06-10默认关]: 预注册消融B臂(无轮盘)全维更净(flags 0/6 vs A臂0.67/章·顶针/丸药同物二卖复发=轮盘在制造重复求购素材)→改opt-in; stakes路径改走ST-3事实参数化(十源不给措辞给sim账本事实)待做
 // 日常张力轮盘(A3 十源 taxonomy): 纯涌现世界(无 outline-plan→stageGoal 恒空→T2/T2' 永久死)的 weave 兜底。
@@ -87,6 +89,7 @@ const VOL = 25;
 const sys = PACK.composeProfile?.systemPrompt ?? "你是一位修仙小说作者。";
 const tierName = (id: string | undefined): string => PACK.progression.tiers.find((t) => t.id === id)?.name ?? id ?? "练气初期";
 let llm: LLMProvider = makeLLM(); // 章节文笔(可热切换); sim 用 mock 跑世界推演
+const extractLLM = FACT_GROUND_LLM ? makeLLM(readLLMConfig(), EXTRACTOR_MODEL) : null; // [Phase2] 值事实抽取器(flash·与写手pro同进程解耦·只在FACT_GROUND=2创建)
 let llmSig = configSignature();
 const sim = new MockLLM();
 
@@ -412,6 +415,9 @@ async function writeChapter(chCtx: ChapterCtx): Promise<{ goal: string; text: st
     }
     if (GENTLE && FACT_GROUND) { // [Phase1b·接地] 段后确定性抽已立"称谓法名/性别"(复用 1a 抽取器·0误检)→ ground-truth 账·first-wins(只在实体未入账时加=锁首立值·后续段照此写)
       for (const { entity, fact } of groundingAssertions(clean, knownNames)) if (!groundLedger.has(entity)) groundLedger.set(entity, fact);
+    }
+    if (GENTLE && FACT_GROUND_LLM && extractLLM) { // [Phase2·接地] 段后解耦LLM抽值事实(数值/位置/性别/属性·收窄~0抽错)→同ground-truth账·first-wins·封顶24防注入肥。抽取失败不阻断写章。
+      for (const { entity, fact } of await extractValueFacts(clean, extractLLM)) if (!groundLedger.has(entity) && groundLedger.size < 24) groundLedger.set(entity, fact);
     }
     if (GENTLE && FACT_V1) { // [P1 v1·逐字台词·否决留档·独立gate] 抽本段已说过的台词(≥8字·judge findings 复述多为台词: 姜是姜/唐若兰差人送来/他哪来的钱)→归一指纹喂后续段·防同句/同事实复述。封顶最近10条防注入催肥。
       for (const m of clean.matchAll(/[「“]([^「」“”]{8,40})[」”]/g)) {
