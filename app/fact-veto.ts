@@ -23,7 +23,7 @@ export function autoNames(text: string): string[] {
   return all.filter((s) => !all.some((o) => o !== s && o.includes(s)));
 }
 
-export interface VetoHit { kind: "gender" | "nameDrift"; entity: string; v1: string; v2: string; ev1: string; ev2: string; why: string }
+export interface VetoHit { kind: "gender" | "nameDrift" | "number"; entity: string; v1: string; v2: string; ev1: string; ev2: string; why: string }
 
 // ── 性别断言: 名→代词(就近紧邻绑定·宁漏勿误) ──
 // 高精度: 代词向前看 ≤12 字, 该窗内须恰有一个已知名(无第二名)才绑; 同名两性别=flag。
@@ -73,6 +73,22 @@ export function extractTitleName(text: string): Map<string, Array<{ name: string
   return bind;
 }
 
+// ── 数值断言(护栏a最难·须排可消耗/时辰/跨交易) ──
+// 只抽「名词键+中文数+稳定量词」(无名词键不绑); 矛盾=同名同量词不同数·≤150字内·中间无消耗/交易/变化触发(否则是合法变化)。量词排时辰(不含时/刻/更)。
+const QTY = "文尺寸丈里斤条枚片块碗壶盏盆筐担升斗匹卷扇";
+const NUM_EXCL = /[付给收找补添加省剩花用赏扣抵欠卖买涨落退凑只还又再多少又]|剩下|还有|只剩|用了|花了|添了|又.了|多了|少了/; // 两次之间出现=合法变化·排除
+export function extractNumbers(text: string): Array<{ key: string; num: string; at: number; ev: string }> {
+  const out: Array<{ key: string; num: string; at: number; ev: string }> = [];
+  const re = new RegExp(`([\\u4e00-\\u9fff]{2,3})([零一二三四五六七八九十百千两]{1,4})([${QTY}])`, "g");
+  for (const m of text.matchAll(re)) {
+    let noun = (m[1] ?? "").replace(/^[那这又也是了的和与给向朝把被又再多少正还便就只将该当从往回身后前]/, "");
+    if (noun.length < 2 || /[那这是了的把被和与又也都说要着]/.test(noun)) continue; // 名词键须似真
+    const at = m.index ?? 0;
+    out.push({ key: `${noun}|${m[3]}`, num: m[2] ?? "", at, ev: text.slice(Math.max(0, at - 2), Math.min(text.length, at + 8)).replace(/\n/g, "") });
+  }
+  return out;
+}
+
 // ── 主检测: 抽断言 + 路由矛盾(高精度) ──
 export function detectContradiction(text: string, names?: string[]): VetoHit[] {
   const nm = names && names.length ? names : autoNames(text);
@@ -90,6 +106,20 @@ export function detectContradiction(text: string, names?: string[]): VetoHit[] {
         if (a !== b && shareChar(a, b) && !a.includes(b) && !b.includes(a))
           hits.push({ kind: "nameDrift", entity: t, v1: a, v2: b, ev1: ns[i]!.ev, ev2: ns[j]!.ev, why: `${t}的名前${a}后${b}(共字=同人漂移)` });
       }
+    }
+  }
+  // 数值: 同名同量词不同数·≤150字·中间无消耗/交易/变化触发(护栏a)
+  const nums = extractNumbers(text);
+  const byKey = new Map<string, typeof nums>();
+  for (const x of nums) { const a = byKey.get(x.key) ?? []; a.push(x); byKey.set(x.key, a); }
+  for (const [key, xs] of byKey) {
+    for (let i = 0; i < xs.length; i++) for (let j = i + 1; j < xs.length; j++) {
+      const A = xs[i]!, B = xs[j]!;
+      if (A.num === B.num) continue;
+      if (Math.abs(A.at - B.at) > 150) continue; // 须同场景近距(几句内)
+      const between = text.slice(Math.min(A.at, B.at), Math.max(A.at, B.at));
+      if (NUM_EXCL.test(between)) continue; // 中间有消耗/交易/变化=合法·排除
+      hits.push({ kind: "number", entity: key.split("|")[0]!, v1: A.num, v2: B.num, ev1: A.ev, ev2: B.ev, why: `${key.split("|")[0]} 同场景 ${A.num}${key.split("|")[1]}↔${B.num}${key.split("|")[1]}` });
     }
   }
   return hits;
