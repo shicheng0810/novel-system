@@ -214,4 +214,17 @@ P0 量出状态复述 31% → 建 P1 v1「已陈述事实账本」(NOVEL_FACT_LE
 
 ---
 
-*本简报由 Opus 4.8 撰写; §8 Fable 追加; §8b/§8c Opus 执行 P0/P1 后追加。核心:① FULLCTX 证伪 ② canary 第四道铁律 ③ P0 量出复述 31% ④ **P1 v1(逐字台词注入)A/B 双轴皆败否决·喂数据非散文·建议暂搁或 v2 数据型**。*
+## 8d. 下一条轴: 开篇矛盾/转场 → P2 spec(2026-06-12·Fable 追加)
+> 详: `.audit/20260612-consistency-research/P2-opener-facts-spec.md`(可执行规格·分阶段·落文件行号)。
+
+**复述轴已闭环**: P1 v2(数据型「实体:属性」账本·`NOVEL_FACT_LEDGER=2`)A/B 成功(复述 6/8→3/8·d1c 仅 1.4× 不炸), 用户签字采纳, gen3 生产确认 ch317-324 复述 2/8。详 P0-results.md §7。
+
+**新评测开了正交的下一轴**: gen4 ch3《一篙撑不开的雾》——船钱 1↔3文 / "独条船↔上月两文" / 柳青舟从茶楼瞬移。**确定性栈实扫该章 0 命中, FACT_LEDGER v2(防复述)也不治**——这是**矛盾(contradiction)+转场(transition)轴**, 与复述轴正交。
+
+**已代码验证的机理**(别再论证): 预热暖 sim 世界态、不暖散文事实账本; **开篇是事实一致性最难章**(canon.json 开篇尚不存在 / canonHard 只带 sim 事实不带散文微事实 / in-medias-res 把最多首次确立事实塞进 ch1·4 段盲写各编一版)。而硬事实 `worlds/*.json` 本就有, 只是没 seed 进 ch1。
+
+**P2 落地三步(已成 spec·交 Opus)**: A 判官扩两类(factualContradiction/transitionGap)+ 量开篇 ch1–5 发率(先量·门槛开篇加权~8%); B 开篇事实底牌 OFS(配置→ch1 注入·数据型避套语)+ 章内矛盾守卫(扩 FACT_LEDGER 防"换数")+ 转场反向守卫; C fresh 双臂 A/B(不碰 gen4·主轴矛盾↓ 副轴 d1c 不炸)。**全程同纪律: 先量后建、数据非散文、四道 canary、人签采纳。**
+
+---
+
+*本简报由 Opus 4.8 撰写; §8 Fable 追加; §8b/§8c Opus 执行 P0/P1 后追加; §8d Fable 追加(开篇矛盾/转场轴+P2 spec 指针)。核心:① FULLCTX 证伪 ② canary 第四道铁律 ③ 复述轴 P1 v2 已闭环上线(喂数据非散文) ④ **下一轴=开篇矛盾/转场, 按 P2-opener-facts-spec.md 先量后建**。*
