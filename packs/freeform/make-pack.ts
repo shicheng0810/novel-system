@@ -121,7 +121,9 @@ export function makePack(cfg: WorldConfig) {
   // P0-1: 组合生成「姓+名」时排除已在显式 spawnNames 里用过的姓 → 杜绝「萧曦」撞显式「萧斩」这类近重名(LLM 易混写, 致正文漂离引擎硬事实、一致性掉分)。剩姓太少(<2)才回退全集。
   const _usedSur = new Set((cfg.surnames ?? []).filter((s) => s && cfg.spawnNames.some((nm) => nm.startsWith(s))));
   const _genSur = (cfg.surnames ?? []).filter((s) => !_usedSur.has(s));
-  const genSurnames = _genSur.length >= 2 ? _genSur : (cfg.surnames ?? []);
+  // [姓聚集根治·2026-06-14] 内置百家姓兜底扩池: 配置姓池常太小(dukou S=16·80角色每姓~5×→陆X×5姓聚集仍混)→ 配置姓优先(主角色用雅姓) + 内置常见姓补足(防姓聚集·任何世界都得大姓池·≈60)。排显式 spawnName 用过的姓(P0-1)与已在配置的(去重)。
+  const _builtinSur = "王李张刘陈杨黄赵吴徐孙马朱胡郭高罗郑梁韩冯邓曹彭萧蒋蔡贾丁魏薛潘杜戴夏钟汪田姚谭廖邹熊金白崔康秦江史侯邵孟龙段雷钱汤尹黎常武乔贺裴卢温穆华应凌向".split("").filter((s) => !_usedSur.has(s) && !_genSur.includes(s));
+  const genSurnames = _genSur.length >= 2 ? [..._genSur, ..._builtinSur] : (cfg.surnames ?? []);
   // 名字池用尽后用「姓+名」组合生成干净互异名(身份靠 id 唯一; 无姓名池则干净循环、不加「·N」后缀污染正文)
   // [P0-2·撞名灾修·2026-06-12雾江余债案] 旧式=姓优先遍历(前16组合全拿giv[0])且名池含主角名→gen2实测17人册15人共享5名(思齐×4/子衿×4/小棠×3/青舟×2/无尘×2·宋青舟≈主角柳青舟同业同名)。
   //   修: ①主角+显式配角占用的「后两字」进禁用表(主角名永不被克隆) ②名优先成块遍历(每名配满一姓块再换名→S×FG个唯一全名后才可能重名·16×12=192)。确定性·resume安全。
