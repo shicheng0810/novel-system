@@ -129,12 +129,30 @@ export function makePack(cfg: WorldConfig) {
   for (const c of cfg.protagonists ?? []) { const nm = typeof c === "string" ? c : (c as { name?: string }).name ?? ""; if (nm.length === 3) _usedGiv.add(nm.slice(1)); }
   for (const nm of cfg.spawnNames) if (nm.length === 3) _usedGiv.add(nm.slice(1));
   const _freeGiv = (cfg.givenNames ?? []).filter((g) => !_usedGiv.has(g));
+  // [撞名根治·2026-06-14·4个若兰案] 旧式: 给定名池(G)耗尽后复用给定名配新姓(`giv[k%G]`)→ 世界角色数>G 即撞名(dukou G=16·gen3 69角色→4个若兰/4个雨桐/4个承志·写者到深中段记不住谁是谁→相似名混淆 factC~60%)。
+  //   修: ①给定名每个只用一次(防同给定名撞)·②姓轮转 sur[k%S](防前 G 个同姓聚集)·③池耗尽改"音节两两组合"扩到 ~G+L²(L=给定名拆字音节数·≈600 唯一名·撞名延后到数百角色·风格相近)。确定性纯函数·resume安全(同 index 同名·存量角色不变)·只影响新 spawn。
+  function uniqueGiven(k: number, giv: string[], forbidden: Set<string>): string {
+    if (k < giv.length) return giv[k] ?? ""; // curated 好名优先·每个只用一次
+    const syl = [...new Set(giv.join("").split(""))]; // 音节池(给定名拆字·都是好字)
+    const L = syl.length || 1;
+    const m = k - giv.length;
+    // gap 枚举所有 (i, i+g) 音节对·跳 forbidden(curated名+主角给定名)·取第 m 个非禁组合→ 组合间互不撞·不重造curated·不克隆主角(P0-2)·全唯一到 ~L*(L-1)≈数百; 按间距 g 遍历→同轮首音节各异(散开·避念知/念秋共首音节聚集)。
+    let count = 0;
+    for (let g = 1; g < L; g++) for (let i = 0; i < L; i++) {
+      const name = (syl[i] ?? "") + (syl[(i + g) % L] ?? "");
+      if (forbidden.has(name)) continue;
+      if (count === m) return name;
+      count++;
+    }
+    return (syl[m % L] ?? "") + (syl[(m + 1) % L] ?? "") + String(m); // 兜底: L*(L-1) 组合耗尽(数百角色·极罕见)→ 加序号保唯一
+  }
   function spawnName(index: number): string {
     if (index < cfg.spawnNames.length) return cfg.spawnNames[index] ?? "路人";
     const sur = genSurnames, giv = _freeGiv.length ? _freeGiv : cfg.givenNames;
     if (sur && sur.length && giv && giv.length) {
       const k = index - cfg.spawnNames.length;
-      return (sur[Math.floor(k / giv.length) % sur.length] ?? "") + (giv[k % giv.length] ?? "");
+      const forbidden = new Set<string>([...giv, ..._usedGiv]); // 组合避开 curated 名 + 主角/显式给定名
+      return (sur[k % sur.length] ?? "") + uniqueGiven(k, giv, forbidden); // 给定名唯一(防撞名) + 姓轮转(防姓聚集)
     }
     return cfg.spawnNames[index % cfg.spawnNames.length] ?? "路人";
   }
