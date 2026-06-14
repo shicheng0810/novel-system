@@ -125,6 +125,18 @@ export function detectContradiction(text: string, names?: string[]): VetoHit[] {
   return hits;
 }
 
+// ── Phase 1b·接地(grounding): 复用 1a 清洁抽取器·把已立事实抽成 entity→value(非检测矛盾) ──
+//   重框(plan-fable §0): veto 检测矛盾撞 zero-FP 不可能题; grounding 把已立事实当 ground-truth 钉进后续段·让它没机会编新值。
+//   错误剖面友好: 漏抽→该实体不接地·退回现状(无害); 抽错→锁错值(有害·但对"称谓法名/性别"清洁类·1a 已证 0 误检 ≈ 0)。
+//   first-wins 由调用方(longrun 跨段账)保证: 本函数只返回"本段文本里已立的事实"·longrun 累积取首立。
+export function groundingAssertions(text: string, names?: string[]): Array<{ entity: string; fact: string }> {
+  const nm = names && names.length ? names : autoNames(text);
+  const out: Array<{ entity: string; fact: string }> = [];
+  for (const [t, ns] of extractTitleName(text)) if (ns[0]) out.push({ entity: `称谓:${t}`, fact: `${t}之名=${ns[0].name}` }); // 称谓→首立法名(静檀)
+  for (const [name, gs] of extractGender(text, nm)) if (gs[0]) out.push({ entity: `性别:${name}`, fact: `${name}=${gs[0].g === "他" ? "男" : "女"}` }); // 名→首立性别
+  return out;
+}
+
 // CLI: npx tsx app/fact-veto.ts <章.md> [名1,名2,...]  → 打印检出 JSON(离线精度验证用)
 if (process.argv[1]?.endsWith("fact-veto.ts")) {
   const file = process.argv[2];
