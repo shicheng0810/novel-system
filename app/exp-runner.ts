@@ -75,7 +75,7 @@ function validateSpec(s: ExpSpec): string[] {
       if (k === "NOVEL_SAGA_DIR" || k === "NOVEL_TARGET") e.push(`臂 ${a.name} 不得覆盖 runner 专属 env: ${k}`);
     }
   }
-  if (!Number.isInteger(s.chapters) || s.chapters < 1 || s.chapters > 12) e.push("chapters 须为 1-12 整数(蓝图建议 6-8)");
+  if (!Number.isInteger(s.chapters) || s.chapters < 1 || s.chapters > 60) e.push("chapters 须为 1-60 整数(蓝图建议短 trial 6-8; 大样本验如 Phase2 值factC 可至 50·见 fg-llm-big)");
   if (!Array.isArray(s.primary) || s.primary.length < 1 || s.primary.length > 2) e.push("primary 须 1-2 个");
   for (const p of s.primary ?? []) if (!PRIMARY_OK.has(p)) e.push(`primary 未知指标: ${p}(可用: ${[...PRIMARY_OK].join("/")})`);
   for (const g of s.guards ?? []) if (!GUARD_OK.has(g)) e.push(`guard 未知: ${g}(可用: ${[...GUARD_OK].join("/")})`);
